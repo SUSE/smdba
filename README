@@ -1,0 +1,6 @@
+SUSE Manager Database Admin or SMDBA is a replacement for spacewalk-dobby.
+Key features:
+  1. Support Oracle and PostgreSQL
+  2. No configuration other than just default /etc/rhn/rhn.conf
+
+NOTE: Not working at all. :) Stay tuned.
