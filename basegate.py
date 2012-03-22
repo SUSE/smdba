@@ -28,17 +28,12 @@ class BaseGate:
 
         gate_commands = getattr(self, "_gate_commands", None)
         if not gate_commands:
-            self.gate_commands = {}
+            self._gate_commands = {}
 
         for method_name in dir(self):
             if not method_name.startswith("do_"):
                 continue
 
-            self.gate_commands[method_name] = getattr(self, method_name).__doc__.strip()
+            self._gate_commands[method_name] = getattr(self, method_name).__doc__.strip()
 
-        return self.gate_commands
-
-
-if __name__ == "__main__":
-    b = BaseGate()
-    print b.syscall("echo", None, None, "hello")
+        return self._gate_commands
