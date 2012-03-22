@@ -31,7 +31,7 @@ class Console:
         Load required backend for the database.
         """
         try:
-            self.gate = __import__(self.config.get(self.DB_BACKEND, "unknown") + "gate").getGate()
+            self.gate = __import__(self.config.get(self.DB_BACKEND, "unknown") + "gate").getGate(self.config)
         except Exception, ex:
             print ex
             raise Exception("Unknown database backend. Please check %s configuration file." % self.config_file)
@@ -47,6 +47,8 @@ class Console:
         cfg = None
         if os.path.exists(self.config_file):
             cfg = open(self.config_file).readlines()
+        else:
+            raise Exception("Cannot open configuration file: " + self.config_file)
 
         for line in cfg:
             try:
@@ -99,7 +101,12 @@ class Console:
         """
         Execute one command.
         """
-        print "Executing", command
+        method = self.translate_command(command)
+        if self.gate.get_gate_commands().get(method):            
+            getattr(self.gate, method)()
+        else:
+            raise Exception(("The parameter \"%s\" is an unknown command.\n\n"  % command) + 
+                            "Hint: Try with no parameters first, perhaps?")
         
 
 
@@ -109,15 +116,14 @@ def main():
     """
     try:
         console = Console()
+        if len(sys.argv) < 2:
+            console.usage()
+        else:
+            console.execute(sys.argv[1])
     except Exception, err:
         Console.usage_header()
         print >> sys.stderr, "General error:\n", err, "\n"
         sys.exit(1)
-
-    if len(sys.argv) < 2:
-        console.usage()
-    else:
-        console.execute(sys.argv[1])
 
 
 if __name__ == "__main__":
