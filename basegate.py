@@ -2,6 +2,7 @@
 # Author: Bo Maryniuk <bo@suse.de>
 #
 
+import os
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 
@@ -18,7 +19,8 @@ class BaseGate:
         return Popen([command] + list(params), 
                      stdout=PIPE, 
                      stdin=PIPE, 
-                     stderr=STDOUT).communicate(input=input)
+                     stderr=STDOUT,
+                     env=os.environ).communicate(input=input)
 
 
     def get_gate_commands(self):
