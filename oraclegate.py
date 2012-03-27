@@ -77,16 +77,18 @@ class OracleGate(BaseGate):
         return '\n'.join(scenario)
 
 
-    def call_scenario(self, scenario):
+    def call_scenario(self, scenario, **variables):
         """
         Call scenario in SQL*Plus.
         Returns stdout and stderr.
         """
         if not os.path.exists(scenario):
             raise Exception("Underlying error: Scenario {scenario} does not exists or is unreachable.".format(scenario=scenario))
-        return self.syscall("sudo",
-                            self.get_scenario_template().format(scenario=(open(scenario).read()).replace('$', '\$')), 
-                            None, "-u", "oracle", "/bin/bash")
+        template = self.get_scenario_template().format(scenario=(open(scenario).read()).replace('$', '\$'))
+        if variables:
+            template = template.format(**variables)
+
+        return self.syscall("sudo", template, None, "-u", "oracle", "/bin/bash")
 
     #
     # Exposed operations below
@@ -336,10 +338,37 @@ class OracleGate(BaseGate):
             
 
 
-    def _do_tablesizes(self):
+    def do_table_sizes(self):
         """
         Show space report for each table.
         """
+        longest = 5
+        table = {}
+        index = []
+        stdout, stderr = self.call_scenario('tablesizes.scn', user=self.config.get('db_user', '').upper())
+        for tname, tsize in filter(None, [filter(None, line.replace("\t", " ").split(" ")) for line in stdout.split("\n")]):
+            table[tname] = tsize
+            index.append(tname)
+            longest = len(tname) > longest and len(tname) or longest
+
+        index.sort()
+
+        if table:
+            total = 0
+            print >> sys.stdout, "%s\t%s" % (("Table" + ((longest - 5) * " ")), "Size")
+
+            for tname in index:
+                tsize = int(table[tname])
+                print >> sys.stdout, "%s\t%.2fK" % ((tname + ((longest - len(tname)) * " ")), round(tsize / 1024.))
+                total += tsize
+
+            print >> sys.stdout, "\n%s\t%.2fM\n" % (("Total" + ((longest - 5) * " ")), round(total / 1024. / 1024.))
+            
+
+        if stderr:
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+            raise Exception("Unhandled underlying error.")
 
 
     def _do_verify(self):
