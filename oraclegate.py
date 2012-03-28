@@ -115,10 +115,53 @@ class OracleGate(BaseGate):
         Increase the SUSE Manager Database Instance tablespace.
         """
 
-    def _do_get_stats(self):
+    def do_get_stats(self):
         """
         Gather statistics on SUSE Manager Database database objects.
         """
+        stdout, stderr = self.call_scenario('stats.scn', owner=self.config.get('db_user', '').upper())
+
+        stale = []
+        empty = []
+        if stdout:
+            segment = None
+            for line in stdout.strip().split("\n"):
+                if line.find('stale objects') > -1:
+                    segment = 'stale'
+                    continue
+                elif line.find('empty objects') > -1:
+                    segment = 'empty'
+                    continue
+
+                line = line.split(" ")[-1].strip()
+
+                if segment and segment == 'stale':
+                    stale.append(line)
+                elif segment and segment == 'empty':
+                    empty.append(line)
+                else:
+                    print "Ignoring", repr(line)
+
+        if stale:
+            print >> sys.stdout, "\nList of stale objects:"
+            for obj in stale:
+                print >> sys.stdout, "\t", obj
+            print >> sys.stdout, "\nFound %s stale objects\n" % len(stale)
+        else:
+            print >> sys.stdout, "No stale objects found"
+
+        if empty:
+            print >> sys.stdout, "\nList of empty objects:"
+            for obj in empty:
+                print >> sys.stdout, "\t", obj
+            print >> sys.stdout, "\nFound %s objects that currently have no statistics.\n" % len(stale)
+        else:
+            print >> sys.stdout, "No empty objects found."
+
+        if stderr:
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+
 
     def do_report(self):
         """
@@ -402,10 +445,10 @@ class OracleGate(BaseGate):
         """
         Get Oracle database status.
         """
-        scenario = "select 999 as MAGIC from dual;"
+        scenario = "select 999 as MAGICPING from dual;" # :-)
         stdout, stderr = self.syscall("sudo", self.get_scenario_template().format(scenario=scenario), 
                                 None, "-u", "oracle", "/bin/bash")
-        return (stdout.find('MAGIC') > -1 and stdout.find('999') > -1), stdout, stderr
+        return (stdout.find('MAGICPING') > -1 and stdout.find('999') > -1), stdout, stderr
 
 
 
