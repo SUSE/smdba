@@ -1,0 +1,11 @@
+CONNECT / AS SYSDBA;
+set serveroutput on size unlimited
+set feedback off
+
+SELECT tbs.segment_space_management, rec.*
+  FROM TABLE(DBMS_SPACE.ASA_RECOMMENDATIONS()) rec,
+       dba_tablespaces tbs
+ WHERE rec.tablespace_name = tbs.tablespace_name
+ ORDER BY segment_space_management asc, segment_type desc, reclaimable_space desc;
+
+EXIT;

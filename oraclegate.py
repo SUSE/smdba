@@ -119,6 +119,56 @@ class OracleGate(BaseGate):
         """
         Gather statistics on SUSE Manager Database database objects.
         """
+        print >> sys.stdout, "Gathering statistics on SUSE Manager database...\t",
+        sys.stdout.flush()
+
+        stdout, stderr = self.call_scenario('gather-stats.scn', owner=self.config.get('db_user', '').upper())
+
+        if stdout and stdout.strip() == 'done':
+            print >> sys.stdout, 'finished'
+        else:
+            print >> sys.stdout, 'failed'
+
+        if stderr:
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+            
+
+
+    def do_report(self):
+        """
+        Show database space report.
+        """
+        stdout, stderr = self.call_scenario('report.scn')
+        nw = 10
+        sw = 9
+        uw = 9
+        aw = 10
+        ew = 5
+        index = [("Tablespace", "Size (Mb)", "Used (Mb)", "Avail (Mb)", "Use %"),]
+        for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
+                                       for line in stdout.strip().split("\n")[2:]]:
+            usage = str(int(float(used) / float(size) * 100))
+            index.append((name, free, used, size, usage,))
+            nw = len(name) > nw and len(name) or nw
+            sw = len(size) > sw and len(size) or sw
+            uw = len(used) > uw and len(used) or uw
+            aw = len(free) > aw and len(free) or aw
+            ew = len(usage) > ew and len(usage) or ew
+
+        print >> sys.stdout, "%s\t\t%s\t%s\t%s\t%s" % tuple(index[0])
+        for name, free, used, size, usage in index[1:]:
+            print >> sys.stdout, "%s\t\t%s\t%s\t%s\t%s" % (name + ((nw - len(name)) * " "),
+                                                                    free + ((aw - len(free)) * " "),
+                                                                    used + ((uw - len(used)) * " "),
+                                                                    size + ((sw - len(size)) * " "),
+                                                                    usage + ((ew - len(usage)) * " "))
+
+
+    def do_report_stats(self):
+        """
+        Show tables with stale or empty statistics.
+        """
         stdout, stderr = self.call_scenario('stats.scn', owner=self.config.get('db_user', '').upper())
 
         stale = []
@@ -163,41 +213,6 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def do_report(self):
-        """
-        Show database space report.
-        """
-        stdout, stderr = self.call_scenario('report.scn')
-        nw = 10
-        sw = 9
-        uw = 9
-        aw = 10
-        ew = 5
-        index = [("Tablespace", "Size (Mb)", "Used (Mb)", "Avail (Mb)", "Use %"),]
-        for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
-                                       for line in stdout.strip().split("\n")[2:]]:
-            usage = str(int(float(used) / float(size) * 100))
-            index.append((name, free, used, size, usage,))
-            nw = len(name) > nw and len(name) or nw
-            sw = len(size) > sw and len(size) or sw
-            uw = len(used) > uw and len(used) or uw
-            aw = len(free) > aw and len(free) or aw
-            ew = len(usage) > ew and len(usage) or ew
-
-        print >> sys.stdout, "%s\t\t%s\t%s\t%s\t%s" % tuple(index[0])
-        for name, free, used, size, usage in index[1:]:
-            print >> sys.stdout, "%s\t\t%s\t%s\t%s\t%s" % (name + ((nw - len(name)) * " "),
-                                                                    free + ((aw - len(free)) * " "),
-                                                                    used + ((uw - len(used)) * " "),
-                                                                    size + ((sw - len(size)) * " "),
-                                                                    usage + ((ew - len(usage)) * " "))
-
-
-    def _do_report_stats(self):
-        """
-        Show tables with stale or empty statistics.
-        """
-
     def _do_restore_backup(self):
         """
         Restore the SUSE Manager Database from backup.
@@ -205,8 +220,20 @@ class OracleGate(BaseGate):
 
     def _do_shrink_segments(self):
         """
-        Shrink SUSE Manager Database database segments.
+        Reclaim unused disk space for tables and indexes.
         """
+        
+        ready, stdout, stderr = self.get_db_status()
+        if not ready:
+            raise Exception("Database is not running.")
+
+        print >> sys.stdout, "Examining the database...\t",
+        sys.stdout.flush()
+
+        # run task
+
+        # Recomendations
+        stdout, stderr = self.call_scenario('recomendations.scn')
 
 
     def do_listener_start(self):
