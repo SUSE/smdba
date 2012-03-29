@@ -16,11 +16,13 @@ class BaseGate:
         """
         Call an external system command.
         """
-        return Popen([command] + list(params), 
-                     stdout=PIPE, 
-                     stdin=PIPE, 
-                     stderr=STDOUT,
-                     env=os.environ).communicate(input=input)
+        stdout, stderr = Popen([command] + list(params), 
+                               stdout=PIPE, 
+                               stdin=PIPE, 
+                               stderr=STDOUT,
+                               env=os.environ).communicate(input=input)
+
+        return stdout and stdout.strip() or '', stderr and stderr.strip() or ''
 
 
     def get_gate_commands(self):

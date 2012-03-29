@@ -1,8 +1,14 @@
 CONNECT / AS SYSDBA;
 set serveroutput on size unlimited
 set feedback off
+set lines 256
+set pages 0
 
-SELECT tbs.segment_space_management, rec.*
+SELECT tbs.segment_space_management ssm,
+       SEGMENT_NAME,
+       RECLAIMABLE_SPACE,
+       rec.TABLESPACE_NAME,
+       rec.SEGMENT_TYPE
   FROM TABLE(DBMS_SPACE.ASA_RECOMMENDATIONS()) rec,
        dba_tablespaces tbs
  WHERE rec.tablespace_name = tbs.tablespace_name

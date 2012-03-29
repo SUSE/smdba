@@ -218,9 +218,9 @@ class OracleGate(BaseGate):
         Restore the SUSE Manager Database from backup.
         """
 
-    def _do_shrink_segments(self):
+    def do_reclaim_space(self):
         """
-        Reclaim unused disk space for tables and indexes.
+        Free disk space from unused object in tables and indexes.
         """
         
         ready, stdout, stderr = self.get_db_status()
@@ -231,9 +231,107 @@ class OracleGate(BaseGate):
         sys.stdout.flush()
 
         # run task
+        stdout, stderr = self.call_scenario('shrink-segments-advisor.scn')
+        stderr = None
 
-        # Recomendations
+        if stderr:
+            print >> sys.stdout, "failed"
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+            return
+        else:
+            print >> sys.stdout, "done"
+
+        print >> sys.stdout, "Gathering recommendations...\t",
+        sys.stdout.flush()
+
+        # get the recomendations
         stdout, stderr = self.call_scenario('recomendations.scn')
+        #stdout = open('sample.txt').read().strip()
+        #stderr = None
+
+        if not stdout and not stderr:
+            print >> sys.stdout, "finished"
+            return
+
+        elif stdout:
+            print >> sys.stdout, "done"
+
+        else:
+            print >> sys.stdout, "failed"
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+
+
+        messages = {
+            'TABLE' : 'Tables',
+            'INDEX' : 'Indexes',
+            'AUTO' : 'Recommended segments',
+            'MANUAL' : 'Non-shrinkable tablespace',
+            }
+
+        tree = {}
+        wseg = 0
+
+        if stdout:
+            lines = [tuple(filter(None, line.strip().replace("\t", " ").split(" "))) for line in stdout.strip().split("\n")]
+            for ssm, sname, rspace, tsn, stype in lines:
+                tsns = tree.get(tsn, {})
+                stypes = tsns.get(stype, {})
+                ssms = stypes.get(ssm, [])
+                ssms.append((sname, int(rspace),))
+                wseg = len(sname) > wseg and len(sname) or wseg
+                stypes[ssm] = ssms
+                tsns[stype] = stypes
+                tree[tsn] = tsns
+
+            total = 0
+            for tsn in tree.keys():
+                print >> sys.stdout, "\nTablespace:", tsn
+                for obj in tree[tsn].keys():
+                    print >> sys.stdout, "\n\t" +  messages.get(obj, "Object: " + obj)
+                    for stype in tree[tsn][obj].keys():
+                        typetotal = 0
+                        print >> sys.stdout, "\t" + messages.get(stype, "Type: " + stype)
+                        for segment, size in tree[tsn][obj][stype]:
+                            print >> sys.stdout, "\t\t", \
+                                (segment + ((wseg - len(segment)) * " ")), \
+                                "\t", '%.2fM' % (size / 1024. / 1024.)
+                            total += size
+                            typetotal += size
+                        total_message = "Total " + messages.get(obj, '').lower()
+                        print >> sys.stdout, "\n\t\t", \
+                            (total_message + ((wseg - len(total_message)) * " ")), \
+                            "\t", '%.2fM' % (typetotal / 1024. / 1024.)
+
+            print >> sys.stdout, "\nTotal reclaimed space: %.2fGB" % (total / 1024. / 1024. / 1024.)
+
+        # Reclaim space
+        if tree:
+            for tsn in tree.keys():
+                for obj in tree[tsn].keys():
+                    if tree[tsn][obj].get('AUTO', None):
+                        print >> sys.stdout, "\nReclaiming space on %s:" % messages[obj].lower()
+                        for segment, size in tree[tsn][obj]['AUTO']:
+                            print >> sys.stdout, "\t", segment + "...\t",
+                            sys.stdout.flush()
+                            stdout, stderr = self.syscall("sudo", self.get_scenario_template().format(
+                                    scenario=self.__get_reclaim_space_statement(segment)), None, "-u", "oracle", "/bin/bash")
+                            if stderr:
+                                print >> sys.stdout, "failed"
+                                print >> sys.stderr, stderr
+                            else:
+                                print >> sys.stdout, "done"
+
+        print >> sys.stdout, "Reclaiming space finished"
+
+
+    def __get_reclaim_space_statement(self, segment):
+            query = []
+            query.append("alter table %s.%s enable row movement;" % (self.config.get('db_user', '').upper(), segment))
+            query.append("alter table %s.%s shrink space compact;" % (self.config.get('db_user', '').upper(), segment))
+
+            return '\n'.join(query)
 
 
     def do_listener_start(self):
