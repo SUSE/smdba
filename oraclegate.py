@@ -7,6 +7,9 @@
 from basegate import BaseGate
 import os
 import sys
+import re
+import time
+
 
 
 class OracleGate(BaseGate):
@@ -53,12 +56,20 @@ class OracleGate(BaseGate):
             raise Exception("Underlying error: %s does not exists or cannot be executed." % self.lsnrctl)
 
 
-    def get_scenario_template(self):
+    def get_scenario_template(self, target='sqlplus'):
         """
         Generate a template for the Oracle SQL*Plus scenario.
         """        
         e = os.environ.get
         scenario = []
+
+        executable = None
+        if target == 'sqlplus':
+            executable = "/bin/sqlplus -S /nolog"
+        elif target == 'rman':
+            executable = "/bin/rman"
+        else:
+            raise Exception("Unknown scenario target: %s" % target)
 
         if e('PATH') and e('ORACLE_BASE') and e('ORACLE_SID') and e('ORACLE_HOME'):
             scenario.append("export ORACLE_BASE=" + e('ORACLE_BASE'))
@@ -68,8 +79,12 @@ class OracleGate(BaseGate):
         else:
             raise Exception("Underlying error: environment cannot be constructed.")
 
-        scenario.append("cat - << EOF | " + e('ORACLE_HOME') + "/bin/sqlplus -S /nolog")
-        scenario.append("CONNECT / AS SYSDBA;")
+        scenario.append("cat - << EOF | " + e('ORACLE_HOME') + executable)
+        if target == 'sqlplus':
+            scenario.append("CONNECT / AS SYSDBA;")
+        elif target == 'rman':
+            scenario.append("CONNECT TARGET /")
+
         scenario.append("{scenario}")
         scenario.append("EXIT;")
         scenario.append("EOF")
@@ -77,14 +92,14 @@ class OracleGate(BaseGate):
         return '\n'.join(scenario)
 
 
-    def call_scenario(self, scenario, **variables):
+    def call_scenario(self, scenario, target='sqlplus', **variables):
         """
         Call scenario in SQL*Plus.
         Returns stdout and stderr.
         """
         if not os.path.exists(scenario):
             raise Exception("Underlying error: Scenario {scenario} does not exists or is unreachable.".format(scenario=scenario))
-        template = self.get_scenario_template().format(scenario=(open(scenario).read()).replace('$', '\$'))
+        template = self.get_scenario_template(target=target).format(scenario=(open(scenario).read()).replace('$', '\$'))
         if variables:
             template = template.format(**variables)
 
@@ -94,10 +109,65 @@ class OracleGate(BaseGate):
     # Exposed operations below
     #
 
-    def _do_hot_backup(self):
+    def do_backup_list(self):
         """
-        Perform database hot backup on running database.
+        List of available backups.
         """
+        class InfoNode:pass
+        infoset = []
+        stdout, stderr = self.call_scenario('rman-list-backups.scn', target='rman')
+        if stdout:
+            for chunk in filter(None, [re.sub('=+', '', c).strip() for c in stdout.split("\n=")[-1].split('BS Key')]):
+                try:
+                    info = InfoNode()
+                    info.files = []
+                    piece_chnk, files_chnk = chunk.split('List of Datafiles')
+                    # Get backup place
+                    for line in [l.strip() for l in piece_chnk.split("\n")]:
+                        if line.lower().startswith('piece name'):
+                            info.backup = line.split(" ")[-1]
+                        if line.lower().find('status') > -1:
+                            status_line = filter(None, line.replace(':', '').split("Status")[-1].split(" "))
+                            if len(status_line) ==  5:
+                                info.status = status_line[0]
+                                info.compression = status_line[2]
+                                info.tag = status_line[4]
+
+                    # Get the list of files
+                    cutoff = True
+                    for line in [l.strip() for l in files_chnk.split("\n")]:
+                        if line.startswith('-'):
+                            cutoff = None
+                            continue
+                        else:
+                            line = filter(None, line.split(" "))
+                            if len(line) > 4:
+                                if line[0] == 'File':
+                                    continue
+                                dbf = InfoNode()
+                                dbf.type = line[1]
+                                dbf.file = line[-1]
+                                dbf.date = line[-2]
+                                info.files.append(dbf)
+                    infoset.append(info)
+                except:
+                    print "Nope"
+
+            # Display backup data
+            if (infoset):
+                print >> sys.stdout, "Backups available:\n"
+                for info in infoset:
+                    print >> sys.stdout, "Name:\t", info.backup
+                    print >> sys.stdout, "Files:"
+                    for dbf in info.files:
+                        print >> sys.stdout, "\tType:", dbf.type,
+                        print >> sys.stdout, "\tDate:", dbf.date,
+                        print >> sys.stdout, "\tFile:", dbf.file
+                    print >> sys.stdout
+
+        if stderr:
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
 
 
     def _do_cold_backup(self):
