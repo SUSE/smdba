@@ -42,6 +42,7 @@ class Roller(threading.Thread):
     def stop(self, message=None):
         self.__message = message and message or "  "
         self.__running = False
+        self.__offset = 0
 
 
 

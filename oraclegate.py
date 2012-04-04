@@ -66,9 +66,17 @@ class OracleGate(BaseGate):
         """
         List of available backups.
         """
+        roller = Roller()
+        roller.start()
+        print >> sys.stdout, "Getting available backups:\t",
+
         class InfoNode:pass
         infoset = []
         stdout, stderr = self.call_scenario('rman-list-backups.scn', target='rman')
+
+        roller.stop("finished")
+        time.sleep(1)
+
         if stdout:
             for chunk in filter(None, [re.sub('=+', '', c).strip() for c in stdout.split("\n=")[-1].split('BS Key')]):
                 try:
@@ -170,11 +178,6 @@ class OracleGate(BaseGate):
             print >> sys.stdout
 
 
-    def _do_backup_info(self):
-        """
-        Display information about an SUSE Manager Database backup.
-        """
-
     def _do_extend(self, *args, **params):
         """
         Increase the SUSE Manager Database Instance tablespace.
@@ -185,14 +188,18 @@ class OracleGate(BaseGate):
         Gather statistics on SUSE Manager Database database objects.
         """
         print >> sys.stdout, "Gathering statistics on SUSE Manager database...\t",
-        sys.stdout.flush()
+
+        roller = Roller()
+        roller.start()
 
         stdout, stderr = self.call_scenario('gather-stats.scn', owner=self.config.get('db_user', '').upper())
 
         if stdout and stdout.strip() == 'done':
-            print >> sys.stdout, 'finished'
+            roller.stop('finished')
         else:
-            print >> sys.stdout, 'failed'
+            roller.stop('failed')
+
+        time.sleep(1)
 
         if stderr:
             print >> sys.stderr, "Error dump:"
@@ -234,7 +241,15 @@ class OracleGate(BaseGate):
         """
         Show tables with stale or empty statistics.
         """
+        print >> sys.stdout, "Preparing data:\t\t",
+        
+        roller = Roller()
+        roller.start()
+
         stdout, stderr = self.call_scenario('stats.scn', owner=self.config.get('db_user', '').upper())
+
+        roller.stop('finished')
+        time.sleep(1)
 
         stale = []
         empty = []
@@ -295,37 +310,45 @@ class OracleGate(BaseGate):
             raise Exception("Database is not running.")
 
         print >> sys.stdout, "Examining the database...\t",
-        sys.stdout.flush()
+
+        roller = Roller()
+        roller.start()
 
         # run task
         stdout, stderr = self.call_scenario('shrink-segments-advisor.scn')
         stderr = None
 
         if stderr:
-            print >> sys.stdout, "failed"
+            roller.stop('failed')
+            time.sleep(1)
             print >> sys.stderr, "Error dump:"
             print >> sys.stderr, stderr
             return
         else:
-            print >> sys.stdout, "done"
+            roller.stop('done')
+            time.sleep(1)
 
         print >> sys.stdout, "Gathering recommendations...\t",
-        sys.stdout.flush()
+
+        roller = Roller()
+        roller.start()
 
         # get the recomendations
         stdout, stderr = self.call_scenario('recomendations.scn')
-        #stdout = open('sample.txt').read().strip()
-        #stderr = None
 
         if not stdout and not stderr:
-            print >> sys.stdout, "finished"
+            roller.stop("finished")
+            time.sleep(1)
+            print >> sys.stdout, "\nNo space reclamation possible at this time.\n"
             return
 
         elif stdout:
-            print >> sys.stdout, "done"
+            roller.stop("done")
+            time.sleep(1)
 
         else:
-            print >> sys.stdout, "failed"
+            roller.stop("failed")
+            time.sleep(1)
             print >> sys.stderr, "Error dump:"
             print >> sys.stderr, stderr
 
