@@ -65,11 +65,21 @@ class Console:
         print >> sys.stderr, "Copyright (c) by SUSE Linux Products GmbH\n"
 
 
-    def usage(self):
+    def usage(self, command=None):
         """
         Print usage.
         """
         Console.usage_header()
+
+        if command:
+            help = self.gate.get_gate_commands().get(command)
+            print >> sys.stdout, "Command:\n\t%s\n\nDescription:" % self.translate_command(command)
+            print >> sys.stdout, "\t" + help.get('description', 'No description available') + "\n"
+            if help.get('help'):
+                print >> sys.stdout, "Parameters:"
+                print >> sys.stdout, '\n'.join(["\t" + hl for hl in help.get('help').split("\n")]) + "\n"
+            sys.exit(1)
+        
         print >> sys.stderr, "Available commands on %s database:" % self.gate.NAME.title()
 
         index_commands = []
@@ -83,7 +93,7 @@ class Console:
 
         for command in index_commands:
             print >> sys.stderr, "\t", (command + ((longest - len(command)) * " ")), \
-                "\t", self.gate.get_gate_commands().get(self.translate_command(command))
+                "\t", self.gate.get_gate_commands().get(self.translate_command(command)).get('description', '')
 
         print >> sys.stderr
 
@@ -101,13 +111,35 @@ class Console:
         """
         Execute one command.
         """
-        method = self.translate_command(command)
-        if self.gate.get_gate_commands().get(method):            
-            getattr(self.gate, method)()
+        method = self.translate_command(command[0])
+        if self.gate.get_gate_commands().get(method):
+            args, params = self.get_opts(command[1:])
+            if 'help' in args:
+                self.usage(command=method)
+            getattr(self.gate, method)(*args, **params)
         else:
-            raise Exception(("The parameter \"%s\" is an unknown command.\n\n"  % command) + 
+            raise Exception(("The parameter \"%s\" is an unknown command.\n\n"  % command[0]) + 
                             "Hint: Try with no parameters first, perhaps?")
-        
+
+
+    def get_opts(self, opts):
+        """
+        Parse --key=value params.
+        """
+        # When something more serious will be needed, standard lib might be used with more code. :)
+        params = {}
+        args = []
+        for opt in opts:
+            if opt.startswith("--"):
+                opt = opt.split("=", 1)
+                if len(opt) == 2:
+                    params[opt[0][2:]] = opt[1]
+                else:
+                    raise Exception("Wrong argument: %s" % opt[0])
+            else:
+                args.append(opt)
+
+        return args, params
 
 
 def main():
@@ -116,10 +148,10 @@ def main():
     """
     try:
         console = Console()
-        if len(sys.argv) < 2:
-            console.usage()
+        if len(sys.argv[1:]) > 0:
+            console.execute(sys.argv[1:])
         else:
-            console.execute(sys.argv[1])
+            console.usage()
     except Exception, err:
         Console.usage_header()
         print >> sys.stderr, "General error:\n", err, "\n"

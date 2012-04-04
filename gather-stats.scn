@@ -3,7 +3,7 @@ set serveroutput on size unlimited
 set feedback off
 
 BEGIN
-  DBMS_STATS.GATHER_SCHEMA_STATS('{owner}',
+  DBMS_STATS.GATHER_SCHEMA_STATS('@owner',
             ESTIMATE_PERCENT=>DBMS_STATS.AUTO_SAMPLE_SIZE,
             DEGREE=>DBMS_STATS.DEFAULT_DEGREE,
             CASCADE=>TRUE);

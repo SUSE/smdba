@@ -5,6 +5,8 @@
 #
 
 from basegate import BaseGate
+from roller import Roller
+
 import os
 import sys
 import re
@@ -56,60 +58,11 @@ class OracleGate(BaseGate):
             raise Exception("Underlying error: %s does not exists or cannot be executed." % self.lsnrctl)
 
 
-    def get_scenario_template(self, target='sqlplus'):
-        """
-        Generate a template for the Oracle SQL*Plus scenario.
-        """        
-        e = os.environ.get
-        scenario = []
-
-        executable = None
-        if target == 'sqlplus':
-            executable = "/bin/sqlplus -S /nolog"
-        elif target == 'rman':
-            executable = "/bin/rman"
-        else:
-            raise Exception("Unknown scenario target: %s" % target)
-
-        if e('PATH') and e('ORACLE_BASE') and e('ORACLE_SID') and e('ORACLE_HOME'):
-            scenario.append("export ORACLE_BASE=" + e('ORACLE_BASE'))
-            scenario.append("export ORACLE_SID=" + e('ORACLE_SID'))
-            scenario.append("export ORACLE_HOME=" + e('ORACLE_HOME'))
-            scenario.append("export PATH=" + e('PATH'))
-        else:
-            raise Exception("Underlying error: environment cannot be constructed.")
-
-        scenario.append("cat - << EOF | " + e('ORACLE_HOME') + executable)
-        if target == 'sqlplus':
-            scenario.append("CONNECT / AS SYSDBA;")
-        elif target == 'rman':
-            scenario.append("CONNECT TARGET /")
-
-        scenario.append("{scenario}")
-        scenario.append("EXIT;")
-        scenario.append("EOF")
-
-        return '\n'.join(scenario)
-
-
-    def call_scenario(self, scenario, target='sqlplus', **variables):
-        """
-        Call scenario in SQL*Plus.
-        Returns stdout and stderr.
-        """
-        if not os.path.exists(scenario):
-            raise Exception("Underlying error: Scenario {scenario} does not exists or is unreachable.".format(scenario=scenario))
-        template = self.get_scenario_template(target=target).format(scenario=(open(scenario).read()).replace('$', '\$'))
-        if variables:
-            template = template.format(**variables)
-
-        return self.syscall("sudo", template, None, "-u", "oracle", "/bin/bash")
-
     #
     # Exposed operations below
     #
 
-    def do_backup_list(self):
+    def do_backup_list(self, *args, **params):
         """
         List of available backups.
         """
@@ -170,22 +123,64 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def _do_cold_backup(self):
+    def do_backup_hot(self, *args, **params):
         """
-        Perform database backup.
+        Perform host database backup.
+
+        @help
+        --backup-dir\tDirectory for backup data to be stored.
         """
+        if not params.get('backup-dir'):
+            raise Exception("\tPlease run this as \"%s backup-hot help\" first." % sys.argv[0])
+
+        if not os.path.exists(params.get('backup-dir')):
+            raise Exception("\tIs the \"%s\" path does not exists?" % params.get('backup-dir'))
+
+        print >> sys.stdout, "Backing up the database:\t",
+        roller = Roller()
+        roller.start()
+        stdout, stderr = self.call_scenario('rman-hot-backup.scn', target='rman', backupdir=params.get('backup-dir'))
+
+        if stderr:
+            roller.stop("failed")
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+
+        if stdout:
+            roller.stop("finished")
+            time.sleep(1)
+
+            files = []
+            arclogs = []
+            for line in stdout.split("\n"):
+                line = line.strip()
+                if line.startswith("input") and line.find('datafile') > -1:
+                    files.append(line.split("name=")[-1])
+                elif line.startswith("archived"):
+                    arclogs.append(line.split("name=")[-1].split(" ")[0])
+
+            print >> sys.stdout, "Data files archived:"
+            for f in files:
+                print >> sys.stdout, "\t" + f
+            print >> sys.stdout
+
+            print >> sys.stdout, "Archive logs:"
+            for arc in arclogs:
+                print >> sys.stdout, "\t" + arc
+            print >> sys.stdout
+
 
     def _do_backup_info(self):
         """
         Display information about an SUSE Manager Database backup.
         """
 
-    def _do_extend(self):
+    def _do_extend(self, *args, **params):
         """
         Increase the SUSE Manager Database Instance tablespace.
         """
 
-    def do_get_stats(self):
+    def do_stats_refresh(self, *args, **params):
         """
         Gather statistics on SUSE Manager Database database objects.
         """
@@ -205,7 +200,7 @@ class OracleGate(BaseGate):
             
 
 
-    def do_report(self):
+    def do_space_overview(self, *args, **params):
         """
         Show database space report.
         """
@@ -235,7 +230,7 @@ class OracleGate(BaseGate):
                                                                     usage + ((ew - len(usage)) * " "))
 
 
-    def do_report_stats(self):
+    def do_stats_overview(self, *args, **params):
         """
         Show tables with stale or empty statistics.
         """
@@ -283,12 +278,14 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def _do_restore_backup(self):
+    def do_backup_restore(self, *args, **params):
         """
         Restore the SUSE Manager Database from backup.
+        @help
+        --backup-dir     Directory, where backups are located.
         """
 
-    def do_reclaim_space(self):
+    def do_space_reclaim(self, *args, **params):
         """
         Free disk space from unused object in tables and indexes.
         """
@@ -404,7 +401,7 @@ class OracleGate(BaseGate):
             return '\n'.join(query)
 
 
-    def do_listener_start(self):
+    def do_listener_start(self, *args, **params):
         """
         Start the SUSE Manager Database listener.
         """
@@ -432,7 +429,7 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def do_listener_stop(self):
+    def do_listener_stop(self, *args, **params):
         """
         Stop the SUSE Manager Database listener.
         """
@@ -460,7 +457,7 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def do_listener_status(self):
+    def do_listener_status(self, *args, **params):
         """
         Show database status.
         """
@@ -475,7 +472,7 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def do_listener_restart(self):
+    def do_listener_restart(self, *args, **params):
         """
         Restart SUSE Database Listener.
         """
@@ -491,7 +488,7 @@ class OracleGate(BaseGate):
         print >> sys.stdout, "done"
 
 
-    def do_db_start(self):
+    def do_db_start(self, *args, **params):
         """
         Start SUSE Manager database.
         """
@@ -526,7 +523,7 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def do_db_stop(self):
+    def do_db_stop(self, *args, **params):
         """
         Stop SUSE Manager database.
         """
@@ -561,7 +558,7 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def do_db_status(self):
+    def do_db_status(self, *args, **params):
         """
         Get SUSE Database running status.
         """
@@ -576,7 +573,7 @@ class OracleGate(BaseGate):
             
 
 
-    def do_table_sizes(self):
+    def do_space_tables(self, *args, **params):
         """
         Show space report for each table.
         """
@@ -609,7 +606,7 @@ class OracleGate(BaseGate):
             raise Exception("Unhandled underlying error.")
 
 
-    def _do_verify(self):
+    def _do_verify(self, *args, **params):
         """
         Verify an SUSE Manager Database Instance backup.
         """
@@ -641,7 +638,7 @@ class OracleGate(BaseGate):
         Get Oracle database status.
         """
         scenario = "select 999 as MAGICPING from dual;" # :-)
-        stdout, stderr = self.syscall("sudo", self.get_scenario_template().format(scenario=scenario), 
+        stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', scenario), 
                                 None, "-u", "oracle", "/bin/bash")
         return (stdout.find('MAGICPING') > -1 and stdout.find('999') > -1), stdout, stderr
 

@@ -1,11 +1,10 @@
-connect / as sysdba;
 set serveroutput on size unlimited
 set feedback off
 
 DECLARE
   olist dbms_stats.objecttab;
 BEGIN
-  dbms_stats.gather_schema_stats('{owner}', options=>'LIST STALE', objlist=>olist);
+  dbms_stats.gather_schema_stats('@owner', options=>'LIST STALE', objlist=>olist);
   dbms_output.put_line('stale objects: ' || olist.COUNT);
   IF olist.COUNT > 0 THEN
      FOR x in 1..olist.COUNT LOOP
@@ -13,7 +12,7 @@ BEGIN
      END LOOP;
   END IF;
 
-  dbms_stats.gather_schema_stats('{owner}', options=>'LIST EMPTY', objlist=>olist);
+  dbms_stats.gather_schema_stats('@owner', options=>'LIST EMPTY', objlist=>olist);
   dbms_output.put_line('empty objects: ' || olist.COUNT);
   IF olist.COUNT > 0 THEN
      FOR x in 1..olist.COUNT LOOP
@@ -22,5 +21,3 @@ BEGIN
   END IF;
 END;
 /
-
-EXIT;
