@@ -5,6 +5,7 @@
 #
 
 from basegate import BaseGate
+from basegate import GateException
 from roller import Roller
 
 import os
@@ -151,6 +152,7 @@ class OracleGate(BaseGate):
 
         if stderr:
             roller.stop("failed")
+            time.sleep(1)
             print >> sys.stderr, "Error dump:"
             print >> sys.stderr, stderr
 
@@ -176,6 +178,53 @@ class OracleGate(BaseGate):
             for arc in arclogs:
                 print >> sys.stdout, "\t" + arc
             print >> sys.stdout
+
+
+    def do_backup_restore(self, *args, **params):
+        """
+        Restore the SUSE Manager Database from backup.
+        @help
+        force\tShutdown database, if running.
+        start\tStart database after restore.
+        """
+        print >> sys.stdout, "Preparing database:\t",
+        roller = Roller()
+        roller.start()
+        ready, stdout, stderr = self.get_db_status()
+        if ready:
+            if 'force' in args:
+                roller.stop("running")
+                time.sleep(1)
+                self.do_db_stop()
+            else:
+                roller.stop("failed")
+                time.sleep(1)
+                raise GateException("Database must be put offline.")
+        else:
+            roller.stop("success")
+            time.sleep(1)
+        
+        print >> sys.stdout, "Restoring from backup:\t",
+        roller = Roller()
+        roller.start()
+
+        stdout, stderr = 1, None #self.call_scenario('rman-hot-backup.scn', target='rman', backupdir=params.get('backup-dir'))
+
+        time.sleep(3)
+
+        if stderr:
+            roller.stop("failed")
+            time.sleep(1)
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+
+        if stdout:
+            roller.stop("finished")
+            time.sleep(1)
+
+        if 'start' in args:
+            self.do_db_start()
+            self.do_listener_status()
 
 
     def _do_extend(self, *args, **params):
@@ -293,13 +342,6 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
 
 
-    def do_backup_restore(self, *args, **params):
-        """
-        Restore the SUSE Manager Database from backup.
-        @help
-        --backup-dir     Directory, where backups are located.
-        """
-
     def do_space_reclaim(self, *args, **params):
         """
         Free disk space from unused object in tables and indexes.
@@ -405,8 +447,8 @@ class OracleGate(BaseGate):
                         for segment, size in tree[tsn][obj]['AUTO']:
                             print >> sys.stdout, "\t", segment + "...\t",
                             sys.stdout.flush()
-                            stdout, stderr = self.syscall("sudo", self.get_scenario_template().format(
-                                    scenario=self.__get_reclaim_space_statement(segment)), None, "-u", "oracle", "/bin/bash")
+                            stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', self.__get_reclaim_space_statement(segment)),
+                                                          None, "-u", "oracle", "/bin/bash")
                             if stderr:
                                 print >> sys.stdout, "failed"
                                 print >> sys.stderr, stderr
@@ -428,13 +470,15 @@ class OracleGate(BaseGate):
         """
         Start the SUSE Manager Database listener.
         """
-        print >> sys.stdout, "Starting database listener...\t",
-        sys.stdout.flush()
+        if not 'quiet' in args:
+            print >> sys.stdout, "Starting database listener...\t",
+            sys.stdout.flush()
 
         ready, uptime, stderr = self.get_status()
         if ready:
-            print >> sys.stdout, "Failed"
-            print >> sys.stderr, "Error: listener already running."
+            if not 'quiet' in args:
+                print >> sys.stdout, "Failed"
+                print >> sys.stderr, "Error: listener already running."
             return
 
         ready = False
@@ -445,9 +489,10 @@ class OracleGate(BaseGate):
                     ready = True
                     break
 
-            print >> sys.stdout, (ready and "done" or "failed")
+            if not 'quiet' in args:
+                print >> sys.stdout, (ready and "done" or "failed")
 
-        if stderr:
+        if stderr and not 'quiet' in args:
             print >> sys.stderr, "Error dump:"
             print >> sys.stderr, stderr
 
@@ -455,14 +500,18 @@ class OracleGate(BaseGate):
     def do_listener_stop(self, *args, **params):
         """
         Stop the SUSE Manager Database listener.
+        @help
+        quiet\tSuppress any output.
         """
-        print >> sys.stdout, "Stopping database listener...\t",
-        sys.stdout.flush()
+        if not 'quiet' in args:
+            print >> sys.stdout, "Stopping database listener...\t",
+            sys.stdout.flush()
 
         ready, uptime, stderr = self.get_status()
         if not ready:
-            print >> sys.stdout, "Failed"
-            print >> sys.stderr, "Error: listener is not running."
+            if not 'quiet' in args:
+                print >> sys.stdout, "Failed"
+                print >> sys.stderr, "Error: listener is not running."
             return
 
         success = False
@@ -473,9 +522,10 @@ class OracleGate(BaseGate):
                     success = True
                     break
 
-            print >> sys.stdout, (success and "done" or "failed")
+            if not 'quiet' in args:
+                print >> sys.stdout, (success and "done" or "failed")
 
-        if stderr:
+        if stderr and not 'quiet' in args:
             print >> sys.stderr, "Error dump:"
             print >> sys.stderr, stderr
 
@@ -515,29 +565,38 @@ class OracleGate(BaseGate):
         """
         Start SUSE Manager database.
         """
-        print >> sys.stdout, "Starting the SUSE Manager database...\t",
+        print >> sys.stdout, "Starting listener:\t",
         sys.stdout.flush()
+        roller = Roller()
+        roller.start()
 
         ready, uptime, stderr = self.get_status()
         if ready:
-            print >> sys.stdout, "Failed"
-            print >> sys.stderr, "Error: SUSE Manager database is already running"
-            return
+            roller.stop('failed')
+            time.sleep(1)
+            raise GateException("Error: listener is already running")
         else:
-            print >> sys.stdout, "\n"
-            self.do_listener_start()
+            pass
+            self.do_listener_start('quiet')
+
+        roller.stop('done')
+        time.sleep(1)
 
         print >> sys.stdout, "Starting core...\t",
         sys.stdout.flush()
+        roller = Roller()
+        roller.start()
 
-        stdout, stderr = self.syscall("sudo", self.get_scenario_template().format(scenario="startup;"), 
+        stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', 'startup;'), 
                                       None, "-u", "oracle", "/bin/bash")
 
         if stdout and stdout.find("Database opened") > -1 \
                 and stdout.find("Database mounted") > -1:
-            print >> sys.stdout, "done"
+            roller.stop('done')
+            time.sleep(1)
         else:
-            print >> sys.stdout, "Failed"
+            roller.stop('failed')
+            time.sleep(1)
             print >> sys.stderr, "Output dump:"
             print >> sys.stderr, stdout
 
@@ -550,35 +609,52 @@ class OracleGate(BaseGate):
         """
         Stop SUSE Manager database.
         """
-        print >> sys.stdout, "Stopping the SUSE Manager database...\t",
+        print >> sys.stdout, "Stopping the SUSE Manager database..."
         sys.stdout.flush()
+
+        print >> sys.stdout, "Stopping listener:\t",
+        sys.stdout.flush()
+        roller = Roller()
+        roller.start()
 
         ready, uptime, stderr = self.get_status()
         if ready:
-            print >> sys.stdout, "\n"
-            self.do_listener_stop()
+            self.do_listener_stop(*['quiet'])
+            roller.stop("done")
+            time.sleep(1)
         else:
-            print >> sys.stdout, "Failed"
-            print >> sys.stderr, "Error: SUSE Manager database or listener is not running."
-            return
+            roller.stop("not running")
+            time.sleep(1)
 
-        print >> sys.stdout, "Shutting down core...\t",
+        print >> sys.stdout, "Stopping core:\t\t",
         sys.stdout.flush()
-        stdout, stderr = self.syscall("sudo", self.get_scenario_template().format(scenario="shutdown immediate;"), 
+        roller = Roller()
+        roller.start()
+
+        ready, uptime, stderr = self.get_db_status()
+        if not ready:
+            roller.stop("failed")
+            time.sleep(1)
+            raise GateException("Error: database core is already offline.")
+
+        stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', 'shutdown immediate;'),
                                 None, "-u", "oracle", "/bin/bash")
 
         if stdout and stdout.find("Database closed") > -1 \
                 and stdout.find("Database dismounted") > -1 \
                 and stdout.find("instance shut down") > -1:
-            print >> sys.stdout, "done"
+            roller.stop("done")
+            time.sleep(1)
         else:
-            print >> sys.stdout, "Failed"
-            print >> sys.stderr, "Output dump:"
-            print >> sys.stderr, stdout
+            roller.stop("failed")
+            time.sleep(1)
+
+            print >> sys.stderr, "\nOutput dump:"
+            print >> sys.stderr, stdout + "\n"
 
         if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            print >> sys.stderr, "\nError dump:"
+            print >> sys.stderr, stderr + "\n"
 
 
     def do_db_status(self, *args, **params):
@@ -663,7 +739,13 @@ class OracleGate(BaseGate):
         scenario = "select 999 as MAGICPING from dual;" # :-)
         stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', scenario), 
                                 None, "-u", "oracle", "/bin/bash")
-        return (stdout.find('MAGICPING') > -1 and stdout.find('999') > -1), stdout, stderr
+        ready = False
+        for line in [line.strip() for line in stdout.lower().split("\n")]:
+            if line == '999':
+                ready = True
+                break
+
+        return ready, stdout, stderr
 
 
 

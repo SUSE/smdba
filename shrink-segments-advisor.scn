@@ -15,4 +15,3 @@ BEGIN
   DBMS_ADVISOR.EXECUTE_TASK(taskname);
 END;
 /
-EXIT;

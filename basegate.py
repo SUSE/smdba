@@ -7,6 +7,8 @@ import subprocess
 from subprocess import Popen, PIPE, STDOUT
 
 
+class GateException(Exception): pass
+
 class BaseGate:
     """
     Gate of tools for all supported databases.

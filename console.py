@@ -1,3 +1,4 @@
+from basegate import GateException
 import sys
 import os
 
@@ -152,6 +153,9 @@ def main():
             console.execute(sys.argv[1:])
         else:
             console.usage()
+    except GateException, err:
+        print >> sys.stderr, "\nError:\n", err, "\n"
+        sys.exit(1)
     except Exception, err:
         Console.usage_header()
         print >> sys.stderr, "General error:\n", err, "\n"
