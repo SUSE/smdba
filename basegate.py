@@ -111,3 +111,10 @@ class BaseGate:
             self._gate_commands[method_name] = help
 
         return self._gate_commands
+
+
+    def check(self):
+        """
+        Stub for checking the gate requirements.
+        """
+        raise GateException("No check implemented for this gate.")

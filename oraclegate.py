@@ -748,6 +748,42 @@ class OracleGate(BaseGate):
         return ready, stdout, stderr
 
 
+    def check(self):
+        """
+        Check system requirements for this gate.
+        """
+        if not os.path.exists(self.ora_home + "/bin/sqlplus"):
+            raise GateException("Cannot find operation sub-component, required for the gate.")
+        elif not os.path.exists(self.ora_home + "/bin/rman"):
+            raise GateException("Cannot find backup sub-component, required for the gate.")
+
+        return True
+
+
+    def do_system_check(self):
+        """
+        Common Oracle system check-n-fix, which end-user should not take care of himself.
+        """
+        # Data table autoextend.
+        stdout, stderr = self.call_scenario('cnf-get-noautoext.scn')
+        if stderr:
+            print >> sys.stderr, "Autoextend check error:"
+            print >> sys.stderr, stderr
+            raise GateException("Unable continue system check")
+
+        if stdout:
+            scenario = []
+            [scenario.append("alter database datafile '%s' autoextend on;" % fname) for fname in stdout.strip().split("\n")]
+            self.syscall("sudo", self.get_scenario_template().replace('@scenario', '\n'.join(scenario)), 
+                         None, "-u", "oracle", "/bin/bash")
+            print >> sys.stdout, "%s table%s has been autoextended" % (len(scenario), len(scenario) > 1 and 's' or '')
+        else:
+            print >> sys.stdout, "All tables autoextensible"
+
+        # Archivelog.
+        # Free space on the storage.
+
+
 
 def getGate(config):
     """

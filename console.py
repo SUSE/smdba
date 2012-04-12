@@ -33,6 +33,9 @@ class Console:
         """
         try:
             self.gate = __import__(self.config.get(self.DB_BACKEND, "unknown") + "gate").getGate(self.config)
+            self.gate.check()
+        except GateException, ex:
+            raise Exception("Gate error: " + str(ex))
         except Exception, ex:
             print ex
             raise Exception("Unknown database backend. Please check %s configuration file." % self.config_file)
