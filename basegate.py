@@ -15,6 +15,31 @@ class BaseGate:
     """
 
 
+    # XXX: This is a stub method that currently is OK to have here.
+    #      However, probably it shall be moved away to an external
+    #      class, in the fashion like DB gates.
+    def is_sm_running(self):
+        """
+        Returns True in case SUSE Manager is running.
+        Warning: very basic check and does not checks all the components.
+        """
+        initd = '/etc/init.d'
+        print "Checking SUSE Manager running..."
+
+        # Get tomcat
+        tomcat = None
+        for cmd in os.listdir(initd):
+            if cmd.startswith('tomcat'):
+                tomcat = initd + "/" + cmd
+                break
+
+        # Get HTTPd
+        apache_httpd = initd + (os.path.exists(initd + '/httpd') and '/httpd' or '/apache2')        
+        #print "Apache: " + os.popen(apache_httpd + " status").read()
+
+        return os.popen(tomcat + " status 2>&1").read().strip().find('dead') == -1
+
+
     def get_scenario_template(self, target='sqlplus'):
         """
         Generate a template for the Oracle SQL*Plus scenario.

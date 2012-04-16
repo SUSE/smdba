@@ -609,6 +609,10 @@ class OracleGate(BaseGate):
         """
         Stop SUSE Manager database.
         """
+        # Check if DB is OK to be stopped in general
+        if self.is_sm_running():
+            raise GateException("SUSE Manager should be offline")
+
         print >> sys.stdout, "Stopping the SUSE Manager database..."
         sys.stdout.flush()
 
