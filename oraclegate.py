@@ -766,7 +766,7 @@ class OracleGate(BaseGate):
 
     def do_system_check(self):
         """
-        Common Oracle system check-n-fix, which end-user should not take care of himself.
+        Common backend healthcheck.
         """
         # Data table autoextend.
         stdout, stderr = self.call_scenario('cnf-get-noautoext.scn')

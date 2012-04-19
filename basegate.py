@@ -49,9 +49,11 @@ class BaseGate:
 
         executable = None
         if target == 'sqlplus':
-            executable = "/bin/sqlplus -S /nolog"
+            executable = "/bin/%s -S /nolog" % target
         elif target == 'rman':
-            executable = "/bin/rman"
+            executable = "/bin/" + target
+        elif target == 'psql':
+            executable = "/usr/bin/" + target
         else:
             raise Exception("Unknown scenario target: %s" % target)
 
@@ -64,16 +66,19 @@ class BaseGate:
             else:
                 raise Exception("Underlying error: environment cannot be constructed.")
 
-        scenario.append("cat - << EOF | " + e('ORACLE_HOME') + executable)
-        if target == 'sqlplus':
-            scenario.append("CONNECT / AS SYSDBA;")
-        elif target == 'rman':
-            scenario.append("CONNECT TARGET /")
+            scenario.append("cat - << EOF | " + e('ORACLE_HOME') + executable)
+            if target == 'sqlplus':
+                scenario.append("CONNECT / AS SYSDBA;")
+            elif target == 'rman':
+                scenario.append("CONNECT TARGET /")
 
-        scenario.append("@scenario")
-        scenario.append("EXIT;")
-        scenario.append("EOF")
-
+            scenario.append("@scenario")
+            scenario.append("EXIT;")
+            scenario.append("EOF")
+        elif target in ['psql']:
+            scenario.append("cat - << EOF | " + executable + " --pset footer=off")
+            scenario.append("@scenario")
+            scenario.append("EOF")
 
         return '\n'.join(scenario)
 
