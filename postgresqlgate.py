@@ -213,6 +213,60 @@ class PgSQLGate(BaseGate):
             print >> sys.stderr, stderr
             raise GateException("Unhandled underlying error occurred, see above.")
 
+
+    def do_space_reclaim(self):
+        """
+        Free disk space from unused object in tables and indexes.
+        """
+        print >> sys.stdout, "Examining core...\t",
+        sys.stdout.flush()
+
+        #roller = Roller()
+        #roller.start()        
+
+        if not self._get_db_status():
+            roller.stop('failed')
+            time.sleep(1)
+            #print >> sys.stderr, "failed"
+            raise GateException("Database must be online.")
+
+        print >> sys.stderr, "finished"
+        #roller.stop('done')
+        time.sleep(1)
+
+        operations = [
+            ('Analyzing database', 'vacuum analyze;'),
+            ('Reclaiming space', 'cluster;'),
+            ]
+
+        for msg, operation in operations:
+            print >> sys.stdout, "%s...\t" % msg,
+            sys.stdout.flush()
+            #roller = Roller()
+            #roller.start()
+
+            #print "-" * 80
+            #print self.get_scenario_template(target='psql').replace('@scenario', operation)
+            #print "-" * 80
+
+            stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', operation),
+                                          None, "-u", "postgres", "/bin/bash")
+            if stderr:
+                #roller.stop('failed')
+                #time.sleep(1)
+                print >> sys.stderr, "failed"
+                sys.stdout.flush()
+                print >> sys.stderr, stderr
+                raise GateException("Unhandled underlying error occurred, see above.")
+            
+            else:
+                #roller.stop('done')
+                #time.sleep(1)
+                print >> sys.stdout, "done"
+                sys.stdout.flush()
+                #print stdout
+
+
     def _do_system_check(self):
         """
         Common backend healthcheck.
