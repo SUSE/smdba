@@ -109,6 +109,15 @@ class PgSQLGate(BaseGate):
         return BaseGate.get_scenario_template(self, target='psql')
 
 
+    def _cleanup_pids(self):
+        """
+        Cleanup PostgreSQL garbage in /tmp
+        """
+        for f in os.listdir('/tmp'):
+            if f.startswith('.s.PGSQL.'):
+                os.unlink('/tmp/' + f)
+
+
     # Commands        
     def do_start(self):
         """
@@ -126,9 +135,7 @@ class PgSQLGate(BaseGate):
             return
 
         # Cleanup first
-        for f in os.listdir('/tmp'):
-            if f.startswith('.s.PGSQL.'):
-                os.unlink('/tmp/' + f)
+        self._cleanup_pids()
 
         # Start the db
         if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s" 
@@ -145,6 +152,26 @@ class PgSQLGate(BaseGate):
         """
         Stop the SUSE Manager Database.
         """
+        print >> sys.stdout, "Stopping core...\t",
+        sys.stdout.flush()
+
+        if not self._get_db_status():
+            print >> sys.stdout, "failed"
+            #roller.stop('failed')
+            time.sleep(1)
+            return
+
+        # Stop the db
+        if not self.config.get('pcnf_data_directory'):
+            raise GateException("Cannot find data directory.")
+
+        if not os.system("sudo -u postgres /usr/bin/pg_ctl stop -s -D %s -m fast" % self.config.get('pcnf_data_directory', '')):
+            print >> sys.stdout, "done"
+        else:
+            print >> sys.stderr, "failed"
+
+        # Cleanup
+        self._cleanup_pids()
 
 
     def do_status(self):
