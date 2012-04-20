@@ -88,7 +88,7 @@ class PgSQLGate(BaseGate):
         """
         Get entire PostgreSQL configuration.
         """
-        stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', 'show all'),
+        stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', 'show all'),
                                       None, "-u", "postgres", "/bin/bash")
         if stdout:
             for line in stdout.strip().split("\n")[2:]:
@@ -102,11 +102,11 @@ class PgSQLGate(BaseGate):
             raise Exception("Underlying error: unable get backend configuration.")
 
 
-    def get_scenario_template(self):
-        """
-        Convenience stub to make sure we are focused on PostgreSQL always.
-        """
-        return BaseGate.get_scenario_template(self, target='psql')
+#    def get_scenario_template(self, target=None):
+#        """
+#        Convenience stub to make sure we are focused on PostgreSQL always.
+#        """
+#        return BaseGate.get_scenario_template(self, target='psql')
 
 
     def _cleanup_pids(self):
@@ -178,9 +178,40 @@ class PgSQLGate(BaseGate):
         """
         Show database status.
         """
-        print 'Database is',
-        print self._get_db_status() and 'online' or 'offline'
+        print 'Database is', self._get_db_status() and 'online' or 'offline'
 
+
+    def do_space_tables(self):
+        """
+        Show space report for each table.
+        """
+        stdout, stderr = self.call_scenario('pg-tablesizes.scn', target='psql')
+
+        if stdout:
+            t_index = []
+            t_ref = {}
+            t_total = 0
+            longest = 0
+            for line in stdout.strip().split("\n")[2:]:
+                line = filter(None, map(lambda el:el.strip(), line.split('|')))
+                if len(line) == 3:
+                    t_name, t_size_pretty, t_size = line[0], line[1], int(line[2])
+                    t_ref[t_name] = t_size_pretty
+                    t_total += t_size
+                    t_index.append(t_name)
+
+                    longest = len(t_name) > longest and len(t_name) or longest
+
+            t_index.sort()
+
+            print >> sys.stdout, "Table" + (" " * (longest - 5)) + "\tSize"
+            for t_name in t_index:
+                print >> sys.stdout, t_name + (" " * (longest - len(t_name))) + "\t", t_ref[t_name]
+            print >> sys.stdout, "\nTotal" + (" " * (longest - 5)) + "\t" + ('%.2f' % round(t_total / 1024. / 1024)) + "M\n"
+
+        if stderr:
+            print >> sys.stderr, stderr
+            raise GateException("Unhandled underlying error occurred, see above.")
 
     def _do_system_check(self):
         """

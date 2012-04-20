@@ -43,7 +43,7 @@ class BaseGate:
     def get_scenario_template(self, target='sqlplus'):
         """
         Generate a template for the Oracle SQL*Plus scenario.
-        """        
+        """
         e = os.environ.get
         scenario = []
 
@@ -76,7 +76,7 @@ class BaseGate:
             scenario.append("EXIT;")
             scenario.append("EOF")
         elif target in ['psql']:
-            scenario.append("cat - << EOF | " + executable + " --pset footer=off")
+            scenario.append(("cat - << EOF | " + executable + " --pset footer=off " + self.config.get('db_name', '')).strip())
             scenario.append("@scenario")
             scenario.append("EOF")
 
@@ -96,7 +96,15 @@ class BaseGate:
             for k_var, v_var in variables.items():
                 template = template.replace('@' + k_var, v_var)
 
-        return self.syscall("sudo", template, None, "-u", "oracle", "/bin/bash")
+        user = None
+        if target in ['sqlplus', 'rman']:
+            user = 'oracle'
+        elif target in ['psql']:
+            user = 'postgres'
+        else:
+            raise GateException("Unknown target: %s" % target)
+
+        return self.syscall("sudo", template, None, "-u", user, "/bin/bash")
 
 
     def syscall(self, command, input=None, daemon=None, *params):
