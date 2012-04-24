@@ -127,7 +127,7 @@ class PgSQLGate(BaseGate):
 
 
     # Commands        
-    def do_start(self):
+    def do_db_start(self):
         """
         Start the SUSE Manager Database.
         """
@@ -156,7 +156,7 @@ class PgSQLGate(BaseGate):
         time.sleep(1)
 
 
-    def do_stop(self):
+    def do_db_stop(self):
         """
         Stop the SUSE Manager Database.
         """
@@ -182,7 +182,7 @@ class PgSQLGate(BaseGate):
         self._cleanup_pids()
 
 
-    def do_status(self):
+    def do_db_status(self):
         """
         Show database status.
         """
