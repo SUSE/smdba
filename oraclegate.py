@@ -7,6 +7,7 @@
 from basegate import BaseGate
 from basegate import GateException
 from roller import Roller
+from utils import TablePrint
 
 import os
 import sys
