@@ -1,6 +1,7 @@
 from basegate import BaseGate
 from basegate import GateException
 from roller import Roller
+from utils import TablePrint
 
 import sys
 import os
@@ -100,6 +101,13 @@ class PgSQLGate(BaseGate):
         else:
             print >> sys.stderr, stderr
             raise Exception("Underlying error: unable get backend configuration.")
+
+
+    def _bt_to_mb(self, v):
+        """
+        Bytes to megabytes.
+        """
+        return int(round(v / 1024. / 1024.))
 
 
 #    def get_scenario_template(self, target=None):
@@ -204,14 +212,73 @@ class PgSQLGate(BaseGate):
 
             t_index.sort()
 
-            print >> sys.stdout, "Table" + (" " * (longest - 5)) + "\tSize"
-            for t_name in t_index:
-                print >> sys.stdout, t_name + (" " * (longest - len(t_name))) + "\t", t_ref[t_name]
-            print >> sys.stdout, "\nTotal" + (" " * (longest - 5)) + "\t" + ('%.2f' % round(t_total / 1024. / 1024)) + "M\n"
+            table = [('Table', 'Size',)]
+            for name in t_index:
+                table.append((name, t_ref[name],))
+            table.append(('', '',))
+            table.append(('Total', ('%.2f' % round(t_total / 1024. / 1024)) + 'M',))
+            print >> sys.stdout, "\n", TablePrint(table), "\n"
 
         if stderr:
             print >> sys.stderr, stderr
             raise GateException("Unhandled underlying error occurred, see above.")
+
+
+    def do_space_overview(self):
+        """
+        Show database space report.
+        """
+        # Not exactly as in Oracle, this one looks where PostgreSQL is mounted
+        # and reports free space.
+
+        if not self._get_db_status():
+            raise GateException("Database must be running.")
+
+        # Get current partition
+        partition = os.popen("df -lP %s | tail -1 | cut -d' ' -f 1" % self.config['pcnf_data_directory']).read().strip()
+
+        # Build info
+        class Info:
+            fs_dev = None
+            fs_type = None
+            used = None
+            available = None
+            used_prc = None
+            mountpoint = None
+
+        info = Info()
+        for line in os.popen("df -T").readlines()[1:]:
+            line = line.strip()
+            if not line.startswith(partition):
+                continue
+            line = filter(None, line.split(" "))
+            info.fs_dev = line[0]
+            info.fs_type = line[1]
+            info.used = int(line[2]) * 1024 # Bytes
+            info.available = int(line[4]) * 1024 # Bytes
+            info.used_prc = line[5]
+            info.mountpoint = line[6]
+
+            break
+        
+
+        # Get database sizes
+        stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', 
+                                                                                                'select pg_database_size(datname), datname from pg_database;'),
+                                      None, "-u", "postgres", "/bin/bash")
+        overview = [('Tablespace', 'Size (Mb)', 'Avail (Mb)', 'Use %',)]
+        for line in stdout.split("\n")[2:]:
+            line = filter(None, line.strip().replace('|', '').split(" "))
+            if len(line) != 2:
+                continue
+            d_size = int(line[0])
+            d_name = line[1]
+            d_size_available = (info.available - d_size)
+            overview.append((d_name, self._bt_to_mb(d_size),
+                             self._bt_to_mb(d_size_available),
+                             '%.3f' % round((float(d_size) / float(d_size_available) * 100), 3)))
+
+        print >> sys.stdout, "\n", TablePrint(overview), "\n"
 
 
     def do_space_reclaim(self):

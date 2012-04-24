@@ -52,7 +52,7 @@ class Console:
         if os.path.exists(self.config_file):
             cfg = open(self.config_file).readlines()
         else:
-            raise Exception("Cannot open configuration file: " + self.config_file)
+            raise Exception("Cannot open configuration file: " + self.config_file + "\n" + "Use sudo, perhaps?")
 
         for line in cfg:
             try:
