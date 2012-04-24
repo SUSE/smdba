@@ -256,35 +256,17 @@ class OracleGate(BaseGate):
             print >> sys.stderr, stderr
             
 
-
     def do_space_overview(self, *args, **params):
         """
         Show database space report.
         """
         stdout, stderr = self.call_scenario('report.scn')
-        nw = 10
-        sw = 9
-        uw = 9
-        aw = 10
-        ew = 5
-        index = [("Tablespace", "Size (Mb)", "Used (Mb)", "Avail (Mb)", "Use %"),]
+        table = [("Tablespace", "Size (Mb)", "Used (Mb)", "Avail (Mb)", "Use %",),]
         for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
                                        for line in stdout.strip().split("\n")[2:]]:
-            usage = str(int(float(used) / float(size) * 100))
-            index.append((name, free, used, size, usage,))
-            nw = len(name) > nw and len(name) or nw
-            sw = len(size) > sw and len(size) or sw
-            uw = len(used) > uw and len(used) or uw
-            aw = len(free) > aw and len(free) or aw
-            ew = len(usage) > ew and len(usage) or ew
+            table.append((name, free, used, size, str(int(float(used) / float(size) * 100)),))
 
-        print >> sys.stdout, "%s\t\t%s\t%s\t%s\t%s" % tuple(index[0])
-        for name, free, used, size, usage in index[1:]:
-            print >> sys.stdout, "%s\t\t%s\t%s\t%s\t%s" % (name + ((nw - len(name)) * " "),
-                                                                    free + ((aw - len(free)) * " "),
-                                                                    used + ((uw - len(used)) * " "),
-                                                                    size + ((sw - len(size)) * " "),
-                                                                    usage + ((ew - len(usage)) * " "))
+        print >> sys.stdout, "\n", TablePrint(table), "\n"
 
 
     def do_stats_overview(self, *args, **params):
