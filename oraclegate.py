@@ -663,28 +663,17 @@ class OracleGate(BaseGate):
         """
         Show space report for each table.
         """
-        longest = 5
-        table = {}
-        index = []
+        table = [('Table', 'Size',)]
+        total = 0
         stdout, stderr = self.call_scenario('tablesizes.scn', user=self.config.get('db_user', '').upper())
         for tname, tsize in filter(None, [filter(None, line.replace("\t", " ").split(" ")) for line in stdout.split("\n")]):
-            table[tname] = tsize
-            index.append(tname)
-            longest = len(tname) > longest and len(tname) or longest
-
-        index.sort()
+            table.append((tname, ('%.2fK' % round(float(tsize) / 1024.)),))
+            total += float(tsize)
+        table.append(('', '',))
+        table.append(('Total', ('%.2fM' % round(total / 1024. / 1024.))))
 
         if table:
-            total = 0
-            print >> sys.stdout, "%s\t%s" % (("Table" + ((longest - 5) * " ")), "Size")
-
-            for tname in index:
-                tsize = int(table[tname])
-                print >> sys.stdout, "%s\t%.2fK" % ((tname + ((longest - len(tname)) * " ")), round(tsize / 1024.))
-                total += tsize
-
-            print >> sys.stdout, "\n%s\t%.2fM\n" % (("Total" + ((longest - 5) * " ")), round(total / 1024. / 1024.))
-            
+            print >> sys.stdout, "\n", TablePrint(table), "\n"
 
         if stderr:
             print >> sys.stderr, "Error dump:"

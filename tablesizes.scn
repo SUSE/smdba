@@ -7,5 +7,5 @@ SELECT de.segment_name AS NAME, SUM(de.bytes) AS TOTAL_BYTES
  WHERE de.owner = '@user'
    AND dt.table_name = de.segment_name
 GROUP BY de.segment_name
-ORDER BY de.segment_name;
+ORDER BY name;
 
