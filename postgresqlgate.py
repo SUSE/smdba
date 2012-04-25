@@ -29,7 +29,11 @@ class PgSQLGate(BaseGate):
         Check system requirements for this gate.
         """
         msg = None
-        if not os.path.exists("/usr/bin/psql"):
+        if os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1] < '9.1':
+            raise GateException("Core component is too old version.")
+        elif not os.path.exists("/etc/sysconfig/postgresql"):
+            raise GateException("Custom core component? Please strictly use SUSE components only!")
+        elif not os.path.exists("/usr/bin/psql"):
             msg = 'operations'
         elif not os.path.exists("/usr/bin/postmaster"):
             msg = 'core'
@@ -69,7 +73,7 @@ class PgSQLGate(BaseGate):
         return status
 
 
-    def _get_pg_home(self):
+    def _get_pg_home_depr(self):
         """
         PostgreSQL home is where is 'postgres' user is.
         """
@@ -82,8 +86,19 @@ class PgSQLGate(BaseGate):
                     print "cannot parse", line
                 if k == 'HOME':
                     self.config['pcnf_pg_home'] = v
-                    return
-                
+
+
+    def _get_pg_home(self):
+        """
+        PostgreSQL home from sysconfig.
+        """
+        for line in open("/etc/sysconfig/postgresql").readlines():
+            if line.startswith('POSTGRES_DATADIR'):
+                self.config['pcnf_pg_home'] = os.path.expanduser(s.split('=', 1)[-1].replace('"', ''))
+        
+        if not os.path.exists(self.config.get('pcnf_pg_home', '')):
+            raise GateException('Cannot find core component tablespace on disk')
+        print self.config.get('pcnf_pg_home', '')
 
     def _get_pg_config(self):
         """
@@ -339,6 +354,9 @@ class PgSQLGate(BaseGate):
         Common backend healthcheck.
         """
         # Check enough space
+
+        # Check hot backup allowed
+        
 
         return True
 
