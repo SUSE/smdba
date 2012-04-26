@@ -89,7 +89,8 @@ class PgSQLGate(BaseGate):
         """
         Get entire PostgreSQL configuration.
         """
-        stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', 'show all'),
+        stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql')
+                                      .replace('@scenario', 'show all'),
                                       None, "-u", "postgres", "/bin/bash")
         if stdout:
             for line in stdout.strip().split("\n")[2:]:
@@ -140,7 +141,7 @@ class PgSQLGate(BaseGate):
         return conf
 
 
-    def _write_conf(self, conf_path, **data):
+    def _write_conf(self, conf_path, *table, **data):
         """
         Write conf data to the file.
         """
@@ -152,9 +153,15 @@ class PgSQLGate(BaseGate):
             os.rename(conf_path, conf_path_new)
             backup = conf_path_new
 
-        cfg = open(conf_path, 'w')
-        [cfg.write('%s = %s\n' % items) for items in data.items()]
-        cfg.close()
+        if data or table:
+            cfg = open(conf_path, 'w')
+            if data and not table:
+                [cfg.write('%s = %s\n' % items) for items in data.items()]
+            elif table and not data:
+                [cfg.write('\t'.join(items) + "\n") for items in table]
+            cfg.close()
+        else:
+            raise IOError("Cannot write two different types of config into the same file!")
 
         return backup
 
@@ -367,6 +374,12 @@ class PgSQLGate(BaseGate):
                 #print stdout
 
 
+    def do_backup_hot(self):
+        """
+        Perform host database backup.
+        """
+        
+
     def do_system_check(self):
         """
         Common backend healthcheck.
@@ -378,6 +391,10 @@ class PgSQLGate(BaseGate):
         conf = self._get_conf(conf_path)
 
         changed = False
+
+        #
+        # Setup postgresql.conf
+        #
 
         # WAL should be at least archive.
         if not conf.get('wal_level') or conf.get('wal_level') == 'minimal':
@@ -403,11 +420,40 @@ class PgSQLGate(BaseGate):
             conf['archive_command'] = "'/bin/true'"
             changed = True
 
-        if changed:
+        #
+        # Setup pg_hba.conf
+        # Format is pretty specific :-)
+        #
+        hba_changed = False
+        pg_hba_cnf_path = self.config['pcnf_pg_data'] + "/pg_hba.conf"
+        pg_hba_conf = []
+        for line in open(pg_hba_cnf_path).readlines():
+            line = line.strip()
+            if not line or line.startswith('#'): continue
+            pg_hba_conf.append(filter(None, line.split(' ')))
+
+        replication_cfg = ['local', 'replication', 'postgres', 'peer']
+        if not replication_cfg in pg_hba_conf:
+            pg_hba_conf.append(replication_cfg)
+            hba_changed = True
+
+        #
+        # Commit the changes
+        #
+        if changed or hba_changed:
             print >> sys.stdout, "INFO: Database needs to be restarted."
-            conf_bk = self._write_conf(conf_path, **conf)
-            if conf_bk:
-                print >> sys.stdout, "INFO: Wrote new configuration. Previous config has been saved as", conf_bk
+            if changed:
+                conf_bk = self._write_conf(conf_path, **conf)
+                if conf_bk:
+                    print >> sys.stdout, "INFO: Wrote new general configuration. Backup as", conf_bk
+
+            # hba save
+            if hba_changed:
+                conf_bk = self._write_conf(pg_hba_cnf_path, *pg_hba_conf)
+                if conf_bk:
+                    print >> sys.stdout, "INFO: Wrote new client auth configuration. Backup as", conf_bk
+
+            # Restart
             if self._get_db_status():
                 self.do_db_stop()
             self.do_db_start()
