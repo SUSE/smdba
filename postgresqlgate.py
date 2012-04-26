@@ -226,7 +226,7 @@ class PgSQLGate(BaseGate):
         """
         Show space report for each table.
         """
-        stdout, stderr = self.call_scenario('pg-tablesizes.scn', target='psql')
+        stdout, stderr = self.call_scenario('pg-tablesizes', target='psql')
 
         if stdout:
             t_index = []

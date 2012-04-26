@@ -40,6 +40,17 @@ class BaseGate:
         return os.popen(tomcat + " status 2>&1").read().strip().find('dead') == -1
 
 
+    def get_scn(self, name):
+        """
+        Get scenario by name.
+        """
+        scenario = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-1]) + os.path.sep.join(['', 'scenarios', name + ".scn"])
+        if not os.path.exists(scenario):
+            raise IOError("Scenario \"%s\" is not accessible." % scenario)
+
+        return open(scenario, 'r')
+
+
     def get_scenario_template(self, target='sqlplus'):
         """
         Generate a template for the Oracle SQL*Plus scenario.
@@ -88,9 +99,7 @@ class BaseGate:
         Call scenario in SQL*Plus.
         Returns stdout and stderr.
         """
-        if not os.path.exists(scenario):
-            raise Exception("Underlying error: Scenario {scenario} does not exists or is unreachable.".format(scenario=scenario))
-        template = self.get_scenario_template(target=target).replace('@scenario', open(scenario).read().replace('$', '\$'))
+        template = self.get_scenario_template(target=target).replace('@scenario', self.get_scn(scenario).read().replace('$', '\$'))
 
         if variables:
             for k_var, v_var in variables.items():

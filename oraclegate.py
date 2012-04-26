@@ -63,7 +63,6 @@ class OracleGate(BaseGate):
     #
     # Exposed operations below
     #
-
     def do_backup_list(self, *args, **params):
         """
         List of available backups.
@@ -74,7 +73,7 @@ class OracleGate(BaseGate):
 
         class InfoNode:pass
         infoset = []
-        stdout, stderr = self.call_scenario('rman-list-backups.scn', target='rman')
+        stdout, stderr = self.call_scenario('rman-list-backups', target='rman')
 
         roller.stop("finished")
         time.sleep(1)
@@ -149,7 +148,7 @@ class OracleGate(BaseGate):
         print >> sys.stdout, "Backing up the database:\t",
         roller = Roller()
         roller.start()
-        stdout, stderr = self.call_scenario('rman-hot-backup.scn', target='rman', backupdir=params.get('backup-dir'))
+        stdout, stderr = self.call_scenario('rman-hot-backup', target='rman', backupdir=params.get('backup-dir'))
 
         if stderr:
             roller.stop("failed")
@@ -242,7 +241,7 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario('gather-stats.scn', owner=self.config.get('db_user', '').upper())
+        stdout, stderr = self.call_scenario('gather-stats', owner=self.config.get('db_user', '').upper())
 
         if stdout and stdout.strip() == 'done':
             roller.stop('finished')
@@ -260,7 +259,7 @@ class OracleGate(BaseGate):
         """
         Show database space report.
         """
-        stdout, stderr = self.call_scenario('report.scn')
+        stdout, stderr = self.call_scenario('report')
         table = [("Tablespace", "Size (Mb)", "Used (Mb)", "Avail (Mb)", "Use %",),]
         for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
                                        for line in stdout.strip().split("\n")[2:]]:
@@ -278,7 +277,7 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario('stats.scn', owner=self.config.get('db_user', '').upper())
+        stdout, stderr = self.call_scenario('stats', owner=self.config.get('db_user', '').upper())
 
         roller.stop('finished')
         time.sleep(1)
@@ -340,7 +339,7 @@ class OracleGate(BaseGate):
         roller.start()
 
         # run task
-        stdout, stderr = self.call_scenario('shrink-segments-advisor.scn')
+        stdout, stderr = self.call_scenario('shrink-segments-advisor')
         stderr = None
 
         if stderr:
@@ -359,7 +358,7 @@ class OracleGate(BaseGate):
         roller.start()
 
         # get the recomendations
-        stdout, stderr = self.call_scenario('recomendations.scn')
+        stdout, stderr = self.call_scenario('recomendations')
 
         if not stdout and not stderr:
             roller.stop("finished")
@@ -665,7 +664,7 @@ class OracleGate(BaseGate):
         """
         table = [('Table', 'Size',)]
         total = 0
-        stdout, stderr = self.call_scenario('tablesizes.scn', user=self.config.get('db_user', '').upper())
+        stdout, stderr = self.call_scenario('tablesizes', user=self.config.get('db_user', '').upper())
         for tname, tsize in filter(None, [filter(None, line.replace("\t", " ").split(" ")) for line in stdout.split("\n")]):
             table.append((tname, ('%.2fK' % round(float(tsize) / 1024.)),))
             total += float(tsize)
@@ -741,7 +740,7 @@ class OracleGate(BaseGate):
         Common backend healthcheck.
         """
         # Data table autoextend.
-        stdout, stderr = self.call_scenario('cnf-get-noautoext.scn')
+        stdout, stderr = self.call_scenario('cnf-get-noautoext')
         if stderr:
             print >> sys.stderr, "Autoextend check error:"
             print >> sys.stderr, stderr
