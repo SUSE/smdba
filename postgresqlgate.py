@@ -18,7 +18,7 @@ class PgSQLGate(BaseGate):
     def __init__(self, config):
         self.config = config or {}
         self._get_sysconfig()
-        self._get_pg_home()
+        self._get_pg_data()
         if self._get_db_status():
             self._get_pg_config()
 
@@ -65,7 +65,7 @@ class PgSQLGate(BaseGate):
         Return True if DB is running, False otherwise.
         """
         status = False
-        pid_file = self.config.get('pcnf_pg_home', '') + '/data/postmaster.pid'
+        pid_file = self.config.get('pcnf_pg_data', '') + '/postmaster.pid'
         if os.path.exists(pid_file):
             if os.path.exists('/proc/' + open(pid_file).readline().strip()):
                 status = True
@@ -73,32 +73,17 @@ class PgSQLGate(BaseGate):
         return status
 
 
-    def _get_pg_home_depr(self):
+    def _get_pg_data(self):
         """
-        PostgreSQL home is where is 'postgres' user is.
-        """
-        stdout, stderr = self.syscall("sudo", None, None, "-i", "-u", "postgres", "env")
-        if stdout:
-            for line in stdout.strip().split("\n"):
-                try:
-                    k, v = line.split("=", 1)
-                except:
-                    print "cannot parse", line
-                if k == 'HOME':
-                    self.config['pcnf_pg_home'] = v
-
-
-    def _get_pg_home(self):
-        """
-        PostgreSQL home from sysconfig.
+        PostgreSQL data dir from sysconfig.
         """
         for line in open("/etc/sysconfig/postgresql").readlines():
             if line.startswith('POSTGRES_DATADIR'):
-                self.config['pcnf_pg_home'] = os.path.expanduser(s.split('=', 1)[-1].replace('"', ''))
-        
-        if not os.path.exists(self.config.get('pcnf_pg_home', '')):
+                self.config['pcnf_pg_data'] = os.path.expanduser(line.strip().split('=', 1)[-1].replace('"', ''))
+
+        if not os.path.exists(self.config.get('pcnf_pg_data', '')):
             raise GateException('Cannot find core component tablespace on disk')
-        print self.config.get('pcnf_pg_home', '')
+
 
     def _get_pg_config(self):
         """
@@ -125,13 +110,6 @@ class PgSQLGate(BaseGate):
         return int(round(v / 1024. / 1024.))
 
 
-#    def get_scenario_template(self, target=None):
-#        """
-#        Convenience stub to make sure we are focused on PostgreSQL always.
-#        """
-#        return BaseGate.get_scenario_template(self, target='psql')
-
-
     def _cleanup_pids(self):
         """
         Cleanup PostgreSQL garbage in /tmp
@@ -139,6 +117,46 @@ class PgSQLGate(BaseGate):
         for f in os.listdir('/tmp'):
             if f.startswith('.s.PGSQL.'):
                 os.unlink('/tmp/' + f)
+
+
+    def _get_conf(self, conf_path):
+        """
+        Get a PostgreSQL config file into a dictionary.
+        """
+        if not os.path.exists(conf_path):
+            raise GateException("Cannot open config at \"%s\"." % conf_path)
+
+        conf = {}
+        for line in open(conf_path).readlines():
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            try:
+                k, v = [el.strip() for el in line.split('#')[0].strip().split('=', 1)]
+                conf[k] = v
+            except Exception, ex:
+                raise GateException("Cannot parse line [%s] in %s." % (line, conf_path))
+
+        return conf
+
+
+    def _write_conf(self, conf_path, **data):
+        """
+        Write conf data to the file.
+        """
+        backup = None
+        if os.path.exists(conf_path):
+            pref = '-'.join([str(el).zfill(2) for el in time.localtime()][:6])
+            conf_path_new = conf_path.split(".")
+            conf_path_new = '.'.join(conf_path_new[:-1]) + "." + pref + "." + conf_path_new[-1]
+            os.rename(conf_path, conf_path_new)
+            backup = conf_path_new
+
+        cfg = open(conf_path, 'w')
+        [cfg.write('%s = %s\n' % items) for items in data.items()]
+        cfg.close()
+
+        return backup
 
 
     # Commands        
@@ -162,7 +180,7 @@ class PgSQLGate(BaseGate):
 
         # Start the db
         if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s" 
-                         % (self.config['pcnf_pg_home'] + "/data", self.config.get('sysconfig_POSTGRES_OPTIONS', ''))):
+                         % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', ''))):
             print >> sys.stdout,  "done"
         else:
             print >> sys.stderr, "failed"
@@ -349,14 +367,55 @@ class PgSQLGate(BaseGate):
                 #print stdout
 
 
-    def _do_system_check(self):
+    def do_system_check(self):
         """
         Common backend healthcheck.
         """
         # Check enough space
 
-        # Check hot backup allowed
-        
+        # Check hot backup setup and clean it up automatically
+        conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
+        conf = self._get_conf(conf_path)
+
+        changed = False
+
+        # WAL should be at least archive.
+        if not conf.get('wal_level') or conf.get('wal_level') == 'minimal':
+            conf['wal_level'] = 'archive'
+
+        # WAL senders at least 5
+        if not conf.get('max_wal_senders') or conf.get('max_wal_senders') < '5':
+            conf['max_wal_senders'] = 5
+            changed = True
+
+        # WAL keep segments must be non-zero
+        if conf.get('wal_keep_segments', '0') == '0':
+            conf['wal_keep_segments'] = 300
+            changed = True
+
+        # Should run in archive mode
+        if conf.get('archive_mode', 'off') != 'on':
+            conf['archive_mode'] = 'on'
+            changed = True
+
+        # Stub
+        if conf.get('archive_command', '') != "'/bin/true'":
+            conf['archive_command'] = "'/bin/true'"
+            changed = True
+
+        if changed:
+            print >> sys.stdout, "INFO: Database needs to be restarted."
+            conf_bk = self._write_conf(conf_path, **conf)
+            if conf_bk:
+                print >> sys.stdout, "INFO: Wrote new configuration. Previous config has been saved as", conf_bk
+            if self._get_db_status():
+                self.do_db_stop()
+            self.do_db_start()
+            self.do_db_status()
+        else:
+            print >> sys.stdout, "INFO: No changes required."
+
+        print >> sys.stdout, "System check finished"
 
         return True
 

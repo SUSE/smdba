@@ -68,6 +68,21 @@ class TablePrint:
 
 
 
+def unquote(self, el):
+    """
+    Unquote an element.
+    """
+    if el == None:
+        return None
+
+    el = el.strip()
+    if not el or len(el) < 2:
+        return el
+
+    return (el[0] == el[-1] and el[0] in '\'"') and self._dequote(el[1:][:-1]) or el
+
+
+
 if __name__ == '__main__':
     table = [
         ('Tablespace', 'Size (Mb)', 'Avail (Mb)', 'Use %'),
