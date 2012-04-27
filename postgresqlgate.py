@@ -39,9 +39,11 @@ class PgSQLGate(BaseGate):
             msg = 'core'
         elif not os.path.exists("/usr/bin/pg_ctl"):
             msg = 'control'
+        elif not os.path.exists("/usr/bin/pg_basebackup"):
+            msg = 'backup'
         
         if msg:
-            raise GateException("Cannot find %s sub-component, required for the gate." % msg)
+            raise GateException("Cannot find required %s component." % msg)
 
         return True
 
@@ -167,7 +169,7 @@ class PgSQLGate(BaseGate):
 
 
     # Commands        
-    def do_db_start(self):
+    def do_db_start(self, **args):
         """
         Start the SUSE Manager Database.
         """
@@ -196,7 +198,7 @@ class PgSQLGate(BaseGate):
         time.sleep(1)
 
 
-    def do_db_stop(self):
+    def do_db_stop(self, **args):
         """
         Stop the SUSE Manager Database.
         """
@@ -222,14 +224,14 @@ class PgSQLGate(BaseGate):
         self._cleanup_pids()
 
 
-    def do_db_status(self):
+    def do_db_status(self, **args):
         """
         Show database status.
         """
         print 'Database is', self._get_db_status() and 'online' or 'offline'
 
 
-    def do_space_tables(self):
+    def do_space_tables(self, **args):
         """
         Show space report for each table.
         """
@@ -264,7 +266,7 @@ class PgSQLGate(BaseGate):
             raise GateException("Unhandled underlying error occurred, see above.")
 
 
-    def do_space_overview(self):
+    def do_space_overview(self, **args):
         """
         Show database space report.
         """
@@ -321,7 +323,7 @@ class PgSQLGate(BaseGate):
         print >> sys.stdout, "\n", TablePrint(overview), "\n"
 
 
-    def do_space_reclaim(self):
+    def do_space_reclaim(self, **args):
         """
         Free disk space from unused object in tables and indexes.
         """
@@ -374,13 +376,45 @@ class PgSQLGate(BaseGate):
                 #print stdout
 
 
-    def do_backup_hot(self):
+    def do_backup_hot(self, **args):
         """
         Perform host database backup.
+        #@help
+        --source\tSource path of WAL entry.
+        --destination\tDestination directory of the backup.\n
+        Example:
+        --source=%p --destination=/root/of/your/backups\n
+        NOTE: All parameters above are used automatically!\n
         """
+
+        if args and ('source' not in args.keys() or 'destination' not in args.keys()):
+            raise GateException("Invalid internal call. You should not see this.")
+
+        if args:
+            if os.path.exists(args.get('destination')):                
+                self._perform_archive_operation(**args)
+            else:
+                self._perform_base_backup(**args)
+        else:
+            print "Not yet implemented"
         
 
-    def do_system_check(self):
+    def _perform_archive_operation(self, **args):
+        """
+        Performs an archive operation.
+        """
+
+        print "Incremental kick"
+
+
+    def _perform_base_backup(self, **args):
+        """
+        Makes first time base backup
+        """
+        os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Fp -c fast -x -v -P' % (args['destination']))
+        
+
+    def do_system_check(self, **args):
         """
         Common backend healthcheck.
         """
@@ -464,6 +498,7 @@ class PgSQLGate(BaseGate):
         print >> sys.stdout, "System check finished"
 
         return True
+
 
 
 def getGate(config):
