@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from basegate import GateException
 import sys
 import os
@@ -22,8 +24,12 @@ class Console:
         """
         Constructor.
         """
+        self.console_location = os.path.abspath(__file__)
         self.config_file = configpath
-        self.get_config()
+        if 'auto' not in sys.argv:
+            self.get_config()
+        else:
+            self.get_config_auto()
         self.load_db_backend()
 
 
@@ -37,8 +43,21 @@ class Console:
         except GateException, ex:
             raise Exception("Gate error: " + str(ex))
         except Exception, ex:
-            print ex
-            raise Exception("Unknown database backend. Please check %s configuration file." % self.config_file)
+            if self.config_file:
+                raise Exception("Unknown database backend. Please check %s configuration file." % self.config_file)
+            else:
+                raise Exception("Unknown database backend and config was not specified.")
+
+
+    def get_config_auto(self):
+        """
+        Manual config.
+        """
+        self.config = {}
+        args, params = self.get_opts(sys.argv[2:])
+        if not 'backend' in params.keys():
+            raise Exception("When using Auto, you need also load backend.\nBut you should not manually use Auto at first place!")
+        self.config = {'db_backend' : params.get('backend', 'unknown')}
 
 
     def get_config(self):
@@ -120,6 +139,7 @@ class Console:
             args, params = self.get_opts(command[1:])
             if 'help' in args:
                 self.usage(command=method)
+            params['__console_location'] = self.console_location
             getattr(self.gate, method)(*args, **params)
         else:
             raise Exception(("The parameter \"%s\" is an unknown command.\n\n"  % command[0]) + 

@@ -6,6 +6,9 @@ from utils import TablePrint
 import sys
 import os
 import time
+import shutil
+import utils
+
 
 
 class PgSQLGate(BaseGate):
@@ -266,6 +269,13 @@ class PgSQLGate(BaseGate):
             raise GateException("Unhandled underlying error occurred, see above.")
 
 
+    def _get_partition(self, fdir):
+        """
+        Get partition of the directory.
+        """
+        return os.popen("df -lP %s | tail -1 | cut -d' ' -f 1" % fdir).read().strip()
+        
+
     def do_space_overview(self, **args):
         """
         Show database space report.
@@ -277,7 +287,7 @@ class PgSQLGate(BaseGate):
             raise GateException("Database must be running.")
 
         # Get current partition
-        partition = os.popen("df -lP %s | tail -1 | cut -d' ' -f 1" % self.config['pcnf_data_directory']).read().strip()
+        partition = self._get_partition(self.config['pcnf_data_directory'])
 
         # Build info
         class Info:
@@ -376,43 +386,119 @@ class PgSQLGate(BaseGate):
                 #print stdout
 
 
-    def do_backup_hot(self, **args):
+    def do_backup_hot(self, *opts, **args):
         """
         Perform host database backup.
-        #@help
-        --source\tSource path of WAL entry.
+        @help
+        --enable\tEnable or disable hot backups. Values: on | off | purge
         --destination\tDestination directory of the backup.\n
-        Example:
-        --source=%p --destination=/root/of/your/backups\n
-        NOTE: All parameters above are used automatically!\n
         """
 
-        if args and ('source' not in args.keys() or 'destination' not in args.keys()):
-            raise GateException("Invalid internal call. You should not see this.")
+        # Part for the auto-backups
+        #--source\tSource path of WAL entry.\n
+        #Example:
+        #--autosource=%p --destination=/root/of/your/backups\n
+        #NOTE: All parameters above are used automatically!\n
 
-        if args:
-            if os.path.exists(args.get('destination')):                
-                self._perform_archive_operation(**args)
-            else:
-                self._perform_base_backup(**args)
-        else:
-            print "Not yet implemented"
+        if 'destination' not in args.keys():
+            raise GateException("Where I have to put backups?")
+
+        if 'enable' in args.keys():
+            self._perform_enable_backups(**args)
+
+        if 'source' in args.keys():
+            # Copy xlog entry
+            self._perform_archive_operation(**args)
         
+
+    def _perform_enable_backups(self, **args):
+        """
+        Turn backups on or off.
+        """
+        enable = args.get('enable', 'off')
+        conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
+        conf = self._get_conf(conf_path)
+
+        if enable == 'on':
+            # Enable backups
+            if not os.path.exists(args.get('destination')):
+                os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Fp -c fast -x -v -P' % (args['destination']))
+
+            cmd = "'" + args['__console_location'] +" backup-hot auto --backend=postgresql --source=\"%p\" --destination=\"" + args['destination'] + "/%f\"'"
+            if conf.get('archive_command', '') != cmd:
+                conf['archive_command'] = cmd
+                conf_bk = self._write_conf(conf_path, **conf)
+                self._restart_db()
+        else:
+            # Disable backups
+            if enable == 'purge' and os.path.exists(args['destination']):
+                shutil.rmtree(args['destination'])
+
+            cmd = "'/bin/true'"
+            if conf.get('archive_command', '') != cmd:
+                conf['archive_command'] = cmd
+                conf_bk = self._write_conf(conf_path, **conf)
+                self._restart_db()
+
+
+    def _restart_db(self):
+        """
+        Restart the entire db.
+        """
+        if self._get_db_status():
+            self.do_db_stop()
+        self.do_db_start()
+        self.do_db_status()
+
 
     def _perform_archive_operation(self, **args):
         """
         Performs an archive operation.
         """
+        if not args.get('source'):
+            raise GateException("Source file was not specified!")
+        elif not os.path.exists(args.get('source')):
+            raise GateException("File \"%s\" does not exists." % args.get('source'))
+        elif os.path.exists(args.get('destination')):
+            raise GateException("Destination file \"%s\"already exists." % args.get('destination'))
+        shutil.copy2(args.get('source'), args.get('destination'))
 
-        print "Incremental kick"
 
-
-    def _perform_base_backup(self, **args):
+    def do_backup_status(self, *opts, **args):
         """
-        Makes first time base backup
+        Show backup status.
         """
-        os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Fp -c fast -x -v -P' % (args['destination']))
-        
+        backup_dst = ""
+        backup_on = False
+        conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
+        conf = self._get_conf(conf_path)
+        cmd = self._get_conf(conf_path).get('archive_command', '').split(" ")
+        for line in cmd:
+            if line.startswith('--destination'):
+                backup_dst = os.path.dirname(line.split('=', 1)[-1].replace('"', '').replace("'", ''))
+                backup_on = os.path.exists(backup_dst)
+
+        backup_last_transaction = None
+        if backup_dst:
+            for fh in os.listdir(backup_dst + "/pg_xlog"):
+                mtime = os.path.getmtime(backup_dst + "/pg_xlog/" + fh)
+                if mtime > backup_last_transaction:
+                    backup_last_transaction = mtime
+
+        space_usage = None
+        if backup_dst:
+            partition = self._get_partition(backup_dst)
+            for line in os.popen("df -T").readlines()[1:]:
+                line = line.strip()
+                if not line.startswith(partition):
+                    continue
+                space_usage = (filter(None, line.split(' '))[5] + '').replace('%', '')
+
+        print >> sys.stdout, "Backup status:\t\t", (backup_on and 'ON' or 'OFF')
+        print >> sys.stdout, "Destination:\t\t", (backup_dst or '--')
+        print >> sys.stdout, "Last transaction:\t", backup_last_transaction and time.ctime(backup_last_transaction) or '--'
+        print >> sys.stdout, "Space available:\t", space_usage and str((100 - int(space_usage))) + '%' or '--'
+
 
     def do_system_check(self, **args):
         """
@@ -423,7 +509,6 @@ class PgSQLGate(BaseGate):
         # Check hot backup setup and clean it up automatically
         conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
         conf = self._get_conf(conf_path)
-
         changed = False
 
         #
