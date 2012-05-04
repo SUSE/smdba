@@ -7,6 +7,7 @@ import sys
 import os
 import time
 import shutil
+import tempfile
 import utils
 
 
@@ -385,6 +386,193 @@ class PgSQLGate(BaseGate):
                 sys.stdout.flush()
                 #print stdout
 
+    def _get_tablespace_size(self, path):
+        """
+        Get tablespace size in bytes.
+        """
+        return long(os.popen('/usr/bin/du -bc %s' % path).readlines()[-1].strip().replace('\t', ' ').split(' ')[0])
+
+
+    def _rst_get_backup_root(self, path):
+        """
+        Get root of the backup.
+        NOTE: Now won't work with multiple backups.
+        """
+        path = os.path.normpath(path)
+        found = None
+        fpath = os.listdir(path)
+        if 'backup_label' in fpath: # XXX: Add search by label too for multiple backups?
+            return path
+        for f in fpath:
+            f = path + "/" + f
+            if os.path.isdir(f):
+                found = self._rst_get_backup_root(f)
+                if found:
+                    break;
+
+        return found
+
+
+    def _rst_save_current_cluster(self):
+        """
+        Save current tablespace
+        """
+        old_data_dir = os.path.dirname(self.config['pcnf_pg_data']) + '/data.old'
+        if not os.path.exists(old_data_dir):
+            os.mkdir(old_data_dir)
+            print >> sys.stdout, "Created \"%s\" directory." % old_data_dir
+
+        print >> sys.stdout, "Moving broken cluster aside:\t ",
+        sys.stdout.flush()
+        roller = Roller()
+        roller.start()
+        suffix = '-'.join([str(el).zfill(2) for el in time.localtime()][:6])
+        destination_tar = old_data_dir + "/data." + suffix + ".tar.gz"
+        tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, self.config['pcnf_pg_data'])
+        roller.stop("finished")
+        time.sleep(1)
+        #print >> sys.stdout, "File %s has been written." % destination_tar
+
+
+    def _rst_shutdown_db(self):
+        """
+        Gracefully shutdown the database.
+        """
+        if self._get_db_status():
+            self.do_db_stop()
+            self.do_db_status()
+            if self._get_db_status():
+                print >> sys.stderr, "Error: Unable to stop database."
+                sys.exit(1)
+
+
+    def _rst_replace_new_backup(self, backup_dst):
+        """
+        Replace new backup.
+        """
+        # Archive into a tgz backup and place it near the cluster
+        print >> sys.stdout, "Replacing with the new backup:\t ",
+        sys.stdout.flush()
+        roller = Roller()
+        roller.start()
+
+        destination_tar = os.path.dirname(self.config['pcnf_pg_data']) + "/backup.tar.gz"
+        tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, backup_dst)
+        os.system(tar_command)
+        print tar_command
+        
+        roller.stop("finished")
+        time.sleep(1)
+
+        # Remove cluster in general
+        print >> sys.stdout, "Remove broken cluster:\t"
+        shutil.rmtree(self.config['pcnf_pg_data'])
+        print >> sys.stdout, "finished"
+        sys.stdout.flush()
+
+        # Unarchive cluster
+        print >> sys.stdout, "Unarchiving new backup:\t ",
+        sys.stdout.flush()
+        roller = Roller()
+        roller.start()
+
+        temp_dir = tempfile.mkdtemp()
+        tar_command = '/bin/tar xf %s --directory=%s 2>/dev/null' % (destination_tar, temp_dir)
+        os.system(tar_command)
+        #print tar_command
+        
+        roller.stop("finished")
+        time.sleep(1)
+
+        print >> sys.stdout, "Restore cluster:\t",
+        backup_root = self._rst_get_backup_root(temp_dir)
+        mv_command = '/bin/mv %s %s' % (backup_root, os.path.dirname(self.config['pcnf_pg_data']) + "/data")
+        os.system(mv_command)
+        #print mv_command
+        print >> sys.stdout, "finished"
+        sys.stdout.flush()        
+
+
+    def do_backup_restore(self, *opts, **args):
+        """
+        Restore the SUSE Manager Database from backup.
+        """
+        # This is the ratio of compressing typical PostgreSQL cluster tablespace
+        ratio = 0.134
+
+        backup_dst, backup_on = self.do_backup_status('--silent')
+        if not backup_on:
+            print >> sys.stderr, "No backup snapshots are available."
+            sys.exit(1)
+
+        # Check if we have enough space to fit enough copy of the tablespace
+        curr_ts_size = self._get_tablespace_size(self.config['pcnf_pg_data'])
+        bckp_ts_size = self._get_tablespace_size(backup_dst)
+        disk_size = self._get_partition_size(self.config['pcnf_pg_data'])
+
+        print >> sys.stdout, "Current cluster size:\t\t", self.size_pretty(curr_ts_size)
+        print >> sys.stdout, "Backup size:\t\t\t", self.size_pretty(bckp_ts_size)
+        print >> sys.stdout, "Current disk space:\t\t", self.size_pretty(disk_size)
+        print >> sys.stdout, "Predicted space after restore:\t", self.size_pretty(disk_size - (curr_ts_size * ratio) - bckp_ts_size)
+
+        # At least 1GB free disk space required *after* restore from the backup
+        if disk_size - curr_ts_size - bckp_ts_size < 0x40000000:
+            print >> sys.stderr, "At least 1GB free disk space required after backup restoration."
+            sys.exit(1)
+
+        # Requirements were met at this point.
+        #
+        # Shutdown the db
+        self._rst_shutdown_db()
+
+        # Save current tablespace
+        self._rst_save_current_cluster()
+
+        # Replace with new backup
+        self._rst_replace_new_backup(backup_dst)
+
+
+        
+        """
+        Clean out all existing files and subdirectories under the cluster 
+        data directory and under the root directories of any tablespaces you are using.
+
+        Restore the database files from your backup dump. Be careful that they 
+        are restored with the right ownership (the database system user, not root!) 
+        and with the right permissions. If you are using tablespaces, you should 
+        verify that the symbolic links in pg_tblspc/ were correctly restored.
+
+        Remove any files present in pg_xlog/; these came from the backup dump 
+        and are therefore probably obsolete rather than current. If you didn't 
+        archive pg_xlog/ at all, then recreate it, and be sure to recreate the 
+        subdirectory pg_xlog/archive_status/ as well.
+
+        If you had unarchived WAL segment files that you saved in step 2, copy them 
+        into pg_xlog/. (It is best to copy them, not move them, so that you still 
+        have the unmodified files if a problem occurs and you have to start over.)
+
+        Create a recovery command file recovery.conf in the cluster data directory 
+        (see Recovery Settings). You may also want to temporarily modify pg_hba.conf 
+        to prevent ordinary users from connecting until you are sure the recovery 
+        has worked.
+
+        Start the server. The server will go into recovery mode and proceed to 
+        read through the archived WAL files it needs. Should the recovery be 
+        terminated because of an external error, the server can simply be restarted 
+        and it will continue recovery. Upon completion of the recovery process, 
+        the server will rename recovery.conf to recovery.done (to prevent accidentally 
+        re-entering recovery mode in case of a crash later) and then commence normal 
+        database operations.
+
+        Inspect the contents of the database to ensure you have recovered to where 
+        you want to be. If not, return to step 1. If all is well, let in your users 
+        by restoring pg_hba.conf to normal.
+
+        restore_command = 'cp /mnt/server/archivedir/%f %p'
+        """
+
+        self.do_db_start()
+
 
     def do_backup_hot(self, *opts, **args):
         """
@@ -494,11 +682,21 @@ class PgSQLGate(BaseGate):
                     continue
                 space_usage = (filter(None, line.split(' '))[5] + '').replace('%', '')
 
-        print >> sys.stdout, "Backup status:\t\t", (backup_on and 'ON' or 'OFF')
-        print >> sys.stdout, "Destination:\t\t", (backup_dst or '--')
-        print >> sys.stdout, "Last transaction:\t", backup_last_transaction and time.ctime(backup_last_transaction) or '--'
-        print >> sys.stdout, "Space available:\t", space_usage and str((100 - int(space_usage))) + '%' or '--'
+        if not '--silent' in opts:
+            print >> sys.stdout, "Backup status:\t\t", (backup_on and 'ON' or 'OFF')
+            print >> sys.stdout, "Destination:\t\t", (backup_dst or '--')
+            print >> sys.stdout, "Last transaction:\t", backup_last_transaction and time.ctime(backup_last_transaction) or '--'
+            print >> sys.stdout, "Space available:\t", space_usage and str((100 - int(space_usage))) + '%' or '--'
+        else:
+            return backup_dst, backup_on
 
+
+    def _get_partition_size(self, path):
+        """
+        Get a size of the partition, where path belongs to."
+        """
+        return long((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
+        
 
     def do_system_check(self, **args):
         """

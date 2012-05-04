@@ -166,3 +166,23 @@ class BaseGate:
         Stub for checking the gate requirements.
         """
         raise GateException("No check implemented for this gate.")
+
+
+    def size_pretty(self, size):
+        """
+        Make pretty size from bytes to other metrics.
+        Size: amount (int, long)
+        """
+
+        size = float(size)
+
+        if size >= 0x10000000000:
+            return '%.2f TB' % (size / 0x10000000000)
+        elif size >= 0x40000000:
+            return '%.2f GB' % (size / 0x40000000)
+        elif size >= 0x100000:
+            return '%.2f MB' % (size / 0x100000)
+        elif size >= 0x400:
+            return '%.2f KB' % (size / 0x400)
+        else:
+            return '%.f Bytes' % size
