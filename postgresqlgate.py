@@ -422,15 +422,18 @@ class PgSQLGate(BaseGate):
             os.mkdir(old_data_dir)
             print >> sys.stdout, "Created \"%s\" directory." % old_data_dir
 
-        print >> sys.stdout, "Moving broken cluster aside:\t ",
+        print >> sys.stdout, "Moving broken cluster:\t ",
         sys.stdout.flush()
         roller = Roller()
         roller.start()
         suffix = '-'.join([str(el).zfill(2) for el in time.localtime()][:6])
         destination_tar = old_data_dir + "/data." + suffix + ".tar.gz"
         tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, self.config['pcnf_pg_data'])
+        os.system(tar_command)
         roller.stop("finished")
         time.sleep(1)
+        sys.stdout.flush()
+        #print >> sys.stdout, "finished"
         #print >> sys.stdout, "File %s has been written." % destination_tar
 
 
@@ -451,7 +454,7 @@ class PgSQLGate(BaseGate):
         Replace new backup.
         """
         # Archive into a tgz backup and place it near the cluster
-        print >> sys.stdout, "Replacing with the new backup:\t ",
+        print >> sys.stdout, "Restoring from backup:\t ",
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -459,13 +462,14 @@ class PgSQLGate(BaseGate):
         destination_tar = os.path.dirname(self.config['pcnf_pg_data']) + "/backup.tar.gz"
         tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, backup_dst)
         os.system(tar_command)
-        print tar_command
+        #print tar_command
         
         roller.stop("finished")
         time.sleep(1)
 
         # Remove cluster in general
-        print >> sys.stdout, "Remove broken cluster:\t"
+        print >> sys.stdout, "Remove broken cluster:\t",
+        sys.stdout.flush()
         shutil.rmtree(self.config['pcnf_pg_data'])
         print >> sys.stdout, "finished"
         sys.stdout.flush()
@@ -480,7 +484,7 @@ class PgSQLGate(BaseGate):
         tar_command = '/bin/tar xf %s --directory=%s 2>/dev/null' % (destination_tar, temp_dir)
         os.system(tar_command)
         #print tar_command
-        
+
         roller.stop("finished")
         time.sleep(1)
 
@@ -510,10 +514,10 @@ class PgSQLGate(BaseGate):
         bckp_ts_size = self._get_tablespace_size(backup_dst)
         disk_size = self._get_partition_size(self.config['pcnf_pg_data'])
 
-        print >> sys.stdout, "Current cluster size:\t\t", self.size_pretty(curr_ts_size)
-        print >> sys.stdout, "Backup size:\t\t\t", self.size_pretty(bckp_ts_size)
-        print >> sys.stdout, "Current disk space:\t\t", self.size_pretty(disk_size)
-        print >> sys.stdout, "Predicted space after restore:\t", self.size_pretty(disk_size - (curr_ts_size * ratio) - bckp_ts_size)
+        print >> sys.stdout, "Current cluster size:\t", self.size_pretty(curr_ts_size)
+        print >> sys.stdout, "Backup size:\t\t", self.size_pretty(bckp_ts_size)
+        print >> sys.stdout, "Current disk space:\t", self.size_pretty(disk_size)
+        print >> sys.stdout, "Predicted space:\t", self.size_pretty(disk_size - (curr_ts_size * ratio) - bckp_ts_size)
 
         # At least 1GB free disk space required *after* restore from the backup
         if disk_size - curr_ts_size - bckp_ts_size < 0x40000000:
@@ -531,26 +535,9 @@ class PgSQLGate(BaseGate):
         # Replace with new backup
         self._rst_replace_new_backup(backup_dst)
 
-
         
+
         """
-        Clean out all existing files and subdirectories under the cluster 
-        data directory and under the root directories of any tablespaces you are using.
-
-        Restore the database files from your backup dump. Be careful that they 
-        are restored with the right ownership (the database system user, not root!) 
-        and with the right permissions. If you are using tablespaces, you should 
-        verify that the symbolic links in pg_tblspc/ were correctly restored.
-
-        Remove any files present in pg_xlog/; these came from the backup dump 
-        and are therefore probably obsolete rather than current. If you didn't 
-        archive pg_xlog/ at all, then recreate it, and be sure to recreate the 
-        subdirectory pg_xlog/archive_status/ as well.
-
-        If you had unarchived WAL segment files that you saved in step 2, copy them 
-        into pg_xlog/. (It is best to copy them, not move them, so that you still 
-        have the unmodified files if a problem occurs and you have to start over.)
-
         Create a recovery command file recovery.conf in the cluster data directory 
         (see Recovery Settings). You may also want to temporarily modify pg_hba.conf 
         to prevent ordinary users from connecting until you are sure the recovery 
@@ -609,6 +596,11 @@ class PgSQLGate(BaseGate):
 
         if enable == 'on':
             # Enable backups
+            if not self._get_db_status():
+                self.do_db_start()
+            if not self._get_db_status():
+                raise GateException("Cannot start the database!")
+
             if not os.path.exists(args.get('destination')):
                 os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Fp -c fast -x -v -P' % (args['destination']))
 
