@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/sudo python
 
 from basegate import GateException
 import sys
