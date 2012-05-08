@@ -1,3 +1,30 @@
+# General utils
+#
+# Author: Bo Maryniuk <bo@suse.de>
+#
+# The MIT License (MIT)
+# Copyright (C) 2012 SUSE Linux Products GmbH
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions: 
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software. 
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE. 
+# 
+
+
 class TablePrint:
     """
     Print table on the CLI.
@@ -83,13 +110,14 @@ def unquote(self, el):
 
 
 
+# Test
 if __name__ == '__main__':
     table = [
-        ('Tablespace', 'Size (Mb)', 'Avail (Mb)', 'Use %'),
-        ('template1', 6, 94564, '0.5'),
-        ('susemanager', 6, 945646, '3.4'),
-        ('data_fs', 8, 345644, '0.5'),
-        ('something', 7, 84542, '1.9'),
+        ('Label', 'Int', 'Number', 'Percentage'),
+        ('foo', 6, 94564, '0.5'),
+        ('bar', 6, 945646, '3.4'),
+        ('something else here', 8, 345644, '0.5'),
+        ('and so on', 7, 84542, '1.9'),
         ]
 
     print TablePrint(table)
