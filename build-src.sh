@@ -4,7 +4,7 @@ VERSION="1.0"
 NAME="sm-db"
 
 # Update
-#git pull
+git pull
 
 # Cleanup
 rm -rf $NAME-$VERSION
