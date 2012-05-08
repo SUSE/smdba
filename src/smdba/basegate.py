@@ -67,8 +67,7 @@ class BaseGate:
         """
         Get scenario by name.
         """
-        scenario = os.path.join(os.path.abspath(__file__).split(os.path.sep)[:-1]) + os.path.sep.join(['', 'scenarios', name + ".scn"])
-        scenario = os.path.join(os.path.dirname(os.path.realpath(__file__)))
+        scenario = os.path.sep.join((os.path.abspath(__file__).split(os.path.sep)[:-1] + ['scenarios', name + ".scn"]))
         if not os.path.exists(scenario):
             raise IOError("Scenario \"%s\" is not accessible." % scenario)
 
