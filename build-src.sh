@@ -12,9 +12,13 @@ find . | grep '.pyc$' | xargs rm 2>/dev/null
 find . | grep '~$' | xargs rm 2>/dev/null
 
 # Archive
-push src
+pushd src
 cp -rv . ../$NAME-$VERSION
-pop
+popd
 
 tar cvf - $NAME-$VERSION | bzip2 > $NAME-$VERSION.tar.bz2
+rm -rf $NAME-$VERSION
 
+echo
+echo "Done"
+echo
