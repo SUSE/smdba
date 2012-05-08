@@ -1,0 +1,14 @@
+set serveroutput on size unlimited
+set feedback off
+
+declare
+  cursor dbf_cr is
+    select file_name from dba_data_files
+     where autoextensible = 'NO';
+
+begin
+  for r_dbf in dbf_cr loop
+    dbms_output.put_line(r_dbf.file_name);
+  end loop;
+end;
+/
