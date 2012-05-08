@@ -61,7 +61,9 @@ class Console:
         Load required backend for the database.
         """
         try:
-            self.gate = __import__(self.config.get(self.DB_BACKEND, "unknown") + "gate").getGate(self.config)
+            gate_name = "smdba." + self.config.get(self.DB_BACKEND, "unknown") + "gate"
+            __import__(gate_name)
+            self.gate = sys.modules[gate_name].getGate(self.config)
             self.gate.check()
         except GateException, ex:
             raise Exception("Gate error: " + str(ex))
