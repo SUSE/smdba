@@ -34,7 +34,7 @@ import os
 import sys
 import re
 import time
-
+import utils
 
 
 class OracleGate(BaseGate):
@@ -166,6 +166,10 @@ class OracleGate(BaseGate):
 
         if not os.path.exists(params.get('backup-dir')):
             raise Exception("\tIs the \"%s\" path does not exists?" % params.get('backup-dir'))
+
+        owner = utils.get_path_owner(params.get('backup-dir'))
+        if owner.user != 'oracle':
+            raise Exception("\tDirectory \"%s\" does not have proper permissions!" % params.get('backup-dir'))
 
         if not self.get_archivelog_mode():
             raise GateException("Archivelog is not turned on.\n\tPlease shutdown SUSE Manager and run system-check first!")

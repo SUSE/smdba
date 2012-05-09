@@ -24,6 +24,10 @@
 # IN THE SOFTWARE. 
 # 
 
+import os
+import grp
+import pwd
+
 
 class TablePrint:
     """
@@ -92,6 +96,28 @@ class TablePrint:
         self._check()
         self._get_widths()
         return self._format()
+
+
+
+def get_path_owner(path):
+    """
+    Returns the owner and group IDs of a directory.
+    """
+    class Owner:
+        def __init__(self):
+            self.uid = -1
+            self.gid = -1
+            self.user = None
+            self.group = None
+
+    owner = Owner()
+    stat_info = os.stat('/opt/deleteme')
+    owner.uid = stat_info.st_uid
+    owner.gid = stat_info.st_gid
+    owner.user = pwd.getpwuid(owner.uid)[0]
+    owner.group = grp.getgrgid(owner.gid)[0]
+
+    return owner
 
 
 
