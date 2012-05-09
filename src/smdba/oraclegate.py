@@ -134,7 +134,8 @@ class OracleGate(BaseGate):
                                 info.files.append(dbf)
                     infoset.append(info)
                 except:
-                    print "Nope"
+                    print >> sys.stderr, "No backup snapshots are available."
+                    sys.exit(1)
 
             # Display backup data
             if (infoset):
@@ -165,6 +166,9 @@ class OracleGate(BaseGate):
 
         if not os.path.exists(params.get('backup-dir')):
             raise Exception("\tIs the \"%s\" path does not exists?" % params.get('backup-dir'))
+
+        if not self.get_archivelog_mode():
+            raise GateException("Archivelog is not turned on.\n\tPlease shutdown SUSE Manager and run system-check first!")
 
         print >> sys.stdout, "Backing up the database:\t",
         roller = Roller()
@@ -613,8 +617,8 @@ class OracleGate(BaseGate):
         Stop SUSE Manager database.
         """
         # Check if DB is OK to be stopped in general
-        if self.is_sm_running():
-            raise GateException("SUSE Manager should be offline")
+        #if self.is_sm_running():
+        #    raise GateException("SUSE Manager should be offline")
 
         print >> sys.stdout, "Stopping the SUSE Manager database..."
         sys.stdout.flush()
@@ -756,11 +760,14 @@ class OracleGate(BaseGate):
         return True
 
 
-    def do_system_check(self):
+    def do_system_check(self, *args, **params):
         """
         Common backend healthcheck.
+        @help
+        force-archivelog-off\tForce archivelog mode to off.
         """
-        # Data table autoextend.
+        print >> sys.stdout, "Checking SUSE Manager Database backend\n"
+        # Set data table autoextensible.
         stdout, stderr = self.call_scenario('cnf-get-noautoext')
         if stderr:
             print >> sys.stderr, "Autoextend check error:"
@@ -768,16 +775,77 @@ class OracleGate(BaseGate):
             raise GateException("Unable continue system check")
 
         if stdout:
+            print >> sys.stdout, "Autoextensible:\tOff"
             scenario = []
             [scenario.append("alter database datafile '%s' autoextend on;" % fname) for fname in stdout.strip().split("\n")]
             self.syscall("sudo", self.get_scenario_template().replace('@scenario', '\n'.join(scenario)), 
                          None, "-u", "oracle", "/bin/bash")
             print >> sys.stdout, "%s table%s has been autoextended" % (len(scenario), len(scenario) > 1 and 's' or '')
         else:
-            print >> sys.stdout, "All tables autoextensible"
+            print >> sys.stdout, "Autoextensible:\tYes"
 
-        # Archivelog.
+        # Turn on archivelog.
+        #
+        if 'force-archivelog-off' in args:
+            if self.get_archivelog_mode():
+                self.set_archivelog_mode(status=False)
+            else:
+                print >> sys.stdout, "Archivelog mode is not used."
+        else:
+            if not self.get_archivelog_mode():
+                self.set_archivelog_mode(True)
+                if not self.get_archivelog_mode():
+                    print >> sys.stderr, "No archive log"
+                else:
+                    print >> sys.stdout,  "Database is now running in archivelog mode."
+            else:
+                print >> sys.stdout, "Archivelog:\tYes"
+
         # Free space on the storage.
+        #
+        # TBD
+
+        print >> sys.stdout, "\nFinished\n"
+
+
+    def set_archivelog_mode(self, status=True):
+        """
+        Set archive log mode status.
+        """
+        print >> sys.stdout, ("Turning %s archivelog mode...\t" % (status and 'on' or 'off')),
+        sys.stdout.flush()
+        roller = Roller()
+        roller.start()
+
+        stdout, stderr = None, None
+        success, failed = "done", "failed"
+        if status:
+            destination = os.environ['ORACLE_BASE'] + "/oradata/" + self.config.get("db_name") + "/archive"
+            stdout, stderr = self.call_scenario('ora-archivelog-on', destination=destination)
+        else:
+            stdout, stderr = self.call_scenario('ora-archivelog-off')
+            success, failed = "failed", "done"
+
+        if self.get_archivelog_mode():
+            roller.stop(success)
+        else:
+            roller.stop(failed)
+
+        time.sleep(1)
+        
+
+    def get_archivelog_mode(self):
+        """
+        Get archive log mode status.
+        """
+        stdout, stderr = self.call_scenario('ora-archivelog-status')
+        if stdout:
+            for line in stdout.split("\n"):
+                line = line.strip()
+                if line == 'NOARCHIVELOG':
+                    return False
+
+        return True
 
 
 
