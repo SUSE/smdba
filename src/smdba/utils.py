@@ -111,7 +111,7 @@ def get_path_owner(path):
             self.group = None
 
     owner = Owner()
-    stat_info = os.stat('/opt/deleteme')
+    stat_info = os.stat(path)
     owner.uid = stat_info.st_uid
     owner.gid = stat_info.st_gid
     owner.user = pwd.getpwuid(owner.uid)[0]
