@@ -392,10 +392,6 @@ class PgSQLGate(BaseGate):
             #roller = Roller()
             #roller.start()
 
-            #print "-" * 80
-            #print self.get_scenario_template(target='psql').replace('@scenario', operation)
-            #print "-" * 80
-
             stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', operation),
                                           None, "-u", "postgres", "/bin/bash")
             if stderr:
@@ -460,9 +456,6 @@ class PgSQLGate(BaseGate):
         roller.stop("finished")
         time.sleep(1)
         sys.stdout.flush()
-        #print >> sys.stdout, "finished"
-        #print >> sys.stdout, "File %s has been written." % destination_tar
-
 
     def _rst_shutdown_db(self):
         """
@@ -561,30 +554,6 @@ class PgSQLGate(BaseGate):
 
         # Replace with new backup
         self._rst_replace_new_backup(backup_dst)
-
-        
-
-        """
-        Create a recovery command file recovery.conf in the cluster data directory 
-        (see Recovery Settings). You may also want to temporarily modify pg_hba.conf 
-        to prevent ordinary users from connecting until you are sure the recovery 
-        has worked.
-
-        Start the server. The server will go into recovery mode and proceed to 
-        read through the archived WAL files it needs. Should the recovery be 
-        terminated because of an external error, the server can simply be restarted 
-        and it will continue recovery. Upon completion of the recovery process, 
-        the server will rename recovery.conf to recovery.done (to prevent accidentally 
-        re-entering recovery mode in case of a crash later) and then commence normal 
-        database operations.
-
-        Inspect the contents of the database to ensure you have recovered to where 
-        you want to be. If not, return to step 1. If all is well, let in your users 
-        by restoring pg_hba.conf to normal.
-
-        restore_command = 'cp /mnt/server/archivedir/%f %p'
-        """
-
         self.do_db_start()
 
 
