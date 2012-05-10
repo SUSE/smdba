@@ -15,6 +15,7 @@ find . | grep '~$' | xargs rm 2>/dev/null
 pushd src
 cp -rv . ../$NAME-$VERSION
 popd
+cp -v LICENSE README $NAME-$VERSION/
 
 tar cvf - $NAME-$VERSION | bzip2 > $NAME-$VERSION.tar.bz2
 rm -rf $NAME-$VERSION
