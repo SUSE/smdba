@@ -1,7 +1,7 @@
 #!/bin/sh
 
 VERSION="1.0"
-NAME="sm-db"
+NAME="smdba"
 
 # Update
 git pull
