@@ -12,9 +12,8 @@ find . | grep '.pyc$' | xargs rm 2>/dev/null
 find . | grep '~$' | xargs rm 2>/dev/null
 
 # Archive
-pushd src
-cp -rv . ../$NAME-$VERSION
-popd
+mkdir $NAME-$VERSION
+cp -rv src $NAME-$VERSION/
 cp -v LICENSE README $NAME-$VERSION/
 cp -v setup.py $NAME-$VERSION/
 
