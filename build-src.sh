@@ -16,6 +16,7 @@ pushd src
 cp -rv . ../$NAME-$VERSION
 popd
 cp -v LICENSE README $NAME-$VERSION/
+cp -v setup.py $NAME-$VERSION/
 
 tar cvf - $NAME-$VERSION | bzip2 > $NAME-$VERSION.tar.bz2
 rm -rf $NAME-$VERSION
