@@ -1,0 +1,211 @@
+#!/bin/sh
+#
+# Switch Oracle DB to localhost or world-wide.
+# Author: Bo Maryniuk <bo@suse.de>
+#
+#
+#
+# Setup. Don't touch this, you will screw it all up!
+#
+USER='root'
+REMOTE_USER='oracle'
+SID='susemanager'
+
+#
+# Function to put Oracle into a localhost listening mode.
+#
+system_to_localhost() {
+   write_configs "localhost";
+   cat << EOF  > $TEMP_FILE
+set termout off
+alter system reset dispatchers scope=spfile sid='*';
+alter system reset local_listener scope=spfile sid='*';
+alter system set dispatchers='(SERVICE=smlocal)(ADDRESS=(PROTOCOL=TCP)(HOST=localhost))';
+alter system set local_listener='SUSEMANAGER';
+exit;
+EOF
+}
+
+
+#
+# Function to put Oracle into world-wide listening mode.
+#
+system_to_worldwide() {
+   write_configs "$(hostname).$(domainname)";
+   cat << EOF  > $TEMP_FILE
+set termout off
+alter system reset dispatchers scope=spfile sid='*';
+alter system reset local_listener scope=spfile sid='*';
+alter system set dispatchers='(PROTOCOL=TCP)(SERVICE=smlocal)';
+alter system set local_listener='';
+exit;
+EOF
+}
+
+
+#
+# Write configs
+#
+write_configs() {
+   HOSTNAME=$1
+   ORA_CFG_HOME="$(get_ora_home)/network/admin"
+   FB_SFX=$(date +'%m%d%y-%H%M%S')
+
+   # Backup listener config
+   if [ -f "$ORA_CFG_HOME/listener.ora" ]; then
+      mv "$ORA_CFG_HOME/listener.ora" "$ORA_CFG_HOME/listener.$FB_SFX.ora"
+   fi
+
+   # Write listener config
+   cat << EOF > "$ORA_CFG_HOME/listener.ora"
+LISTENER =
+  (DESCRIPTION_LIST =
+    (DESCRIPTION =
+      (ADDRESS = (PROTOCOL = TCP)(HOST = $HOSTNAME)(PORT = 1521))
+    )
+  )
+
+ADR_BASE_LISTENER = /opt/apps/oracle
+EOF
+
+   # Backup TNS config
+   if [ -f "$ORA_CFG_HOME/tnsnames.ora" ]; then
+      mv "$ORA_CFG_HOME/tnsnames.ora" "$ORA_CFG_HOME/tnsnames.$FB_SFX.ora"
+   fi
+
+   # Write TNS config
+   cat << EOF > "$ORA_CFG_HOME/tnsnames.ora"
+SUSEMANAGER =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = $HOSTNAME)(PORT = 1521))
+    (CONNECT_DATA = (SERVER = DEDICATED)(SERVICE_NAME = susemanager))
+  )		    
+EOF
+
+   # Backup SQLNET config
+   if [ -f "$ORA_CFG_HOME/sqlnet.ora" ]; then
+      mv "$ORA_CFG_HOME/sqlnet.ora" "$ORA_CFG_HOME/sqlnet.$FB_SFX.ora"
+   fi
+
+   # Write SQLNET config
+   cat << EOF > "$ORA_CFG_HOME/sqlnet.ora"
+NAMES.DIRECTORY_PATH= (TNSNAMES, ONAMES, HOSTNAME)
+ADR_BASE = /opt/apps/oracle
+EOF
+}
+
+
+#
+# Get Oracle home
+#
+get_ora_home() {
+   ORA_HOME=($(cat /etc/oratab | grep $SID | tr ":" "\n"))
+   echo ${ORA_HOME[1]}
+}
+
+
+#
+# App CLI header
+#
+header() {
+   echo "SUSE Manager Database Control. Version 1.0"
+   echo "Oracle DB server mode switch."
+   echo "Copyright (C) 2012 by SUSE Linux Products GmbH"
+   echo
+}
+
+
+#
+# Displays usage of the script.
+#
+usage() {
+   echo "Usage: $0 localhost | worldwide"
+   echo
+   exit 1;
+}
+
+
+#
+# Cleanup
+#
+cleanup() {
+   rm $TEMP_FILE;
+   echo "Finished"
+}
+
+
+#
+# Apply changes to the Oracle database
+#
+apply_changes() {
+   su -s /bin/bash - oracle -c "ORACLE_SID=$SID sqlplus -S / as sysdba @$TEMP_FILE;"
+}
+
+
+#
+# Restart the database and listner
+#
+restart_db() {
+   echo "Stopping listener..."
+   su -s /bin/bash - oracle -c "ORACLE_SID=$SID lsnrctl stop > /dev/null"
+
+   echo "Stopping database..."
+   su -s /bin/bash - oracle -c "ORACLE_SID=$SID dbshut > /dev/null"
+
+   # That happens...
+   TNS_ZOMBIES=$(ps uax | grep tnslsnr | grep -v grep | awk '{print $2}')
+   if [ -n $TNS_ZOMBIE ]; then
+      for ZOMBIE in $TNS_ZOMBIES; do
+         kill -9 $ZOMBIE
+      done
+   fi
+
+   echo "Starting listener..."
+   su -s /bin/bash - oracle -c "ORACLE_SID=$SID lsnrctl start > /dev/null"
+
+   echo "Starting database..."
+   su -s /bin/bash - oracle -c "ORACLE_SID=$SID dbstart > /dev/null"
+}
+
+
+#
+# Check permissions
+#
+check_permissions() {
+   ME=`whoami`
+   if [ $ME != $USER ]; then
+      echo "Error: $USER privileges required!";
+      exit 1;
+   fi
+}
+
+
+#
+# Main
+#
+main() {
+   header;
+   check_permissions;
+   if [ -z $1 ]; then
+      usage;
+   else
+      if [ $1 == 'localhost' ]; then
+         echo "Switching Oracle DB to localhost..."
+	 system_to_localhost;
+      elif [ $1 == 'worldwide' ]; then
+         echo "Switching Oracle DB to worldwide..."
+	 system_to_worldwide;
+      else
+         echo "Unknown parameter \"$1\""
+	 usage;
+      fi
+   fi
+   
+   apply_changes;
+   restart_db;
+   cleanup;
+}
+
+
+TEMP_FILE="/tmp/.$(basename $0).$RANDOM.sql"
+main $@
