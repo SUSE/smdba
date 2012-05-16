@@ -154,7 +154,7 @@ restart_db() {
 
    # That happens...
    TNS_ZOMBIES=$(ps uax | grep tnslsnr | grep -v grep | awk '{print $2}')
-   if [ -n $TNS_ZOMBIE ]; then
+   if [ -n $TNS_ZOMBIES ]; then
       for ZOMBIE in $TNS_ZOMBIES; do
          kill -9 $ZOMBIE
       done
