@@ -81,7 +81,9 @@ SUSEMANAGER =
     (CONNECT_DATA = (SERVER = DEDICATED)(SERVICE_NAME = susemanager))
   )		    
 EOF
-
+   # Backup is always in Oracle home
+   cp $ORA_CFG_HOME/tnsnames.ora /etc
+   
    # Backup SQLNET config
    if [ -f "$ORA_CFG_HOME/sqlnet.ora" ]; then
       mv "$ORA_CFG_HOME/sqlnet.ora" "$ORA_CFG_HOME/sqlnet.$FB_SFX.ora"
