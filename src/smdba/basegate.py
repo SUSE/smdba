@@ -37,6 +37,8 @@ class BaseGate:
     Gate of tools for all supported databases.
     """
 
+    debug = False
+
 
     # XXX: This is a stub method that currently is OK to have here.
     #      However, probably it shall be moved away to an external
@@ -74,16 +76,17 @@ class BaseGate:
         return open(scenario, 'r')
 
 
-    def get_scenario_template(self, target='sqlplus'):
+    def get_scenario_template(self, target='sqlplus', login=None):
         """
         Generate a template for the Oracle SQL*Plus scenario.
         """
         e = os.environ.get
         scenario = []
+        login = login and login or '/nolog'
 
         executable = None
         if target == 'sqlplus':
-            executable = "/bin/%s -S /nolog" % target
+            executable = "/bin/%s -S %s" % (target, login)
         elif target == 'rman':
             executable = "/bin/" + target
         elif target == 'psql':
@@ -101,7 +104,7 @@ class BaseGate:
                 raise Exception("Underlying error: environment cannot be constructed.")
 
             scenario.append("cat - << EOF | " + e('ORACLE_HOME') + executable)
-            if target == 'sqlplus':
+            if target == 'sqlplus' and login.lower() == '/nolog':
                 scenario.append("CONNECT / AS SYSDBA;")
             elif target == 'rman':
                 scenario.append("CONNECT TARGET /")
@@ -113,16 +116,21 @@ class BaseGate:
             scenario.append(("cat - << EOF | " + executable + " --pset footer=off " + self.config.get('db_name', '')).strip())
             scenario.append("@scenario")
             scenario.append("EOF")
+        
+        if self.debug:
+            print "\n" + ("-" * 40) + "8<" + ("-" * 40)
+            print '\n'.join(scenario)
+            print ("-" * 40) + "8<" + ("-" * 40)
 
         return '\n'.join(scenario)
 
     
-    def call_scenario(self, scenario, target='sqlplus', **variables):
+    def call_scenario(self, scenario, target='sqlplus', login=None, **variables):
         """
         Call scenario in SQL*Plus.
         Returns stdout and stderr.
         """
-        template = self.get_scenario_template(target=target).replace('@scenario', self.get_scn(scenario).read().replace('$', '\$'))
+        template = self.get_scenario_template(target=target, login=login).replace('@scenario', self.get_scn(scenario).read().replace('$', '\$'))
 
         if variables:
             for k_var, v_var in variables.items():
