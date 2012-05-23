@@ -209,5 +209,5 @@ main() {
 }
 
 
-TEMP_FILE="/tmp/.$(basename $0).$RANDOM.sql"
+TEMP_FILE="/opt/apps/oracle/.$(basename $0).$RANDOM.sql"
 main $@
