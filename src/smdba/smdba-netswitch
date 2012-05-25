@@ -31,7 +31,7 @@ EOF
 # Function to put Oracle into world-wide listening mode.
 #
 system_to_worldwide() {
-   write_configs "$(hostname).$(domainname)";
+   write_configs "$(hostname -f)";
    cat << EOF  > $TEMP_FILE
 set termout off
 alter system reset dispatchers scope=spfile sid='*';
