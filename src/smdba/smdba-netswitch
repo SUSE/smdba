@@ -11,6 +11,38 @@ USER='root'
 REMOTE_USER='oracle'
 SID='susemanager'
 
+
+#
+# Perform test operation on DB
+#
+get_oracle_db_status() {
+    #su -s /bin/bash - oracle -c "ORACLE_SID=$SID sqlplus -S / as sysdba @$TEMP_FILE;"
+    OUT=`cat << EOF | su -s /bin/bash - oracle -c "ORACLE_SID=$SID sqlplus -S / as sysdba"
+set heading off
+select * from dual;
+exit;
+EOF`;
+    echo `echo $OUT`
+}
+
+
+#
+# Check if Oracle DB is running
+#
+check_oracle_running() {
+    OUT=$(get_oracle_db_status);
+    if [ "$OUT" != "X" ]; then
+	echo "WARNING: Oracle is not running."
+	start_db;
+	OUT=$(get_oracle_db_status);
+	if [ "$OUT" != "X" ]; then
+	    echo "FATAL: Oracle refuses to run nice way. :-( Please contact your DBA."
+	    exit 1;
+	fi
+    fi
+}
+
+
 #
 # Function to put Oracle into a localhost listening mode.
 #
@@ -145,28 +177,41 @@ apply_changes() {
 
 
 #
+# Stop db
+#
+stop_db() {
+    echo "Stopping listener..."
+    su -s /bin/bash - oracle -c "ORACLE_SID=$SID lsnrctl stop > /dev/null"
+
+    echo "Stopping database..."
+    su -s /bin/bash - oracle -c "ORACLE_SID=$SID dbshut > /dev/null"
+}
+
+#
+# Start db
+#
+start_db() {
+    # That happens...
+    TNS_ZOMBIES=$(ps uax | grep tnslsnr | grep -v grep | awk '{print $2}')
+    if [ -n $TNS_ZOMBIES ]; then
+	for ZOMBIE in $TNS_ZOMBIES; do
+            kill -9 $ZOMBIE
+	done
+    fi
+
+    echo "Starting listener..."
+    su -s /bin/bash - oracle -c "ORACLE_SID=$SID lsnrctl start > /dev/null"
+
+    echo "Starting database..."
+    su -s /bin/bash - oracle -c "ORACLE_SID=$SID dbstart > /dev/null"
+}
+
+#
 # Restart the database and listner
 #
 restart_db() {
-   echo "Stopping listener..."
-   su -s /bin/bash - oracle -c "ORACLE_SID=$SID lsnrctl stop > /dev/null"
-
-   echo "Stopping database..."
-   su -s /bin/bash - oracle -c "ORACLE_SID=$SID dbshut > /dev/null"
-
-   # That happens...
-   TNS_ZOMBIES=$(ps uax | grep tnslsnr | grep -v grep | awk '{print $2}')
-   if [ -n $TNS_ZOMBIES ]; then
-      for ZOMBIE in $TNS_ZOMBIES; do
-         kill -9 $ZOMBIE
-      done
-   fi
-
-   echo "Starting listener..."
-   su -s /bin/bash - oracle -c "ORACLE_SID=$SID lsnrctl start > /dev/null"
-
-   echo "Starting database..."
-   su -s /bin/bash - oracle -c "ORACLE_SID=$SID dbstart > /dev/null"
+    stop_db;
+    start_db;
 }
 
 
@@ -186,28 +231,30 @@ check_permissions() {
 # Main
 #
 main() {
-   header;
-   check_permissions;
-   if [ -z $1 ]; then
-      usage;
-   else
-      if [ $1 == 'localhost' ]; then
-         echo "Switching Oracle DB to localhost..."
-	 system_to_localhost;
-      elif [ $1 == 'worldwide' ]; then
-         echo "Switching Oracle DB to worldwide..."
-	 system_to_worldwide;
-      else
-         echo "Unknown parameter \"$1\""
-	 usage;
-      fi
-   fi
-   
-   apply_changes;
-   restart_db;
-   cleanup;
+    header;
+    check_permissions;
+    if [ -z $1 ]; then
+	usage;
+    else
+	check_oracle_running;
+	if [ $1 == 'localhost' ]; then
+            echo "Switching Oracle DB to localhost..."
+	    system_to_localhost;
+	elif [ $1 == 'worldwide' ]; then
+            echo "Switching Oracle DB to worldwide..."
+	    system_to_worldwide;
+	else
+            echo "Unknown parameter \"$1\""
+	    usage;
+	fi
+    fi
+    
+    apply_changes;
+    restart_db;
+    cleanup;
 }
 
 
 TEMP_FILE="/opt/apps/oracle/.$(basename $0).$RANDOM.sql"
 main $@
+
