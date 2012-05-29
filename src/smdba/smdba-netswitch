@@ -16,7 +16,6 @@ SID='susemanager'
 # Perform test operation on DB
 #
 get_oracle_db_status() {
-    #su -s /bin/bash - oracle -c "ORACLE_SID=$SID sqlplus -S / as sysdba @$TEMP_FILE;"
     OUT=`cat << EOF | su -s /bin/bash - oracle -c "ORACLE_SID=$SID sqlplus -S / as sysdba"
 set heading off
 select * from dual;
