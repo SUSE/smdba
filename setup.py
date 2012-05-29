@@ -14,6 +14,7 @@ setup (
   packages = [
       'smdba',
   ],
+  data_files=[('/usr/bin/', ['smdba-netswitch'])],
 
   author = 'bo',
   author_email = 'bo@suse.de',
