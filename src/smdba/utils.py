@@ -98,6 +98,19 @@ class TablePrint:
         return self._format()
 
 
+def create_dirs(path, owner, mode=0700):
+    """
+    Create path and change owner of it accordingly.
+    Default mode is 0700
+    """
+    if not os.path.exists(path):
+        os.makedirs(path, mode=mode)
+        owner = pwd.getpwnam(owner)
+        os.chown(path, owner.pw_uid, owner.pw_gid)
+        return True
+
+    return False
+
 
 def get_path_owner(path):
     """
