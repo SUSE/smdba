@@ -26,6 +26,8 @@
 from smdba.basegate import GateException
 import sys
 import os
+import time
+from threading import Thread
 
 
 class Console:
@@ -211,5 +213,29 @@ def main():
         sys.exit(1)
 
 
+
 if __name__ == "__main__":
-    main()
+    process = Thread(target=main)
+    process.start()
+
+    while process.is_alive():
+        try:
+            time.sleep(0.1)
+        except KeyboardInterrupt, err:
+            inp = None
+            print "\rCtrl+C? You are about to screw up everything!"
+            while inp not in ['y', 'n']:
+                try:
+                    inp = str(raw_input("Can't wait and sure to break? (N/Y) ")).lower()
+                except:
+                    print "\nThey say hitting keyboard with a hammer might help too..."
+                    inp = None
+                if inp and inp not in ['y', 'n']:
+                    print "I was asking you to press \"Y\" key or \"N\" key, but you chose \"Any key\"."
+    
+            if inp == 'n':
+                print "Good. Don't Ctrl+C anymore!"
+                continue
+            else:
+                print "\rOK, blame yourself."
+                sys.exit(1)
