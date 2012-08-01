@@ -38,6 +38,79 @@ import tempfile
 import utils
 
 
+class PgTune(object):
+    """
+    PostgreSQL tuning.
+    """
+    # NOTE: This is default Alpha implementation for SUSE Manager specs.
+    #       With a time it going to get more smart and dynamic.
+
+
+    def __init__(self):
+        self.max_connections = 50
+        self.config = {}
+
+
+    def get_total_memory(self):
+        """
+        Get machine total memory.
+        """
+        try:
+            return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
+        except:
+            return None
+
+
+    def br(self, value):
+        """
+        Binary rounding.
+        Keep 4 significant bits, truncate the rest.
+        """
+        m = 1
+        while value > 0x10:
+            value = int(value / 2)
+            m = m * 2
+
+        return m * value
+
+
+    def toMB(self, value):
+        return str(value / 0x400) + 'MB'
+
+
+    def estimate(self):
+        """
+        Estimate the data.
+        """
+        KB = 0x400
+        MB = KB * 0x400
+        GB = MB * 0x400
+
+        mem = self.get_total_memory()
+        if not mem:
+            raise Exception("Cannot get total memory of this system")
+
+        mem = mem / KB        
+        if mem > 0xff * MB:
+            raise Exception("This is a low memory system and is not supported!")
+    
+        self.config['shared_buffers'] = self.toMB(self.br(mem / 4))
+        self.config['effective_cache_size'] = self.toMB(self.br(mem * 3 / 4))
+        self.config['work_mem'] = self.toMB(self.br(mem / self.max_connections))
+
+        # No more than 1GB
+        self.config['maintenance_work_mem'] = self.toMB(self.br((mem / 0x10) > MB and MB or mem / 0x10))
+
+        self.config['checkpoint_segments'] = 8
+        self.config['checkpoint_completion_target'] = '0.7'
+        self.config['wal_buffers'] = self.toMB(0x200 * self.config['checkpoint_segments'])
+        self.config['constraint_exclusion'] = 'off'
+        self.config['default_statistics_target'] = 10
+        self.config['max_connections'] = self.max_connections
+
+        return self
+
+  
 
 class PgSQLGate(BaseGate):
     """
@@ -700,6 +773,12 @@ class PgSQLGate(BaseGate):
         #
         # Setup postgresql.conf
         #
+
+        # Built-in tuner
+        for item, value in PgTune().estimate().config.items():
+            if not changed and str(conf.get(item, None)) != str(value):
+                changed = True
+            conf[item] = value
 
         # WAL should be at least archive.
         if not conf.get('wal_level') or conf.get('wal_level') == 'minimal':
