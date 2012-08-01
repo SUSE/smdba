@@ -146,7 +146,8 @@ class Console:
             print >> sys.stderr, "\t", (command + ((longest - len(command)) * " ")), \
                 "\t", self.gate.get_gate_commands().get(self.translate_command(command)).get('description', '')
 
-        print >> sys.stderr
+        print >> sys.stderr, "\nTo know a complete description of each command, use parameter 'help'."
+        print >> sys.stderr, "Usage:\n\tsmdba <command> help <ENTER>\n"
 
 
     def translate_command(self, command):
@@ -183,9 +184,6 @@ class Console:
         """
         if commands[0] == '--help':
             self.usage()
-            print "To know a complete description of each command, use parameter 'help'."
-            print "Usage:\n\tsmdba <command> help <ENTER>\n"
-            sys.exit(0)
 
 
     def get_opts(self, opts):
