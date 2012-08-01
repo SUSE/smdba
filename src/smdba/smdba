@@ -1,4 +1,4 @@
-#!/usr/bin/sudo python
+#!/usr/bin/python
 #
 #
 # The MIT License (MIT)
@@ -162,16 +162,30 @@ class Console:
         """
         Execute one command.
         """
-        method = self.translate_command(command[0])
-        if self.gate.get_gate_commands().get(method):
-            args, params = self.get_opts(command[1:])
-            if 'help' in args:
-                self.usage(command=method)
-            params['__console_location'] = self.console_location
-            getattr(self.gate, method)(*args, **params)
+        if command[0].startswith('--'):
+            self.execute_static(command)
         else:
-            raise Exception(("The parameter \"%s\" is an unknown command.\n\n"  % command[0]) + 
-                            "Hint: Try with no parameters first, perhaps?")
+            method = self.translate_command(command[0])
+            if self.gate.get_gate_commands().get(method):
+                args, params = self.get_opts(command[1:])
+                if 'help' in args:
+                    self.usage(command=method)
+                params['__console_location'] = self.console_location
+                getattr(self.gate, method)(*args, **params)
+            else:
+                raise Exception(("The parameter \"%s\" is an unknown command.\n\n"  % command[0]) + 
+                                "Hint: Try with no parameters first, perhaps?")
+
+
+    def execute_static(self, commands):
+        """
+        Execute static commands.
+        """
+        if commands[0] == '--help':
+            self.usage()
+            print "To know a complete description of each command, use parameter 'help'."
+            print "Usage:\n\tsmdba <command> help <ENTER>\n"
+            sys.exit(0)
 
 
     def get_opts(self, opts):
