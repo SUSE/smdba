@@ -76,6 +76,9 @@ class OracleGate(BaseGate):
             raise Exception("Underlying error: file \"%s\" does not exists or cannot be read." % self.ORATAB)
 
         dbsid = self.config.get("db_name")
+        # format can be: //localhost:1521/susemanager
+        if "/" in dbsid:
+            dbsid = dbsid[(dbsid.rfind("/")+1):]
         for tabline in filter(None, [line.strip() for line in open(self.ORATAB).readlines()]):
             sid, home, default_start = tabline.split(":")
             if sid == dbsid:
