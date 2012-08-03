@@ -748,7 +748,7 @@ class OracleGate(BaseGate):
         """
         status = DBStatus()
 
-        sid = self.config.get("db_name", "")
+        sid = os.environ['ORACLE_SID']
         #status.stdout, status.stderr = self.syscall(self.lsnrctl, None, None, "status")
         status.stdout, status.stderr = self.syscall("sudo", None, None, "-u", "oracle", "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "status")
     
@@ -860,7 +860,7 @@ class OracleGate(BaseGate):
         stdout, stderr = None, None
         success, failed = "done", "failed"
         if status:
-            destination = os.environ['ORACLE_BASE'] + "/oradata/" + self.config.get("db_name") + "/archive"
+            destination = os.environ['ORACLE_BASE'] + "/oradata/" + os.environ['ORACLE_SID'] + "/archive"
             stdout, stderr = self.call_scenario('ora-archivelog-on', destination=destination)
         else:
             stdout, stderr = self.call_scenario('ora-archivelog-off')
