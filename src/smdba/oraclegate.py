@@ -92,7 +92,8 @@ class OracleGate(BaseGate):
         os.environ['LANG'] = 'en_US.utf-8'
         os.environ['ORACLE_HOME'] = self.ora_home
         os.environ['ORACLE_BASE'] = self.ora_home.split("/oracle/product")[0] + "/oracle"
-        os.environ['ORACLE_SID'] = self.config.get("db_name")
+        # use the stripped dbsid string for ORACLE_SID
+        os.environ['ORACLE_SID'] = dbsid
         os.environ['TNS_ADMIN'] = self.ora_home + "/network/admin"
         if os.environ.get('PATH', '').find(self.ora_home) < 0:
             os.environ['PATH'] = self.ora_home + "/bin:" + os.environ['PATH']
