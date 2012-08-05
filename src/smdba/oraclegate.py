@@ -262,7 +262,7 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario('rman-hot-backup.scn', target='rman', backupdir=params.get('backup-dir'))
+        stdout, stderr = self.call_scenario('rman-recover-whole-backup', target='rman')
 
         if stderr:
             roller.stop("failed")
