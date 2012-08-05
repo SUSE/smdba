@@ -759,9 +759,11 @@ class PgSQLGate(BaseGate):
         return long((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
         
 
-    def do_system_check(self, **args):
+    def do_system_check(self, *args, **params):
         """
         Common backend healthcheck.
+        @help
+        autotuning\tperform initial autotuning of the database
         """
         # Check enough space
 
@@ -775,10 +777,11 @@ class PgSQLGate(BaseGate):
         #
 
         # Built-in tuner
-        for item, value in PgTune().estimate().config.items():
-            if not changed and str(conf.get(item, None)) != str(value):
-                changed = True
-            conf[item] = value
+        if 'autotuning' in args:
+            for item, value in PgTune().estimate().config.items():
+                if not changed and str(conf.get(item, None)) != str(value):
+                    changed = True
+                conf[item] = value
 
         # WAL should be at least archive.
         if not conf.get('wal_level') or conf.get('wal_level') == 'minimal':
