@@ -79,6 +79,7 @@ class OracleGate(BaseGate):
         # format can be: //localhost:1521/susemanager
         if "/" in dbsid:
             dbsid = dbsid[(dbsid.rfind("/")+1):]
+        self.config['sid'] = dbsid
         for tabline in filter(None, [line.strip() for line in open(self.ORATAB).readlines()]):
             sid, home, default_start = tabline.split(":")
             if sid == dbsid:
@@ -93,7 +94,7 @@ class OracleGate(BaseGate):
         os.environ['ORACLE_HOME'] = self.ora_home
         os.environ['ORACLE_BASE'] = self.ora_home.split("/oracle/product")[0] + "/oracle"
         # use the stripped dbsid string for ORACLE_SID
-        os.environ['ORACLE_SID'] = dbsid
+        os.environ['ORACLE_SID'] = self.config.get("sid")
         os.environ['TNS_ADMIN'] = self.ora_home + "/network/admin"
         if os.environ.get('PATH', '').find(self.ora_home) < 0:
             os.environ['PATH'] = self.ora_home + "/bin:" + os.environ['PATH']
@@ -182,7 +183,7 @@ class OracleGate(BaseGate):
         Perform host database backup.
 
         @help
-        --backup-dir\tDirectory for backup data to be stored.
+        --backup-dir=<path>\tDirectory for backup data to be stored.
         """
         if not params.get('backup-dir'):
             raise Exception("\tPlease run this as \"%s backup-hot help\" first." % sys.argv[0])
@@ -748,7 +749,7 @@ class OracleGate(BaseGate):
         """
         status = DBStatus()
 
-        sid = os.environ['ORACLE_SID']
+        sid = self.config.get("sid")
         #status.stdout, status.stderr = self.syscall(self.lsnrctl, None, None, "status")
         status.stdout, status.stderr = self.syscall("sudo", None, None, "-u", "oracle", "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "status")
     
@@ -860,7 +861,7 @@ class OracleGate(BaseGate):
         stdout, stderr = None, None
         success, failed = "done", "failed"
         if status:
-            destination = os.environ['ORACLE_BASE'] + "/oradata/" + os.environ['ORACLE_SID'] + "/archive"
+            destination = os.environ['ORACLE_BASE'] + "/oradata/" + self.config.get("sid") + "/archive"
             stdout, stderr = self.call_scenario('ora-archivelog-on', destination=destination)
         else:
             stdout, stderr = self.call_scenario('ora-archivelog-off')
