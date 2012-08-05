@@ -113,7 +113,7 @@ class BaseGate:
             scenario.append("EXIT;")
             scenario.append("EOF")
         elif target in ['psql']:
-            scenario.append(("cat - << EOF | " + executable + " --pset footer=off " + self.config.get('db_name', '')).strip())
+            scenario.append(("cat - << EOF | " + executable + " -t --pset footer=off " + self.config.get('db_name', '')).strip())
             scenario.append("@scenario")
             scenario.append("EOF")
         
