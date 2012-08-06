@@ -632,10 +632,10 @@ class PgSQLGate(BaseGate):
 
     def do_backup_hot(self, *opts, **args):
         """
-        Perform host database backup.
+        Perform hot database backup.
         @help
-        --enable\tEnable or disable hot backups. Values: on | off | purge
-        --destination\tDestination directory of the backup.\n
+        --enable=<value>\tEnable or disable hot backups. Values: on | off | purge
+        --destination=<path>\tDestination directory of the backup.\n
         """
 
         # Part for the auto-backups
@@ -673,7 +673,8 @@ class PgSQLGate(BaseGate):
             if not os.path.exists(args.get('destination')):
                 os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Fp -c fast -x -v -P' % (args['destination']))
 
-            cmd = "'" + args['__console_location'] +" backup-hot auto --backend=postgresql --source=\"%p\" --destination=\"" + args['destination'] + "/%f\"'"
+            #cmd = "'" + args['__console_location'] +" backup-hot auto --backend=postgresql --source=\"%p\" --destination=\"" + args['destination'] + "/%f\"'"
+            cmd = "'" + 'test ! -f ' + args['destination'] + '/pg_xlog/%f && cp %p ' + args['destination'] + '/pg_xlog/%f' + "'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
