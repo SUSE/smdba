@@ -32,6 +32,8 @@ from utils import TablePrint
 
 import sys
 import os
+import pwd
+import grp
 import time
 import shutil
 import tempfile
@@ -187,6 +189,10 @@ class PgSQLGate(BaseGate):
             if line.startswith('POSTGRES_DATADIR'):
                 self.config['pcnf_pg_data'] = os.path.expanduser(line.strip().split('=', 1)[-1].replace('"', ''))
 
+        if self.config.get('pcnf_pg_data', '') == '':
+            # use default path
+            self.config['pcnf_pg_data'] = '/var/lib/pgsql/data'
+
         if not os.path.exists(self.config.get('pcnf_pg_data', '')):
             raise GateException('Cannot find core component tablespace on disk')
 
@@ -293,7 +299,7 @@ class PgSQLGate(BaseGate):
 
         # Start the db
         if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s"
-                         % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', ''))):
+                         % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', '""'))):
             print >> sys.stdout,  "done"
         else:
             print >> sys.stderr, "failed"
@@ -549,16 +555,18 @@ class PgSQLGate(BaseGate):
         # Archive into a tgz backup and place it near the cluster
         print >> sys.stdout, "Restoring from backup:\t ",
         sys.stdout.flush()
-        roller = Roller()
-        roller.start()
+        #roller = Roller()
+        #roller.start()
 
-        destination_tar = os.path.dirname(self.config['pcnf_pg_data']) + "/backup.tar.gz"
-        tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, backup_dst)
-        os.system(tar_command)
+        destination_tar = backup_dst + "/base.tar.gz"
+
+        #destination_tar = os.path.dirname(self.config['pcnf_pg_data']) + "/backup.tar.gz"
+        #tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, backup_dst)
+        #os.system(tar_command)
         #print tar_command
 
-        roller.stop("finished")
-        time.sleep(1)
+        #roller.stop("finished")
+        #time.sleep(1)
 
         # Remove cluster in general
         print >> sys.stdout, "Remove broken cluster:\t",
@@ -574,12 +582,22 @@ class PgSQLGate(BaseGate):
         roller.start()
 
         temp_dir = tempfile.mkdtemp()
+        pguid = pwd.getpwnam('postgres')[2]
+        pggid = grp.getgrnam('postgres')[2]
+        os.chown(temp_dir, pguid, pggid)
         tar_command = '/bin/tar xf %s --directory=%s 2>/dev/null' % (destination_tar, temp_dir)
         os.system(tar_command)
         #print tar_command
 
         roller.stop("finished")
         time.sleep(1)
+
+        # copy pg_xlog files
+        print >> sys.stdout, "copy archive logs:\t",
+        cp_command = '/bin/cp --preserve=all %s %s' % (backup_dst + "/pg_xlog/*", temp_dir + "/pg_xlog/")
+        os.system(cp_command)
+        print >> sys.stdout, "finished"
+        sys.stdout.flush()
 
         print >> sys.stdout, "Restore cluster:\t",
         backup_root = self._rst_get_backup_root(temp_dir)
@@ -671,10 +689,11 @@ class PgSQLGate(BaseGate):
                 raise GateException("Cannot start the database!")
 
             if not os.path.exists(args.get('destination')):
-                os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Fp -c fast -x -v -P' % (args['destination']))
+                os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (args['destination']))
+                os.system('sudo -u postgres /bin/mkdir %s' % (args['destination'] + "/pg_xlog"))
 
-            #cmd = "'" + args['__console_location'] +" backup-hot auto --backend=postgresql --source=\"%p\" --destination=\"" + args['destination'] + "/%f\"'"
-            cmd = "'" + 'test ! -f ' + args['destination'] + '/pg_xlog/%f && cp %p ' + args['destination'] + '/pg_xlog/%f' + "'"
+            cmd = "'" + " /usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + args['destination'] + "/pg_xlog/%f\"'"
+            #cmd = "'" + 'test ! -f ' + args['destination'] + '/%f && cp %p ' + args['destination'] + '/%f' + "'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
@@ -723,13 +742,18 @@ class PgSQLGate(BaseGate):
         conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
         conf = self._get_conf(conf_path)
         cmd = self._get_conf(conf_path).get('archive_command', '').split(" ")
-        for line in cmd:
-            if line.startswith('--destination'):
-                backup_dst = os.path.dirname(line.split('=', 1)[-1].replace('"', '').replace("'", ''))
+        found_dest = False
+        for comp in cmd:
+            if comp.startswith('--destination'):
+                found_dest = True
+            elif found_dest:
+                backup_dst = os.path.dirname(os.path.dirname(comp.replace('"', '').replace("'", '')))
                 backup_on = os.path.exists(backup_dst)
+                break
 
         backup_last_transaction = None
         if backup_dst:
+            backup_last_transaction = os.path.getmtime(backup_dst + "/base.tar.gz")
             for fh in os.listdir(backup_dst + "/pg_xlog"):
                 mtime = os.path.getmtime(backup_dst + "/pg_xlog/" + fh)
                 if mtime > backup_last_transaction:

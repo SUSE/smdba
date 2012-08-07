@@ -1,0 +1,66 @@
+#! /bin/bash
+
+OPT=""
+SOURCE=""
+DESTINATION=""
+while true ; do
+    case "$1" in
+    --source)       OPT="source";;
+    --destination)  OPT="dest";;
+    "")             break ;;
+    -*)             echo "Unknown option $1" >&2; break;;
+    *)
+        if [ "$OPT" = "source" ]; then
+            SOURCE="$1"
+        elif [ "$OPT" = "dest" ]; then
+            DESTINATION="$1"
+        else
+            echo "Parameter without option. Skip"
+        fi
+        ;;
+    esac
+    shift
+done
+
+if [ -z "$SOURCE" -o -z "$DESTINATION" ]; then
+    echo "Invalid parameters" >&2
+    exit 1
+fi
+
+if [ ! -f "$SOURCE" ]; then
+    echo "No such file: $SOURCE" >&2
+    exit 1
+fi
+
+DESTDIR=`dirname $DESTINATION`
+if [ ! -d "$DESTDIR" ]; then
+    echo "Destination directory does not exist: $DESTDIR" >&2
+    exit 1
+fi
+
+if [ -f "$DESTINATION" ]; then
+    # file already exist in the backup
+    # exit without error
+    exit 0
+fi
+
+if ! cp --preserve=all $SOURCE $DESTINATION; then
+    echo "Copy command failed" >&2
+    exit 1
+fi
+
+FILENAME=`basename $SOURCE`
+SHA1SOURCE=`sha1sum $SOURCE`
+SHA1DEST=`sha1sum $DESTINATION/$FILENAME`
+
+if [ "$SHA1SOURCE" = "$SHA1DEST" ]; then
+    echo "Checksum error $SHA1DEST: $SHA1SOURCE vs. $SHA1DEST" >&2
+    # remove broken backup file
+    rm -f $SHA1DEST
+    exit 1
+fi
+
+# remove archive log
+rm -f $SOURCE
+
+exit 0
