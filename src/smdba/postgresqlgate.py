@@ -11,10 +11,10 @@
 # deal in the Software without restriction, including without limitation the
 # rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
 # sell copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions: 
+# furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software. 
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -22,8 +22,8 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE. 
-# 
+# IN THE SOFTWARE.
+#
 
 from basegate import BaseGate
 from basegate import GateException
@@ -90,10 +90,10 @@ class PgTune(object):
         if not mem:
             raise Exception("Cannot get total memory of this system")
 
-        mem = mem / KB        
+        mem = mem / KB
         if mem > 0xff * MB:
             raise Exception("This is a low memory system and is not supported!")
-    
+
         self.config['shared_buffers'] = self.toMB(self.br(mem / 4))
         self.config['effective_cache_size'] = self.toMB(self.br(mem * 3 / 4))
         self.config['work_mem'] = self.toMB(self.br(mem / self.max_connections))
@@ -110,7 +110,7 @@ class PgTune(object):
 
         return self
 
-  
+
 
 class PgSQLGate(BaseGate):
     """
@@ -145,7 +145,7 @@ class PgSQLGate(BaseGate):
             msg = 'control'
         elif not os.path.exists("/usr/bin/pg_basebackup"):
             msg = 'backup'
-        
+
         if msg:
             raise GateException("Cannot find required %s component." % msg)
 
@@ -272,7 +272,7 @@ class PgSQLGate(BaseGate):
         return backup
 
 
-    # Commands        
+    # Commands
     def do_db_start(self, **args):
         """
         Start the SUSE Manager Database.
@@ -292,7 +292,7 @@ class PgSQLGate(BaseGate):
         self._cleanup_pids()
 
         # Start the db
-        if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s" 
+        if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s"
                          % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', ''))):
             print >> sys.stdout,  "done"
         else:
@@ -375,7 +375,7 @@ class PgSQLGate(BaseGate):
         Get partition of the directory.
         """
         return os.popen("df -lP %s | tail -1 | cut -d' ' -f 1" % fdir).read().strip()
-        
+
 
     def do_space_overview(self, **args):
         """
@@ -413,10 +413,10 @@ class PgSQLGate(BaseGate):
             info.mountpoint = line[6]
 
             break
-        
+
 
         # Get database sizes
-        stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', 
+        stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario',
                                                                                                 'select pg_database_size(datname), datname from pg_database;'),
                                       None, "-u", "postgres", "/bin/bash")
         overview = [('Tablespace', 'Size (Mb)', 'Avail (Mb)', 'Use %',)]
@@ -442,7 +442,7 @@ class PgSQLGate(BaseGate):
         sys.stdout.flush()
 
         #roller = Roller()
-        #roller.start()        
+        #roller.start()
 
         if not self._get_db_status():
             roller.stop('failed')
@@ -474,7 +474,7 @@ class PgSQLGate(BaseGate):
                 sys.stdout.flush()
                 print >> sys.stderr, stderr
                 raise GateException("Unhandled underlying error occurred, see above.")
-            
+
             else:
                 #roller.stop('done')
                 #time.sleep(1)
@@ -556,7 +556,7 @@ class PgSQLGate(BaseGate):
         tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, backup_dst)
         os.system(tar_command)
         #print tar_command
-        
+
         roller.stop("finished")
         time.sleep(1)
 
@@ -587,7 +587,7 @@ class PgSQLGate(BaseGate):
         os.system(mv_command)
         #print mv_command
         print >> sys.stdout, "finished"
-        sys.stdout.flush()        
+        sys.stdout.flush()
 
 
     def do_backup_restore(self, *opts, **args):
@@ -653,7 +653,7 @@ class PgSQLGate(BaseGate):
         if 'source' in args.keys():
             # Copy xlog entry
             self._perform_archive_operation(**args)
-        
+
 
     def _perform_enable_backups(self, **args):
         """
@@ -758,7 +758,7 @@ class PgSQLGate(BaseGate):
         Get a size of the partition, where path belongs to."
         """
         return long((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
-        
+
 
     def do_system_check(self, *args, **params):
         """
