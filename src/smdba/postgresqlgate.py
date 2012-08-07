@@ -688,16 +688,19 @@ class PgSQLGate(BaseGate):
             if not self._get_db_status():
                 raise GateException("Cannot start the database!")
 
-            if not os.path.exists(args.get('destination')):
+            if ((not os.path.exists(args.get('destination'))) or
+                (not os.path.exists(args.get('destination') + "/base.tar.gz"))):
                 os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (args['destination']))
+            if (not os.path.exists(args.get('destination') + "/pg_xlog")):
                 os.system('sudo -u postgres /bin/mkdir %s' % (args['destination'] + "/pg_xlog"))
 
-            cmd = "'" + " /usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + args['destination'] + "/pg_xlog/%f\"'"
+            cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + args['destination'] + "/pg_xlog/%f\"'"
             #cmd = "'" + 'test ! -f ' + args['destination'] + '/%f && cp %p ' + args['destination'] + '/%f' + "'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
                 self._restart_db()
+            self._remove_old_archive_files()
         else:
             # Disable backups
             if enable == 'purge' and os.path.exists(args['destination']):
@@ -708,6 +711,25 @@ class PgSQLGate(BaseGate):
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
                 self._restart_db()
+
+    def _remove_old_archive_files(self):
+        xlogdir = self.config['pcnf_pg_data'] + "/pg_xlog"
+        backupfile = None
+        for xlogfile in os.listdir(xlogdir):
+            if xlogfile.endswith(".backup"):
+                backupfile = xlogfile.split(".")[0]
+                break
+        if backupfile == None:
+            return
+        hexname = int('0x'+backupfile, 16)
+        while hexname > 0x10000000000000000:
+            hexname = hexname -1
+            fname = "%024x" % hexname
+            path = xlogdir + "/" + fname.upper()
+            #print "Test: %s" % path
+            if os.path.exists(path):
+                os.remove(path)
+                #print "remove %s" % (path)
 
 
     def _restart_db(self):
