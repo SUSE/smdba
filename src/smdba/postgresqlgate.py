@@ -298,11 +298,14 @@ class PgSQLGate(BaseGate):
         self._cleanup_pids()
 
         # Start the db
+        cwd = os.getcwd()
+        os.chdir('/tmp/')
         if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s"
                          % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', '""'))):
             print >> sys.stdout,  "done"
         else:
             print >> sys.stderr, "failed"
+        os.chdir(cwd)
 
         #roller.stop('done')
         time.sleep(1)
@@ -324,11 +327,13 @@ class PgSQLGate(BaseGate):
         # Stop the db
         if not self.config.get('pcnf_data_directory'):
             raise GateException("Cannot find data directory.")
-
+        cwd = os.getcwd()
+        os.chdir('/tmp/')
         if not os.system("sudo -u postgres /usr/bin/pg_ctl stop -s -D %s -m fast" % self.config.get('pcnf_data_directory', '')):
             print >> sys.stdout, "done"
         else:
             print >> sys.stderr, "failed"
+        os.chdir(cwd)
 
         # Cleanup
         self._cleanup_pids()
@@ -555,21 +560,9 @@ class PgSQLGate(BaseGate):
         # Archive into a tgz backup and place it near the cluster
         print >> sys.stdout, "Restoring from backup:\t ",
         sys.stdout.flush()
-        #roller = Roller()
-        #roller.start()
-
-        destination_tar = backup_dst + "/base.tar.gz"
-
-        #destination_tar = os.path.dirname(self.config['pcnf_pg_data']) + "/backup.tar.gz"
-        #tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, backup_dst)
-        #os.system(tar_command)
-        #print tar_command
-
-        #roller.stop("finished")
-        #time.sleep(1)
 
         # Remove cluster in general
-        print >> sys.stdout, "Remove broken cluster:\t",
+        print >> sys.stdout, "Remove broken cluster:\t ",
         sys.stdout.flush()
         shutil.rmtree(self.config['pcnf_pg_data'])
         print >> sys.stdout, "finished"
@@ -581,6 +574,7 @@ class PgSQLGate(BaseGate):
         roller = Roller()
         roller.start()
 
+        destination_tar = backup_dst + "/base.tar.gz"
         temp_dir = tempfile.mkdtemp()
         pguid = pwd.getpwnam('postgres')[2]
         pggid = grp.getgrnam('postgres')[2]
@@ -592,14 +586,7 @@ class PgSQLGate(BaseGate):
         roller.stop("finished")
         time.sleep(1)
 
-        # copy pg_xlog files
-        print >> sys.stdout, "copy archive logs:\t",
-        cp_command = '/bin/cp --preserve=all %s %s' % (backup_dst + "/pg_xlog/*", temp_dir + "/pg_xlog/")
-        os.system(cp_command)
-        print >> sys.stdout, "finished"
-        sys.stdout.flush()
-
-        print >> sys.stdout, "Restore cluster:\t",
+        print >> sys.stdout, "Restore cluster:\t ",
         backup_root = self._rst_get_backup_root(temp_dir)
         mv_command = '/bin/mv %s %s' % (backup_root, os.path.dirname(self.config['pcnf_pg_data']) + "/data")
         os.system(mv_command)
@@ -607,6 +594,12 @@ class PgSQLGate(BaseGate):
         print >> sys.stdout, "finished"
         sys.stdout.flush()
 
+        print >> sys.stdout, "Write recovery.conf:\t ",
+        cfg = open(os.path.dirname(self.config['pcnf_pg_data']) + "/data/recovery.conf", 'w')
+        cfg.write("restore_command = 'cp " + backup_dst + "/%f %p'\n")
+        cfg.close()
+        print >> sys.stdout, "finished"
+        sys.stdout.flush()
 
     def do_backup_restore(self, *opts, **args):
         """
@@ -667,6 +660,7 @@ class PgSQLGate(BaseGate):
 
         if 'enable' in args.keys():
             self._perform_enable_backups(**args)
+            print >> sys.stdout, "Please restart the spacewalk service with 'spacewalk-service restart'",
 
         if 'source' in args.keys():
             # Copy xlog entry
@@ -688,19 +682,18 @@ class PgSQLGate(BaseGate):
             if not self._get_db_status():
                 raise GateException("Cannot start the database!")
 
-            if ((not os.path.exists(args.get('destination'))) or
-                (not os.path.exists(args.get('destination') + "/base.tar.gz"))):
+            if not os.path.exists(args.get('destination')):
+                cwd = os.getcwd()
+                os.chdir('/tmp/')
                 os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (args['destination']))
-            if (not os.path.exists(args.get('destination') + "/pg_xlog")):
-                os.system('sudo -u postgres /bin/mkdir %s' % (args['destination'] + "/pg_xlog"))
+                os.chdir(cwd)
 
-            cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + args['destination'] + "/pg_xlog/%f\"'"
-            #cmd = "'" + 'test ! -f ' + args['destination'] + '/%f && cp %p ' + args['destination'] + '/%f' + "'"
+            cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + args['destination'] + "/%f\"'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
                 self._restart_db()
-            self._remove_old_archive_files()
+
         else:
             # Disable backups
             if enable == 'purge' and os.path.exists(args['destination']):
@@ -711,25 +704,6 @@ class PgSQLGate(BaseGate):
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
                 self._restart_db()
-
-    def _remove_old_archive_files(self):
-        xlogdir = self.config['pcnf_pg_data'] + "/pg_xlog"
-        backupfile = None
-        for xlogfile in os.listdir(xlogdir):
-            if xlogfile.endswith(".backup"):
-                backupfile = xlogfile.split(".")[0]
-                break
-        if backupfile == None:
-            return
-        hexname = int('0x'+backupfile, 16)
-        while hexname > 0x10000000000000000:
-            hexname = hexname -1
-            fname = "%024x" % hexname
-            path = xlogdir + "/" + fname.upper()
-            #print "Test: %s" % path
-            if os.path.exists(path):
-                os.remove(path)
-                #print "remove %s" % (path)
 
 
     def _restart_db(self):
@@ -769,15 +743,14 @@ class PgSQLGate(BaseGate):
             if comp.startswith('--destination'):
                 found_dest = True
             elif found_dest:
-                backup_dst = os.path.dirname(os.path.dirname(comp.replace('"', '').replace("'", '')))
+                backup_dst = os.path.dirname(comp.replace('"', '').replace("'", ''))
                 backup_on = os.path.exists(backup_dst)
                 break
 
         backup_last_transaction = None
         if backup_dst:
-            backup_last_transaction = os.path.getmtime(backup_dst + "/base.tar.gz")
-            for fh in os.listdir(backup_dst + "/pg_xlog"):
-                mtime = os.path.getmtime(backup_dst + "/pg_xlog/" + fh)
+            for fh in os.listdir(backup_dst ):
+                mtime = os.path.getmtime(backup_dst + "/" + fh)
                 if mtime > backup_last_transaction:
                     backup_last_transaction = mtime
 
@@ -841,7 +814,7 @@ class PgSQLGate(BaseGate):
 
         # WAL keep segments must be non-zero
         if conf.get('wal_keep_segments', '0') == '0':
-            conf['wal_keep_segments'] = 300
+            conf['wal_keep_segments'] = 64
             changed = True
 
         # Should run in archive mode
