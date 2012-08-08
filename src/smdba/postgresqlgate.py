@@ -643,10 +643,10 @@ class PgSQLGate(BaseGate):
 
     def do_backup_hot(self, *opts, **args):
         """
-        Perform hot database backup.
+        Enable continuous archiving backup
         @help
         --enable=<value>\tEnable or disable hot backups. Values: on | off | purge
-        --destination=<path>\tDestination directory of the backup.\n
+        --destination=<path>\tDestination directory of the backup (must not exist).\n
         """
 
         # Part for the auto-backups
@@ -682,11 +682,14 @@ class PgSQLGate(BaseGate):
             if not self._get_db_status():
                 raise GateException("Cannot start the database!")
 
-            if not os.path.exists(args.get('destination')):
-                cwd = os.getcwd()
-                os.chdir('/tmp/')
-                os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (args['destination']))
-                os.chdir(cwd)
+            if os.path.exists(args.get('destination')):
+                print >> sys.stdout, "Backup directory already exists",
+                sys.exit(1)
+
+            cwd = os.getcwd()
+            os.chdir('/tmp/')
+            os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (args['destination']))
+            os.chdir(cwd)
 
             cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + args['destination'] + "/%f\"'"
             if conf.get('archive_command', '') != cmd:
