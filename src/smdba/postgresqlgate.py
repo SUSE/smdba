@@ -299,7 +299,7 @@ class PgSQLGate(BaseGate):
 
         # Start the db
         cwd = os.getcwd()
-        os.chdir('/tmp/')
+        os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
         if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s"
                          % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', '""'))):
             print >> sys.stdout,  "done"
@@ -328,7 +328,7 @@ class PgSQLGate(BaseGate):
         if not self.config.get('pcnf_data_directory'):
             raise GateException("Cannot find data directory.")
         cwd = os.getcwd()
-        os.chdir('/tmp/')
+	os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
         if not os.system("sudo -u postgres /usr/bin/pg_ctl stop -s -D %s -m fast" % self.config.get('pcnf_data_directory', '')):
             print >> sys.stdout, "done"
         else:
@@ -646,7 +646,7 @@ class PgSQLGate(BaseGate):
         Enable continuous archiving backup
         @help
         --enable=<value>\tEnable or disable hot backups. Values: on | off | purge
-        --destination=<path>\tDestination directory of the backup (must not exist).\n
+        --destination=<path>\tDestination directory of the backup.\n
         """
 
         # Part for the auto-backups
@@ -660,7 +660,6 @@ class PgSQLGate(BaseGate):
 
         if 'enable' in args.keys():
             self._perform_enable_backups(**args)
-            print >> sys.stdout, "Please restart the spacewalk service with 'spacewalk-service restart'",
 
         if 'source' in args.keys():
             # Copy xlog entry
@@ -682,21 +681,31 @@ class PgSQLGate(BaseGate):
             if not self._get_db_status():
                 raise GateException("Cannot start the database!")
 
-            if os.path.exists(args.get('destination')):
-                print >> sys.stdout, "Backup directory already exists",
-                sys.exit(1)
+            if not os.path.exists(args.get('destination')):
+                os.system('sudo -u postgres /bin/mkdir -p -m 0700 %s' % args['destination'])
 
-            cwd = os.getcwd()
-            os.chdir('/tmp/')
-            os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (args['destination']))
-            os.chdir(cwd)
-
+            # first write the archive_command and restart the db
+	    # if we create the base backup after this, we prevent a race
+	    # and do not loose archive logs
             cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + args['destination'] + "/%f\"'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
                 self._restart_db()
 
+            # round robin of base backups
+            if os.path.exists(args.get('destination') + "/base.tar.gz"):
+                if os.path.exists(args.get('destination') + "/base-old.tar.gz"):
+                    os.remove(args.get('destination') + "/base-old.tar.gz")
+                os.rename(args.get('destination') + "/base.tar.gz", args.get('destination') + "/base-old.tar.gz")
+
+            cwd = os.getcwd()
+            os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
+            os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (args['destination'] + "/tmp/"))
+            os.chdir(cwd)
+
+            if os.path.exists(args.get('destination') + "/tmp/base.tar.gz"):
+                os.rename(args.get('destination') + "/tmp/base.tar.gz", args.get('destination') + "/base.tar.gz")
         else:
             # Disable backups
             if enable == 'purge' and os.path.exists(args['destination']):
