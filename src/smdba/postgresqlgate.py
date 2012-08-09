@@ -646,7 +646,7 @@ class PgSQLGate(BaseGate):
         Enable continuous archiving backup
         @help
         --enable=<value>\tEnable or disable hot backups. Values: on | off | purge
-        --destination=<path>\tDestination directory of the backup.\n
+        --backup-dir=<path>\tDestination directory of the backup.\n
         """
 
         # Part for the auto-backups
@@ -655,7 +655,7 @@ class PgSQLGate(BaseGate):
         #--autosource=%p --destination=/root/of/your/backups\n
         #NOTE: All parameters above are used automatically!\n
 
-        if 'destination' not in args.keys():
+        if 'backup-dir' not in args.keys():
             raise GateException("Where I have to put backups?")
 
         if 'enable' in args.keys():
@@ -673,6 +673,7 @@ class PgSQLGate(BaseGate):
         enable = args.get('enable', 'off')
         conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
         conf = self._get_conf(conf_path)
+        backup_dir = args.get('backup-dir')
 
         if enable == 'on':
             # Enable backups
@@ -681,35 +682,35 @@ class PgSQLGate(BaseGate):
             if not self._get_db_status():
                 raise GateException("Cannot start the database!")
 
-            if not os.path.exists(args.get('destination')):
-                os.system('sudo -u postgres /bin/mkdir -p -m 0700 %s' % args['destination'])
+            if not os.path.exists(backup_dir):
+                os.system('sudo -u postgres /bin/mkdir -p -m 0700 %s' % backup_dir)
 
             # first write the archive_command and restart the db
 	    # if we create the base backup after this, we prevent a race
 	    # and do not loose archive logs
-            cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + args['destination'] + "/%f\"'"
+            cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + backup_dir + "/%f\"'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
                 self._restart_db()
 
             # round robin of base backups
-            if os.path.exists(args.get('destination') + "/base.tar.gz"):
-                if os.path.exists(args.get('destination') + "/base-old.tar.gz"):
-                    os.remove(args.get('destination') + "/base-old.tar.gz")
-                os.rename(args.get('destination') + "/base.tar.gz", args.get('destination') + "/base-old.tar.gz")
+            if os.path.exists(backup_dir + "/base.tar.gz"):
+                if os.path.exists(backup_dir + "/base-old.tar.gz"):
+                    os.remove(backup_dir + "/base-old.tar.gz")
+                os.rename(backup_dir + "/base.tar.gz", backup_dir + "/base-old.tar.gz")
 
             cwd = os.getcwd()
             os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
-            os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (args['destination'] + "/tmp/"))
+            os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (backup_dir + "/tmp/"))
             os.chdir(cwd)
 
-            if os.path.exists(args.get('destination') + "/tmp/base.tar.gz"):
-                os.rename(args.get('destination') + "/tmp/base.tar.gz", args.get('destination') + "/base.tar.gz")
+            if os.path.exists(backup_dir + "/tmp/base.tar.gz"):
+                os.rename(backup_dir + "/tmp/base.tar.gz", backup_dir + "/base.tar.gz")
         else:
             # Disable backups
-            if enable == 'purge' and os.path.exists(args['destination']):
-                shutil.rmtree(args['destination'])
+            if enable == 'purge' and os.path.exists(backup_dir):
+                shutil.rmtree(backup_dir)
 
             cmd = "'/bin/true'"
             if conf.get('archive_command', '') != cmd:
@@ -736,9 +737,9 @@ class PgSQLGate(BaseGate):
             raise GateException("Source file was not specified!")
         elif not os.path.exists(args.get('source')):
             raise GateException("File \"%s\" does not exists." % args.get('source'))
-        elif os.path.exists(args.get('destination')):
-            raise GateException("Destination file \"%s\"already exists." % args.get('destination'))
-        shutil.copy2(args.get('source'), args.get('destination'))
+        elif os.path.exists(args.get('backup-dir')):
+            raise GateException("Destination file \"%s\"already exists." % args.get('backup-dir'))
+        shutil.copy2(args.get('source'), args.get('backup-dir'))
 
 
     def do_backup_status(self, *opts, **args):
