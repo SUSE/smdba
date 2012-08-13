@@ -840,6 +840,11 @@ class PgSQLGate(BaseGate):
             conf['archive_command'] = "'/bin/true'"
             changed = True
 
+        # [Spacewalk-devel] option standard_conforming_strings in Pg breaks our code and data.
+        if conf.get('standard_conforming_strings', 'on') == 'on':
+            conf['standard_conforming_strings'] = "'off'"
+            changed = True
+
         #
         # Setup pg_hba.conf
         # Format is pretty specific :-)
