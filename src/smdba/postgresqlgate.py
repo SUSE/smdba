@@ -841,8 +841,13 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # [Spacewalk-devel] option standard_conforming_strings in Pg breaks our code and data.
-        if conf.get('standard_conforming_strings', 'on') == 'on':
+        if conf.get('standard_conforming_strings', 'on') != 'off':
             conf['standard_conforming_strings'] = "'off'"
+            changed = True
+
+        # bnc#775591
+        if conf.get('bytea_output', '') != 'escape':
+            conf['bytea_output'] = "'escape'"
             changed = True
 
         #
