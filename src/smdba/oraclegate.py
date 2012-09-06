@@ -189,7 +189,7 @@ class OracleGate(BaseGate):
             raise Exception("\tPlease run this as \"%s backup-hot help\" first." % sys.argv[0])
 
         if not os.path.exists(params.get('backup-dir')):
-            print >> sys.stdout("Creating \"%s\" path" % params.get('backup-dir'))
+            print >> sys.stdout, "Creating \"%s\" path" % params.get('backup-dir')
             utils.create_dirs(params.get('backup-dir'), "oracle")
 
         owner = utils.get_path_owner(params.get('backup-dir'))
