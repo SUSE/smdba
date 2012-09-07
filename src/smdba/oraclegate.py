@@ -76,10 +76,6 @@ class OracleGate(BaseGate):
             raise Exception("Underlying error: file \"%s\" does not exists or cannot be read." % self.ORATAB)
 
         dbsid = self.config.get("db_name")
-        # format can be: //localhost:1521/susemanager
-        if "/" in dbsid:
-            dbsid = dbsid[(dbsid.rfind("/")+1):]
-        self.config['sid'] = dbsid
         for tabline in filter(None, [line.strip() for line in open(self.ORATAB).readlines()]):
             sid, home, default_start = tabline.split(":")
             if sid == dbsid:
@@ -93,8 +89,7 @@ class OracleGate(BaseGate):
         os.environ['LANG'] = 'en_US.utf-8'
         os.environ['ORACLE_HOME'] = self.ora_home
         os.environ['ORACLE_BASE'] = self.ora_home.split("/oracle/product")[0] + "/oracle"
-        # use the stripped dbsid string for ORACLE_SID
-        os.environ['ORACLE_SID'] = self.config.get("sid")
+        os.environ['ORACLE_SID'] = dbsid
         os.environ['TNS_ADMIN'] = self.ora_home + "/network/admin"
         if os.environ.get('PATH', '').find(self.ora_home) < 0:
             os.environ['PATH'] = self.ora_home + "/bin:" + os.environ['PATH']
@@ -748,9 +743,6 @@ class OracleGate(BaseGate):
         Get Oracle listener status.
         """
         status = DBStatus()
-
-        sid = self.config.get("sid")
-        #status.stdout, status.stderr = self.syscall(self.lsnrctl, None, None, "status")
         status.stdout, status.stderr = self.syscall("sudo", None, None, "-u", "oracle", "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "status")
     
         if status.stdout:
@@ -861,7 +853,7 @@ class OracleGate(BaseGate):
         stdout, stderr = None, None
         success, failed = "done", "failed"
         if status:
-            destination = os.environ['ORACLE_BASE'] + "/oradata/" + self.config.get("sid") + "/archive"
+            destination = os.environ['ORACLE_BASE'] + "/oradata/" + os.environ['ORACLE_SID'] + "/archive"
             stdout, stderr = self.call_scenario('ora-archivelog-on', destination=destination)
         else:
             stdout, stderr = self.call_scenario('ora-archivelog-off')

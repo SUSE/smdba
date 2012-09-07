@@ -104,7 +104,8 @@ class Console:
             try:
                 key, value = line.replace(" ", "").strip().split("=", 1)
                 if key.startswith("db_"):
-                    self.config[key] = value
+                    # Handling odd change in Spacewalk 1.7 where "db_name" could be URI
+                    self.config[key] = ((key == "db_name") and value.startswith("//")) and value.split("/")[-1] or value
             except:
                 pass
 
