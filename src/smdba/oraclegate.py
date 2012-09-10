@@ -304,7 +304,7 @@ class OracleGate(BaseGate):
         Show database space report.
         """
         stdout, stderr = self.call_scenario('report')
-        table = [("Tablespace", "Size (Mb)", "Used (Mb)", "Avail (Mb)", "Use %",),]
+        table = [("Tablespace", "Avail (Mb)", "Used (Mb)", "Size (Mb)", "Use %",),]
         for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
                                        for line in stdout.strip().split("\n")[2:]]:
             table.append((name, free, used, size, str(int(float(used) / float(size) * 100)),))
