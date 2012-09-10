@@ -131,7 +131,6 @@ class Console:
                 print >> sys.stdout, '\n'.join(["\t" + hl for hl in help.get('help').split("\n")]) + "\n"
             sys.exit(1)
         
-        #print >> sys.stderr, "Available commands on %s database:" % self.gate.NAME.title()
         print >> sys.stderr, "Available commands:"
 
         index_commands = []

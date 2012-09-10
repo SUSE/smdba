@@ -248,7 +248,7 @@ class OracleGate(BaseGate):
             else:
                 roller.stop("failed")
                 time.sleep(1)
-                raise GateException("Database must be put offline.")
+                raise GateException("Database must be put offline. Or use options (run \"help\" for this procedure).")
         else:
             roller.stop("success")
             time.sleep(1)
@@ -264,10 +264,12 @@ class OracleGate(BaseGate):
             time.sleep(1)
             print >> sys.stderr, "Error dump:"
             print >> sys.stderr, stderr
-
+            
         if stdout:
             roller.stop("finished")
             time.sleep(1)
+
+        self.do_db_stop()
 
         if 'start' in args:
             self.do_db_start()
