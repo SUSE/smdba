@@ -1,0 +1,1 @@
+select dbid from sys.v$database;

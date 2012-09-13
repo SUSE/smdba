@@ -63,6 +63,7 @@ class OracleGate(BaseGate):
     NAME = "oracle"
     ORATAB = "/etc/oratab"
     LSNR_CTL = "%s/bin/lsnrctl"
+    HELPER_CONF = "%s/smdba-helper.conf"
 
 
     def __init__(self, config):
@@ -239,6 +240,12 @@ class OracleGate(BaseGate):
         print >> sys.stdout, "Preparing database:\t",
         roller = Roller()
         roller.start()
+        
+        # Could be database just not cleanly killed
+        # In this case great almighty RMAN won't connect at all and just crashes. :-(
+        self.do_db_start()
+        self.do_db_stop()
+
         dbstatus = self.get_db_status()
         if dbstatus.ready:
             if 'force' in args:
@@ -257,7 +264,7 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario('rman-recover-whole-backup', target='rman')
+        stdout, stderr = self.call_scenario('rman-recover-whole-backup', target='rman', dbid=self.get_dbid())
 
         if stderr:
             roller.stop("failed")
@@ -881,6 +888,54 @@ class OracleGate(BaseGate):
                     return False
 
         return True
+
+
+    def get_dbid(self, path=None):
+        """
+        Get DBID and save it.
+        """
+        # Get DBID from the database and save it.
+        # If database is broken, get last saved.
+        if not path:
+            path = os.environ['ORACLE_BASE'] + "/smdba"
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+        
+        # Add full filename
+        path = self.HELPER_CONF % path
+
+        stdout, stderr = self.call_scenario('ora-dbid')
+        dbid = None
+        if stdout:
+            try:
+                dbid = long(stdout.split("\n")[-1])
+            except:
+                # Failed to get dbid anyway, let's just stay silent for now.
+                pass
+
+        if dbid:
+            fg = open(path, 'w')
+            fg.write("# Database ID of \"%s\", please don't lose it ever.\n") 
+            fg.write(os.environ['ORACLE_SID'] + ".dbid=%s\n" % dbid)
+            fg.close()
+        elif os.path.exists(path):
+            for line in open(path).readlines():
+                line = line.strip()
+                if not line or line.startswith('#') or (line.find('=') == -1):
+                    continue
+                dbidkey, dbid = map(lambda el:el.strip(), line.split('=', 1))
+                if dbid:
+                    try:
+                        dbid = long(dbid)
+                    except:
+                        # Failed get dbid again.
+                        pass
+
+        if not dbid:
+            raise GateException("Looks like your backups was never taken with SMDBA. Good luck with the tools you used before!")
+
+        return dbid
 
 
 
