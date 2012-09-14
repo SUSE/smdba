@@ -1,4 +1,4 @@
-#!/usr/bin/sudo python
+#!/usr/bin/python
 #
 #
 # The MIT License (MIT)
@@ -206,6 +206,19 @@ class Console:
         return args, params
 
 
+def format_error(title, msg):
+    """
+    Format error on STDERR.
+    """
+    if not msg:
+        return
+    msg = str(msg)
+    print >> sys.stderr, title + ":\n",
+    for line in msg.split("\n"):
+        print >> sys.stderr, "\t" + line.strip()
+    print >> sys.stderr
+
+
 def main():
     """
     Main app runner.
@@ -217,11 +230,12 @@ def main():
         else:
             console.usage()
     except GateException, err:
-        print >> sys.stderr, "\nError:\n", err, "\n"
+        Console.usage_header()
+        format_error("Backend error", err)
         sys.exit(1)
     except Exception, err:
         Console.usage_header()
-        print >> sys.stderr, "General error:\n", err, "\n"
+        format_error("General error", err)
         sys.exit(1)
 
 

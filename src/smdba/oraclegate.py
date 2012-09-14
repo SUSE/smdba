@@ -237,14 +237,17 @@ class OracleGate(BaseGate):
         force\tShutdown database, if running.
         start\tStart database after restore.
         """
-        print >> sys.stdout, "Preparing database:\t",
-        roller = Roller()
-        roller.start()
+        
+        print >> sys.stdout, "Restoring the SUSE Manager Database from last backup"
         
         # Could be database just not cleanly killed
         # In this case great almighty RMAN won't connect at all and just crashes. :-(
         self.do_db_start()
         self.do_db_stop()
+
+        print >> sys.stdout, "Preparing database:\t",
+        roller = Roller()
+        roller.start()
 
         dbstatus = self.get_db_status()
         if dbstatus.ready:
@@ -264,8 +267,12 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario('rman-recover-whole-backup', target='rman', dbid=self.get_dbid())
-
+        stdout, stderr = self.call_scenario('rman-recover-whole-backup', target='rman', dbid=str(self.get_dbid()))
+        
+        print stdout
+        print "-" * 80
+        print stderr
+        
         if stderr:
             roller.stop("failed")
             time.sleep(1)
@@ -310,7 +317,21 @@ class OracleGate(BaseGate):
         """
         Show database space report.
         """
+        dbstatus = self.get_db_status()
+        if not dbstatus.ready:
+            raise GateException("Database is not running!")
+
         stdout, stderr = self.call_scenario('report')
+        if stderr:
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+            return
+        
+        ora_error = self.has_ora_error(stdout)
+        if ora_error:
+            raise GateException("Please visit http://%s.ora-code.com/ page to know more details." % ora_error.lower())
+            
+
         table = [("Tablespace", "Avail (Mb)", "Used (Mb)", "Size (Mb)", "Use %",),]
         for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
                                        for line in stdout.strip().split("\n")[2:]]:
@@ -710,9 +731,17 @@ class OracleGate(BaseGate):
         """
         Show space report for each table.
         """
+        dbstatus = self.get_db_status()
+        if not dbstatus.ready:
+            raise GateException("Database is not running!")
+
         table = [('Table', 'Size',)]
         total = 0
         stdout, stderr = self.call_scenario('tablesizes', user=self.config.get('db_user', '').upper())
+        ora_error = self.has_ora_error(stdout)
+        if ora_error:
+            raise GateException("Please visit http://%s.ora-code.com/ page to know more details." % ora_error.lower())
+
         for tname, tsize in filter(None, [filter(None, line.replace("\t", " ").split(" ")) for line in stdout.split("\n")]):
             table.append((tname, ('%.2fK' % round(float(tsize) / 1024.)),))
             total += float(tsize)
@@ -936,7 +965,31 @@ class OracleGate(BaseGate):
             raise GateException("Looks like your backups was never taken with SMDBA. Good luck with the tools you used before!")
 
         return dbid
+    
 
+    def has_ora_error(self, raw):
+        """
+        Just look if output was not crashed. Because Oracle developers often
+        cannot decide to where to send an error: to STDERR or STDOUT. :-)
+        """
+        if raw is None:
+            raw = ''
+            
+        raw = raw.strip()
+        if not raw:
+            return None
+
+        for line in raw.split('\n'):
+            ftkn = filter(None, line.split(" "))[0]
+            if ftkn.startswith('ORA-') and ftkn.endswith(':'):
+                err = None
+                try:
+                    err = int(ftkn[4:-1])
+                except:
+                    # No need to report this at all.
+                    pass
+                if err:
+                    return ftkn[:-1]
 
 
 def getGate(config):
