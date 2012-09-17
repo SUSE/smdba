@@ -144,9 +144,10 @@ class BaseGate:
         else:
             raise GateException("Unknown target: %s" % target)
         
-        print "-- TEMPLATE --"
-        print template
-        print "=============="
+        # Dev purposes
+        #print "-- TEMPLATE --"
+        #print template
+        #print "=============="
 
         return self.syscall("sudo", template, None, "-u", user, "/bin/bash")
 

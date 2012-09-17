@@ -234,12 +234,33 @@ class OracleGate(BaseGate):
         """
         Restore the SUSE Manager Database from backup.
         @help
-        force\tShutdown database, if running.
-        start\tStart database after restore.
+        force\t\t\tShutdown database prior backup, if running.
+        start\t\t\tAttempt to start a database after restore.
+        --strategy=<value>\tManually force strategry from 'full' or 'partial'
         """
         
-        print >> sys.stdout, "Restoring the SUSE Manager Database from last backup"
+        scenario = {
+            'full':'rman-recover-ctl',
+            'partial':'rman-recover',
+        }
+
+        # Control file still around?
+        strategy = None
+        if params.get("strategy") in ['full', 'partial']:
+            strategy = params.get("strategy")
+        elif params.get("strategy") is not None:
+            raise GateException("Unknown value %s for option 'strategy'. Please read 'help' first." % params.get("strategy"))
         
+        if not strategy:
+            strategy = "full"
+            db_path = os.environ['ORACLE_BASE'] + "/oradata/" + os.environ['ORACLE_SID']
+            for fname in os.listdir(db_path):
+                if fname.lower().endswith(".ctl"):
+                    strategy = "partial"
+                    break
+
+        print >> sys.stdout, ("Restoring the SUSE Manager Database using %s strategy" % strategy)
+
         # Could be database just not cleanly killed
         # In this case great almighty RMAN won't connect at all and just crashes. :-(
         self.do_db_start()
@@ -267,7 +288,7 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario('rman-recover-whole-backup', target='rman', dbid=str(self.get_dbid()))
+        stdout, stderr = self.call_scenario(scenario[strategy], target='rman', dbid=str(self.get_dbid()))
         
         print stdout
         print "-" * 80
