@@ -38,7 +38,7 @@ class Console:
     """
 
     # General
-    VERSION = "1.0"
+    VERSION = "1.1"
     DEFAULT_CONFIG = "/etc/rhn/rhn.conf"
 
     # Config
@@ -128,7 +128,7 @@ class Console:
             print >> sys.stdout, "\t" + help.get('description', 'No description available') + "\n"
             if help.get('help'):
                 print >> sys.stdout, "Parameters:"
-                print >> sys.stdout, '\n'.join(["\t" + hl for hl in help.get('help').split("\n")]) + "\n"
+                print >> sys.stdout, '\n'.join(["\t" + hl.replace("@nl", "") for hl in help.get('help').split("\n")]) + "\n"
             sys.exit(1)
         
         print >> sys.stderr, "Available commands:"

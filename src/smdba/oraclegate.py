@@ -38,6 +38,27 @@ import utils
 import random
 
 
+class HandleInfo:
+    """
+    Backup handle info
+    """
+    def __init__(self, availability, handle, recid, stamp):
+        self.availability = availability
+        self.handle = handle
+        self.recid = recid
+        self.stamp = stamp
+
+
+class BackupInfo:
+    """
+    Backup info object.
+    """
+    def __init__(self, key, completion, tag):
+        self.key = key
+        self.completion = completion
+        self.tag = tag
+
+
 class DBStatus:
     """
     Database status result class.
@@ -154,7 +175,7 @@ class OracleGate(BaseGate):
                                 info.files.append(dbf)
                     infoset.append(info)
                 except:
-                    print >> sys.stderr, "No backup snapshots are available."
+                    print >> sys.stderr, "No backup snapshots available."
                     sys.exit(1)
 
             # Display backup data
@@ -173,6 +194,37 @@ class OracleGate(BaseGate):
             print >> sys.stderr, "Error dump:"
             print >> sys.stderr, stderr
 
+            
+    def do_backup_purge(self, *args, **params):
+        """
+        Purge all backups. Useful after successfull reliable recover from the disaster.
+        """
+        print >> sys.stdout, "Checking backups:\t",
+        roller = Roller()
+        roller.start()
+
+        info = self.get_backup_info()
+        if not len(info):
+            roller.stop("failed")
+            time.sleep(1)
+            print >> sys.stderr, "No backup snapshots available."
+            sys.exit(1)
+        roller.stop("finished")
+        time.sleep(1)
+
+        print >> sys.stdout, "Removing %s backup%s:\t" % (len(info), len(info) > 1 and 's' or ''),
+        roller = Roller()
+        roller.start()
+        stdout, stderr = self.call_scenario('rman-backup-purge', target='rman')
+        if stderr:
+            roller.stop("failed")
+            time.sleep(1)
+            print >> sys.stderr, "Error dump:"
+            print >> sys.stderr, stderr
+        
+        roller.stop("finished")
+        time.sleep(1)
+
 
     def do_backup_hot(self, *args, **params):
         """
@@ -181,16 +233,16 @@ class OracleGate(BaseGate):
         @help
         --backup-dir=<path>\tDirectory for backup data to be stored.
         """
-        if not params.get('backup-dir'):
-            raise Exception("\tPlease run this as \"%s backup-hot help\" first." % sys.argv[0])
+        #if not params.get('backup-dir'):
+        #    raise Exception("\tPlease run this as \"%s backup-hot help\" first." % sys.argv[0])
 
-        if not os.path.exists(params.get('backup-dir')):
-            print >> sys.stdout, "Creating \"%s\" path" % params.get('backup-dir')
-            utils.create_dirs(params.get('backup-dir'), "oracle")
+        #if not os.path.exists(params.get('backup-dir')):
+        #    print >> sys.stdout, "Creating \"%s\" path" % params.get('backup-dir')
+        #    utils.create_dirs(params.get('backup-dir'), "oracle")
 
-        owner = utils.get_path_owner(params.get('backup-dir'))
-        if owner.user != 'oracle':
-            raise Exception("\tDirectory \"%s\" does not have proper permissions!" % params.get('backup-dir'))
+        #owner = utils.get_path_owner(params.get('backup-dir'))
+        #if owner.user != 'oracle':
+        #    raise Exception("\tDirectory \"%s\" does not have proper permissions!" % params.get('backup-dir'))
 
         if not self.get_archivelog_mode():
             raise GateException("Archivelog is not turned on.\n\tPlease shutdown SUSE Manager and run system-check first!")
@@ -198,7 +250,8 @@ class OracleGate(BaseGate):
         print >> sys.stdout, "Backing up the database:\t",
         roller = Roller()
         roller.start()
-        stdout, stderr = self.call_scenario('rman-hot-backup', target='rman', backupdir=params.get('backup-dir'))
+        #stdout, stderr = self.call_scenario('rman-hot-backup', target='rman', backupdir=params.get('backup-dir'))
+        stdout, stderr = self.call_scenario('rman-hot-backup', target='rman')
 
         if stderr:
             roller.stop("failed")
@@ -229,6 +282,83 @@ class OracleGate(BaseGate):
                 print >> sys.stdout, "\t" + arc
             print >> sys.stdout
 
+        # Finalize
+        self.autoresolve_backup()
+        hb, fb, ha, fa = self.check_backup_info()
+        print >> sys.stdout, "Backup summary as follows:"
+        if len(hb):
+            print >> sys.stdout, "\tBackups:"
+            for bkp in hb:
+                print >> sys.stdout, "\t\t", bkp.handle
+            print >> sys.stdout
+
+        if len(ha):
+            print >> sys.stdout, "\tArchive logs:"
+            for bkp in ha:
+                print >> sys.stdout, "\t\t", bkp.handle
+            print >> sys.stdout
+        
+        if len(fb):
+            print >> sys.stderr, "WARNING! Broken backups has been detected:"
+            for bkp in fb:
+                print >> sys.stderr, "\t\t", bkp.handle
+            print >> sys.stderr
+
+        if len(fa):
+            print >> sys.stderr, "WARNING! Broken archive logs has been detected:"
+            for bkp in fa:
+                print >> sys.stderr, "\t\t", bkp.handle
+            print >> sys.stderr
+        print >> sys.stdout, "\nFinished."
+
+        
+    def do_backup_check(self, *args, **params):
+        """
+        Check the consistency of the backup.
+        @help
+        autoresolve\t\tTry to automatically resolve errors and inconsistencies.\n
+        """
+        info = self.get_backup_info()
+        if len(info):
+            print >> sys.stdout, "Last known backup:", info[0].completion
+        else:
+            raise GateException("No backups has been found!")
+        
+        hb, fb, ha, fa = self.check_backup_info()
+        # Display backups info
+        if fb:
+            print >> sys.stderr, "WARNING! Failed backups has been found as follows:"
+            for bkp in fb:
+                print >> sys.stderr, "\tName:", bkp.handle
+            print >> sys.stderr
+        else:
+            print >> sys.stdout, ("%s available backup%s seems healthy." % (len(hb), len(hb) > 1 and 's are' or '' ))
+        
+        # Display ARCHIVELOG info
+        if fa:
+            print >> sys.stderr, "WARNING! Failed archive logs has been found as follows:"
+            for arc in fa:
+                print >> sys.stderr, "\tName:", arc.handle
+            print >> sys.stderr
+            if 'autoresolve' not in args:
+                print >> sys.stderr, "Try using \"autoresolve\" directive."
+                sys.exit(1)
+            else:
+                self.autoresolve_backup()
+                hb, fb, ha, fa = self.check_backup_info()
+                if fa:
+                    print >> sys.stderr, "WARNING! Still are failed archive logs:"
+                    for arc in fa:
+                        print >> sys.stderr, "\tName:", arc.handle
+                        print >> sys.stderr
+                    if 'ignore-errors' not in args:
+                        print >> sys.stderr, "Maybe you want to try \"ignore-errors\" directive and... cross the fingers."
+                        sys.exit(1)
+                else:
+                    print >> sys.stdout, "Hooray! No failures in backups found!"
+        else:
+            print >> sys.stdout, ("%s available archive log%s seems healthy." % (len(ha), len(ha) > 1 and 's are' or '' ))
+
 
     def do_backup_restore(self, *args, **params):
         """
@@ -236,9 +366,8 @@ class OracleGate(BaseGate):
         @help
         force\t\t\tShutdown database prior backup, if running.
         start\t\t\tAttempt to start a database after restore.
-        --strategy=<value>\tManually force strategry from 'full' or 'partial'
+        --strategy=<value>\tManually force strategry 'full' or 'partial'. Don't do that.
         """
-        
         scenario = {
             'full':'rman-recover-ctl',
             'partial':'rman-recover',
@@ -289,10 +418,6 @@ class OracleGate(BaseGate):
         roller.start()
 
         stdout, stderr = self.call_scenario(scenario[strategy], target='rman', dbid=str(self.get_dbid()))
-        
-        print stdout
-        print "-" * 80
-        print stderr
         
         if stderr:
             roller.stop("failed")
@@ -351,13 +476,11 @@ class OracleGate(BaseGate):
         ora_error = self.has_ora_error(stdout)
         if ora_error:
             raise GateException("Please visit http://%s.ora-code.com/ page to know more details." % ora_error.lower())
-            
 
         table = [("Tablespace", "Avail (Mb)", "Used (Mb)", "Size (Mb)", "Use %",),]
         for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
                                        for line in stdout.strip().split("\n")[2:]]:
             table.append((name, free, used, size, str(int(float(used) / float(size) * 100)),))
-
         print >> sys.stdout, "\n", TablePrint(table), "\n"
 
 
@@ -924,7 +1047,7 @@ class OracleGate(BaseGate):
             roller.stop(failed)
 
         time.sleep(1)
-        
+
 
     def get_archivelog_mode(self):
         """
@@ -1012,6 +1135,115 @@ class OracleGate(BaseGate):
                 if err:
                     return ftkn[:-1]
 
+
+    def autoresolve_backup(self):
+        """
+        Try to autoresolve backup inconsistencies.
+        """
+        self.call_scenario('rman-backup-autoresolve', target='rman')
+
+                
+    def check_backup_info(self):
+        """
+        Check if backup is consistent.
+        """
+        failed_backups = []
+        healthy_backups = []
+        failed_archivelogs = []
+        healthy_archivelogs = []
+        bkpsout = None
+        arlgout = None
+
+        # Get database backups
+        stdout, stderr = self.call_scenario('rman-backup-check-db', target='rman')
+        if stderr:
+            print >> sys.stderr, "Backup information check failure:"
+            print >> sys.stderr, stderr
+            raise GateException("Unable to check the backups.")
+
+        for chunk in stdout.split("RMAN>"):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            if chunk.find("crosschecked backup piece") > -1:
+                bkpsout = chunk
+                break
+
+        # Get database archive logs check
+        stdout, stderr = self.call_scenario('rman-backup-check-al', target='rman')
+        if stderr:
+            print >> sys.stderr, "Archive log information check failure:"
+            print >> sys.stderr, stderr
+            raise GateException("Unable to check the archive logs backup.")
+        
+        for chunk in stdout.split("RMAN>"):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            if chunk.find("archived log file name") > -1:
+                arlgout = chunk
+                break
+
+        # Check failed backups
+        if bkpsout:
+            for line in map(lambda elm:elm.strip(), bkpsout.split("crosschecked")):
+                if not line.startswith("backup piece"):
+                    continue
+                obj_raw = line.split("\n")[:2]
+                if len(obj_raw) == 2:
+                    status = obj_raw[0].strip().split(" ")[-1].replace("'", '').lower()
+                    data = dict(filter(None, map(lambda elm:"=" in elm and tuple(elm.split("=", 1)) or None, filter(None, obj_raw[-1].split(" ")))))
+                    hinfo = HandleInfo(status, handle=data['handle'], recid=data['RECID'], stamp=data['STAMP'])
+                    if hinfo.availability == 'available':
+                        healthy_backups.append(hinfo)
+                    else:
+                        failed_backups(hinfo)
+
+        # Check failed archive logs
+        if arlgout:
+            for archline in map(lambda elm:elm.strip(), arlgout.split("validation", 1)[-1].split("Crosschecked")[0].split("validation")):
+                obj_raw = archline.split("\n")
+                if len(obj_raw) == 2:
+                    status = obj_raw[0].split(" ")[0]
+                    data = dict(filter(None, map(lambda elm:'=' in elm and tuple(elm.split('=', 1)) or None, obj_raw[1].split(" "))))
+                    hinfo = HandleInfo(status == 'succeeded' and 'available' or 'unavailable', recid=data['RECID'], stamp=data['STAMP'], handle=data['name']) # Ask RMAN devs why this time it is called "name"
+                    if hinfo.availability == 'available':
+                        healthy_archivelogs.append(hinfo)
+                    else:
+                        failed_archivelogs.append(hinfo)
+
+        return healthy_backups, failed_backups, healthy_archivelogs, failed_archivelogs
+
+
+    def get_backup_info(self):
+        """
+        Return list of BackupInfo objects, representing backups.
+        """
+        stdout, stderr = self.call_scenario('rman-backup-info', target='rman')
+        if stderr:
+            print >> sys.stderr, "Backup information listing failure:"
+            print >> sys.stderr, stderr
+            raise GateException("Unable to get information about backups.")
+
+        capture = False
+        idx = []
+        info = {}
+        for line in stdout.split("\n"):
+            line = line.strip()
+            if line.startswith("---"): # Table delimeter
+                capture = True
+                continue
+
+            if capture:
+                if not line:
+                    capture = False
+                    continue
+                tkn = filter(None, line.replace("\t", " ").split(" "))
+                info[tkn[5]] = BackupInfo(tkn[0], tkn[5], tkn[-1])
+                idx.append(tkn[5])
+
+        return [info[bid] for bid in reversed(sorted(idx))]
+        
 
 def getGate(config):
     """
