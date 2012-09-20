@@ -244,6 +244,9 @@ class OracleGate(BaseGate):
         #if owner.user != 'oracle':
         #    raise Exception("\tDirectory \"%s\" does not have proper permissions!" % params.get('backup-dir'))
 
+        # Check DBID is around all the time (when DB is healthy!)
+        self.get_dbid()
+
         if not self.get_archivelog_mode():
             raise GateException("Archivelog is not turned on.\n\tPlease shutdown SUSE Manager and run system-check first!")
 
