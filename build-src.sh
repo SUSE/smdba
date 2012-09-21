@@ -1,13 +1,13 @@
 #!/bin/sh
 
-VERSION="1.0"
+VERSION=`grep "VERSION =" src/smdba/smdba | sed s'/^.*"\([[:digit:]\.]\+\)"/\1/'`
 NAME="smdba"
 
 # Update
 git pull
 
 # Cleanup
-rm -rf $NAME-$VERSION
+rm -f $NAME-*.tar.bz2
 find . | grep '.pyc$' | xargs rm 2>/dev/null
 find . | grep '~$' | xargs rm 2>/dev/null
 
