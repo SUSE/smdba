@@ -129,6 +129,8 @@ class OracleGate(BaseGate):
         """
         List of available backups.
         """
+        self.vw_check_database_ready("Database must be running and ready!", output_shift=2)
+
         roller = Roller()
         roller.start()
         print >> sys.stdout, "Getting available backups:\t",
@@ -199,6 +201,8 @@ class OracleGate(BaseGate):
         """
         Purge all backups. Useful after successfull reliable recover from the disaster.
         """
+        self.vw_check_database_ready("Database must be healthy and running in order to purge assigned backups of it!");
+
         print >> sys.stdout, "Checking backups:\t",
         roller = Roller()
         roller.start()
@@ -244,8 +248,10 @@ class OracleGate(BaseGate):
         #if owner.user != 'oracle':
         #    raise Exception("\tDirectory \"%s\" does not have proper permissions!" % params.get('backup-dir'))
 
+        self.vw_check_database_ready("Database must be healthy and running in order to take a backup of it!");
+
         # Check DBID is around all the time (when DB is healthy!)
-        self.get_dbid()
+        self.get_dbid(known_db_status=True)
 
         if not self.get_archivelog_mode():
             raise GateException("Archivelog is not turned on.\n\tPlease shutdown SUSE Manager and run system-check first!")
@@ -321,6 +327,8 @@ class OracleGate(BaseGate):
         @help
         autoresolve\t\tTry to automatically resolve errors and inconsistencies.\n
         """
+        self.vw_check_database_ready("Database must be healthy and running in order to check assigned backups of it!");
+
         info = self.get_backup_info()
         if len(info):
             print >> sys.stdout, "Last known backup:", info[0].completion
@@ -371,6 +379,7 @@ class OracleGate(BaseGate):
         start\t\t\tAttempt to start a database after restore.
         --strategy=<value>\tManually force strategry 'full' or 'partial'. Don't do that.
         """
+        dbid = self.get_dbid()
         scenario = {
             'full':'rman-recover-ctl',
             'partial':'rman-recover',
@@ -420,7 +429,7 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario(scenario[strategy], target='rman', dbid=str(self.get_dbid()))
+        stdout, stderr = self.call_scenario(scenario[strategy], target='rman', dbid=str(dbid))
         
         if stderr:
             roller.stop("failed")
@@ -443,6 +452,8 @@ class OracleGate(BaseGate):
         """
         Gather statistics on SUSE Manager Database database objects.
         """
+        self.vw_check_database_ready("Database must be healthy and running in order to get statistics of it!");
+
         print >> sys.stdout, "Gathering statistics on SUSE Manager database...\t",
 
         roller = Roller()
@@ -466,10 +477,7 @@ class OracleGate(BaseGate):
         """
         Show database space report.
         """
-        dbstatus = self.get_db_status()
-        if not dbstatus.ready:
-            raise GateException("Database is not running!")
-
+        self.vw_check_database_ready("Database must be healthy and running in order to get space overview!");
         stdout, stderr = self.call_scenario('report')
         if stderr:
             print >> sys.stderr, "Error dump:"
@@ -491,6 +499,7 @@ class OracleGate(BaseGate):
         """
         Show tables with stale or empty statistics.
         """
+        self.vw_check_database_ready("Database must be healthy and running in order to get stats overview!");
         print >> sys.stdout, "Preparing data:\t\t",
         
         roller = Roller()
@@ -547,10 +556,7 @@ class OracleGate(BaseGate):
         """
         Free disk space from unused object in tables and indexes.
         """
-        
-        dbstatus = self.get_db_status()
-        if not dbstatus.ready:
-            raise Exception("Database is not running.")
+        self.vw_check_database_ready("Database must be healthy and running in order to reclaim the used space!");        
 
         print >> sys.stdout, "Examining the database...\t",
         roller = Roller()
@@ -1066,7 +1072,7 @@ class OracleGate(BaseGate):
         return True
 
 
-    def get_dbid(self, path=None):
+    def get_dbid(self, path=None, known_db_status=False):
         """
         Get DBID and save it.
         """
@@ -1088,8 +1094,8 @@ class OracleGate(BaseGate):
                 dbid = long(stdout.split("\n")[-1])
             except:
                 # Failed to get dbid anyway, let's just stay silent for now.
-                pass
-
+                if known_db_status:
+                    raise GateException("The data in the database is not reachable!")
         if dbid:
             fg = open(path, 'w')
             fg.write("# Database ID of \"%s\", please don't lose it ever.\n") 
@@ -1109,7 +1115,7 @@ class OracleGate(BaseGate):
                         pass
 
         if not dbid:
-            raise GateException("Looks like your backups was never taken with SMDBA. Good luck with the tools you used before!")
+            raise GateException("Looks like your backups was never taken with the SMDBA.\n\tGood luck with the tools you used before!")
 
         return dbid
     
@@ -1246,7 +1252,24 @@ class OracleGate(BaseGate):
                 idx.append(tkn[5])
 
         return [info[bid] for bid in reversed(sorted(idx))]
-        
+
+
+    def vw_check_database_ready(self, message, output_shift=1):
+        """
+        Check if database is ready. Otherwise crash with the given message.
+        """
+        print >> sys.stdout, "Checking the database:" + ("\t" * output_shift),
+        roller = Roller()
+        roller.start()
+        dbstatus = self.get_db_status()
+        if dbstatus.ready:
+            roller.stop("running")
+            time.sleep(1)
+        else:
+            roller.stop("failed")
+            time.sleep(1)
+            raise GateException(message);
+
 
 def getGate(config):
     """

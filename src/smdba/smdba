@@ -120,8 +120,6 @@ class Console:
         """
         Print usage.
         """
-        Console.usage_header()
-
         if command:
             help = self.gate.get_gate_commands().get(command)
             print >> sys.stdout, "Command:\n\t%s\n\nDescription:" % self.translate_command(command)
@@ -223,6 +221,7 @@ def main():
     """
     Main app runner.
     """
+    Console.usage_header()
     try:
         console = Console()
         if len(sys.argv[1:]) > 0:
@@ -230,11 +229,9 @@ def main():
         else:
             console.usage()
     except GateException, err:
-        Console.usage_header()
         format_error("Backend error", err)
         sys.exit(1)
     except Exception, err:
-        Console.usage_header()
         format_error("General error", err)
         sys.exit(1)
 
