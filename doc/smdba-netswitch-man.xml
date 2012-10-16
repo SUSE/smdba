@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<refentry lang="en">
+<refmeta>
+<refentrytitle>smdba-netswitch</refentrytitle>
+<manvolnum>1</manvolnum>
+</refmeta>
+<refnamediv>
+    <refname>smdba-netswitch</refname>
+    <refpurpose>Orace database server network listening mode switcher.</refpurpose>
+</refnamediv>
+<refsynopsisdiv id="_synopsis">
+<simpara><emphasis role="strong">smdba-netswitch</emphasis> <emphasis>COMMAND</emphasis></simpara>
+</refsynopsisdiv>
+<refsect1 id="_description">
+<title>DESCRIPTION</title>
+<simpara>The smdba-netswitch(1) command changes Oracle database listening from
+"world-wide" to "localhost-only" and vice versa. It is highly recommended to
+use "localhost-only" mode in order to address possible remote attacks,
+exploiting security holes in Oracle database.</simpara>
+</refsect1>
+<refsect1 id="_important">
+<title>IMPORTANT</title>
+<simpara>This tool is not working with any other database vendor.</simpara>
+</refsect1>
+<refsect1 id="_commands">
+<title>COMMANDS</title>
+<variablelist>
+<varlistentry>
+<term>
+<emphasis role="strong">localhost</emphasis>
+</term>
+<listitem>
+<simpara>
+    Set Oracle database and its listeners listening only to the <emphasis>localhost</emphasis> or
+    "<emphasis>127.0.0.1</emphasis>" loopback. This will make impossible to access the database
+    remotely in any way.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">worldwide</emphasis>
+</term>
+<listitem>
+<simpara>
+    Set Oracle database and its listeners listening incoming connections
+    world-wide, or to "<emphasis>0.0.0.0</emphasis>". This will make possible to access the
+    database remotely with any tools.
+</simpara>
+</listitem>
+</varlistentry>
+</variablelist>
+</refsect1>
+<refsect1 id="_warning">
+<title>WARNING!</title>
+<simpara>If your Oracle database is listening world-wide, you directly exposing
+potential security holes in the Oracle ecosystem. It is <emphasis>highly recommended</emphasis> to
+turn world-wide listeners <emphasis role="strong">OFF</emphasis>, by switching listeners to <emphasis role="strong">localhost only</emphasis>.</simpara>
+</refsect1>
+<refsect1 id="_author">
+<title>AUTHOR</title>
+<simpara>SMDBA-NETSWITCH was originally written by Bo Maryniuk &lt;<ulink url="mailto:bo@suse.de">bo@suse.de</ulink>&gt;</simpara>
+</refsect1>
+<refsect1 id="_resources">
+<title>RESOURCES</title>
+<simpara>Source code at GitHub: <ulink url="http://github.com/suse/smdba">http://github.com/suse/smdba</ulink></simpara>
+<simpara>SUSE Manager web site: <ulink url="http://www.suse.com/products/suse-manager/">http://www.suse.com/products/suse-manager/</ulink></simpara>
+</refsect1>
+<refsect1 id="_copying">
+<title>COPYING</title>
+<simpara>The MIT License (MIT)</simpara>
+<simpara>Copyright (c) 2012 SUSE Linux Products GmbH</simpara>
+<simpara>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</simpara>
+<simpara>The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.</simpara>
+<simpara>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</simpara>
+</refsect1>
+</refentry>

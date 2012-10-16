@@ -1,0 +1,66 @@
+'\" t
+.\"     Title: smdba-netswitch
+.\"    Author: [see the "AUTHOR" section]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 10/16/2012
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
+.\"
+.TH "SMDBA\-NETSWITCH" "1" "10/16/2012" "SUSE Manager" "SUSE Manager Utils"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+smdba-netswitch \- Orace database server network listening mode switcher\&.
+.SH "SYNOPSIS"
+.sp
+\fBsmdba\-netswitch\fR \fICOMMAND\fR
+.SH "DESCRIPTION"
+.sp
+The smdba\-netswitch(1) command changes Oracle database listening from "world\-wide" to "localhost\-only" and vice versa\&. It is highly recommended to use "localhost\-only" mode in order to address possible remote attacks, exploiting security holes in Oracle database\&.
+.SH "IMPORTANT"
+.sp
+This tool is not working with any other database vendor\&.
+.SH "COMMANDS"
+.PP
+\fBlocalhost\fR
+.RS 4
+Set Oracle database and its listeners listening only to the
+\fIlocalhost\fR
+or "\fI127\&.0\&.0\&.1\fR" loopback\&. This will make impossible to access the database remotely in any way\&.
+.RE
+.PP
+\fBworldwide\fR
+.RS 4
+Set Oracle database and its listeners listening incoming connections world\-wide, or to "\fI0\&.0\&.0\&.0\fR"\&. This will make possible to access the database remotely with any tools\&.
+.RE
+.SH "WARNING!"
+.sp
+If your Oracle database is listening world\-wide, you directly exposing potential security holes in the Oracle ecosystem\&. It is \fIhighly recommended\fR to turn world\-wide listeners \fBOFF\fR, by switching listeners to \fBlocalhost only\fR\&.
+.SH "AUTHOR"
+.sp
+SMDBA\-NETSWITCH was originally written by Bo Maryniuk <bo@suse\&.de>
+.SH "RESOURCES"
+.sp
+Source code at GitHub: http://github\&.com/suse/smdba
+.sp
+SUSE Manager web site: http://www\&.suse\&.com/products/suse\-manager/
+.SH "COPYING"
+.sp
+The MIT License (MIT)
+.sp
+Copyright (c) 2012 SUSE Linux Products GmbH
+.sp
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+.sp
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software\&.
+.sp
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\&. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE\&.
