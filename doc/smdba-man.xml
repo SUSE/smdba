@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<refentry lang="en">
+<refmeta>
+<refentrytitle>smdba</refentrytitle>
+<manvolnum>1</manvolnum>
+</refmeta>
+<refnamediv>
+    <refname>smdba</refname>
+    <refpurpose>SUSE Manager database control tool.</refpurpose>
+</refnamediv>
+<refsynopsisdiv id="_synopsis">
+<simpara><emphasis role="strong">smdba</emphasis> <emphasis>COMMAND</emphasis> [<emphasis>OPTIONS</emphasis>]</simpara>
+</refsynopsisdiv>
+<refsect1 id="_description">
+<title>DESCRIPTION</title>
+<simpara>The smdba(1) command transparently controls the database backend in the
+SUSE Manager appliance. It offers basic operations and backup options for
+daily maintenance.</simpara>
+</refsect1>
+<refsect1 id="_important">
+<title>IMPORTANT</title>
+<simpara>Set of available commands may differ, depends on what database backend is
+currently in use. Therefore some commands might not be available and therefore
+not shown in the list.</simpara>
+<simpara>Each command can have expanded help by adding "<emphasis>help</emphasis>" command (see an example
+below).</simpara>
+</refsect1>
+<refsect1 id="_commands">
+<title>COMMANDS</title>
+<variablelist>
+<varlistentry>
+<term>
+<emphasis role="strong">backup-check</emphasis>
+</term>
+<listitem>
+<simpara>
+    Check the consistency of the backup if it is usable to recover the
+    database after the disaster or not. Function will check latest backup and
+    its location. Command have an additional parameter <emphasis>autoresolve</emphasis> which will
+    try to automatically resolve errors and inconsistencies, fixing broken
+    backup, if possible.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">backup-hot</emphasis>
+</term>
+<listitem>
+<simpara>
+    Perform hot backup on running database. This function <emphasis>requires</emphasis> database
+    to be healthy and running. Optionally, this command might differ,
+    depending on the database vendor at your current system, therefore
+    additionally it may accept optional parameters like <emphasis role="strong">--key=<emphasis>VALUE</emphasis></emphasis>:
+</simpara>
+<variablelist>
+<varlistentry>
+<term>
+<emphasis role="strong">--enable=<emphasis>ATTRIBUTE</emphasis></emphasis>
+</term>
+<listitem>
+<simpara>
+        Valid attribute values are: "<emphasis>on</emphasis>" or "<emphasis>off</emphasis>".
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">--backup-dir=<emphasis>ATTRIBUTE</emphasis></emphasis>
+</term>
+<listitem>
+<simpara>
+        Full path to the backup directory.
+</simpara>
+</listitem>
+</varlistentry>
+</variablelist>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">backup-list</emphasis>
+</term>
+<listitem>
+<simpara>
+    List of available backups.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">backup-purge</emphasis>
+</term>
+<listitem>
+<simpara>
+    Purge all backups. Useful after successfull reliable recover from the
+    disaster. Normally all backups needs to be re-taken right after database
+    has been successfully verified and reconciled after global restore.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">backup-restore</emphasis>
+</term>
+<listitem>
+<simpara>
+    Restore the SUSE Manager Database from backup. If you have one. :-)
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">db-check</emphasis>
+</term>
+<listitem>
+<simpara>
+    Check full connection to the database. In some vendors it involves check
+    of the whole chain of listeners and backend connectivity.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">db-start</emphasis>
+</term>
+<listitem>
+<simpara>
+    Start SUSE Manager database.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">db-status</emphasis>
+</term>
+<listitem>
+<simpara>
+    Display SUSE Manager database runtime status.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">db-stop</emphasis>
+</term>
+<listitem>
+<simpara>
+    Stop SUSE Manager database.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">listener-restart</emphasis>
+</term>
+<listitem>
+<simpara>
+    Restart database listener.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">listener-start</emphasis>
+</term>
+<listitem>
+<simpara>
+    Start database listener.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">listener-status</emphasis>
+</term>
+<listitem>
+<simpara>
+    Display database listener status.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">listener-stop</emphasis>
+</term>
+<listitem>
+<simpara>
+    Stop database listener.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">space-overview</emphasis>
+</term>
+<listitem>
+<simpara>
+    Display report about taken space in the tablespace by data files (dbf).
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">space-reclaim</emphasis>
+</term>
+<listitem>
+<simpara>
+    Try to find out what data can be moved elsewhere and thus try to free the
+    disk space.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">space-tables</emphasis>
+</term>
+<listitem>
+<simpara>
+    Display report about taken space in each table in the database.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">stats-overview</emphasis>
+</term>
+<listitem>
+<simpara>
+    Find all tables with stale or empty statistics.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">stats-refresh</emphasis>
+</term>
+<listitem>
+<simpara>
+    Gather statistics on database objects.
+</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>
+<emphasis role="strong">system-check</emphasis>
+</term>
+<listitem>
+<simpara>
+    Common backend healthcheck and automatic configuration.
+</simpara>
+</listitem>
+</varlistentry>
+</variablelist>
+</refsect1>
+<refsect1 id="_help_on_commands">
+<title>HELP ON COMMANDS</title>
+<simpara>Each command has complete description, which can be displayed by issuing
+<emphasis>help</emphasis> parameter after any command.</simpara>
+<variablelist>
+<varlistentry>
+<term>
+Example
+</term>
+<listitem>
+<simpara>
+        <emphasis role="strong">smdba command help</emphasis>
+</simpara>
+</listitem>
+</varlistentry>
+</variablelist>
+</refsect1>
+<refsect1 id="_author">
+<title>AUTHOR</title>
+<simpara>SMDBA was originally designed and written by Bo Maryniuk &lt;<ulink url="mailto:bo@suse.de">bo@suse.de</ulink>&gt;</simpara>
+</refsect1>
+<refsect1 id="_resources">
+<title>RESOURCES</title>
+<simpara>Source code at GitHub: <ulink url="http://github.com/suse/smdba">http://github.com/suse/smdba</ulink></simpara>
+<simpara>SUSE Manager web site: <ulink url="http://www.suse.com/products/suse-manager/">http://www.suse.com/products/suse-manager/</ulink></simpara>
+</refsect1>
+<refsect1 id="_copying">
+<title>COPYING</title>
+<simpara>The MIT License (MIT)</simpara>
+<simpara>Copyright (c) 2012 SUSE Linux Products GmbH</simpara>
+<simpara>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</simpara>
+<simpara>The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.</simpara>
+<simpara>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</simpara>
+</refsect1>
+</refentry>

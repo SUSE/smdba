@@ -1,0 +1,153 @@
+SMDBA(1)
+========
+:doctype: manpage
+
+
+NAME
+----
+smdba - SUSE Manager database control tool.
+
+
+SYNOPSIS
+--------
+*smdba* 'COMMAND' ['OPTIONS']
+
+
+DESCRIPTION
+-----------
+The smdba(1) command transparently controls the database backend in the
+SUSE Manager appliance. It offers basic operations and backup options for
+daily maintenance.
+
+
+IMPORTANT
+---------
+Set of available commands may differ, depends on what database backend is
+currently in use. Therefore some commands might not be available and therefore
+not shown in the list.
+
+Each command can have expanded help by adding "'help'" command (see an example
+below).
+
+
+COMMANDS
+--------
+*backup-check*::
+    Check the consistency of the backup if it is usable to recover the
+    database after the disaster or not. Function will check latest backup and
+    its location. Command have an additional parameter 'autoresolve' which will
+    try to automatically resolve errors and inconsistencies, fixing broken
+    backup, if possible.
+
+*backup-hot*::
+    Perform hot backup on running database. This function 'requires' database
+    to be healthy and running. Optionally, this command might differ,
+    depending on the database vendor at your current system, therefore
+    additionally it may accept optional parameters like *--key='VALUE'*:
+
+    *--enable='ATTRIBUTE'*;;
+        Valid attribute values are: "'on'" or "'off'".
+
+    *--backup-dir='ATTRIBUTE'*;;
+        Full path to the backup directory.
+
+*backup-list*::
+    List of available backups.
+
+*backup-purge*::
+    Purge all backups. Useful after successfull reliable recover from the
+    disaster. Normally all backups needs to be re-taken right after database
+    has been successfully verified and reconciled after global restore.
+
+*backup-restore*::
+    Restore the SUSE Manager Database from backup. If you have one. :-)
+
+*db-check*::
+    Check full connection to the database. In some vendors it involves check
+    of the whole chain of listeners and backend connectivity.
+
+*db-start*::
+    Start SUSE Manager database.
+
+*db-status*::
+    Display SUSE Manager database runtime status.
+
+*db-stop*::
+    Stop SUSE Manager database.
+
+*listener-restart*::
+    Restart database listener.
+
+*listener-start*::
+    Start database listener.
+
+*listener-status*::
+    Display database listener status.
+
+*listener-stop*::
+    Stop database listener.
+
+*space-overview*::
+    Display report about taken space in the tablespace by data files (dbf).
+
+*space-reclaim*::
+    Try to find out what data can be moved elsewhere and thus try to free the
+    disk space.
+
+*space-tables*::
+    Display report about taken space in each table in the database.
+
+*stats-overview*::
+    Find all tables with stale or empty statistics.
+
+*stats-refresh*::
+    Gather statistics on database objects.
+
+*system-check*::
+    Common backend healthcheck and automatic configuration.
+
+
+HELP ON COMMANDS
+----------------
+Each command has complete description, which can be displayed by issuing
+'help' parameter after any command.
+
+Example::
+    *smdba command help*
+
+
+AUTHOR
+------
+SMDBA was originally designed and written by Bo Maryniuk <bo@suse.de>
+
+
+RESOURCES
+---------
+Source code at GitHub: <http://github.com/suse/smdba>
+
+SUSE Manager web site: <http://www.suse.com/products/suse-manager/>
+
+
+COPYING
+-------
+The MIT License (MIT)
+
+Copyright (c) 2012 SUSE Linux Products GmbH
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

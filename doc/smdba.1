@@ -1,0 +1,172 @@
+'\" t
+.\"     Title: smdba
+.\"    Author: [see the "AUTHOR" section]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 10/16/2012
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
+.\"
+.TH "SMDBA" "1" "10/16/2012" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+smdba \- SUSE Manager database control tool\&.
+.SH "SYNOPSIS"
+.sp
+\fBsmdba\fR \fICOMMAND\fR [\fIOPTIONS\fR]
+.SH "DESCRIPTION"
+.sp
+The smdba(1) command transparently controls the database backend in the SUSE Manager appliance\&. It offers basic operations and backup options for daily maintenance\&.
+.SH "IMPORTANT"
+.sp
+Set of available commands may differ, depends on what database backend is currently in use\&. Therefore some commands might not be available and therefore not shown in the list\&.
+.sp
+Each command can have expanded help by adding "\fIhelp\fR" command (see an example below)\&.
+.SH "COMMANDS"
+.PP
+\fBbackup\-check\fR
+.RS 4
+Check the consistency of the backup if it is usable to recover the database after the disaster or not\&. Function will check latest backup and its location\&. Command have an additional parameter
+\fIautoresolve\fR
+which will try to automatically resolve errors and inconsistencies, fixing broken backup, if possible\&.
+.RE
+.PP
+\fBbackup\-hot\fR
+.RS 4
+Perform hot backup on running database\&. This function
+\fIrequires\fR
+database to be healthy and running\&. Optionally, this command might differ, depending on the database vendor at your current system, therefore additionally it may accept optional parameters like
+\fB\-\-key=\fR\fB\fIVALUE\fR\fR:
+.PP
+\fB\-\-enable=\fR\fB\fIATTRIBUTE\fR\fR
+.RS 4
+Valid attribute values are: "\fIon\fR" or "\fIoff\fR"\&.
+.RE
+.PP
+\fB\-\-backup\-dir=\fR\fB\fIATTRIBUTE\fR\fR
+.RS 4
+Full path to the backup directory\&.
+.RE
+.RE
+.PP
+\fBbackup\-list\fR
+.RS 4
+List of available backups\&.
+.RE
+.PP
+\fBbackup\-purge\fR
+.RS 4
+Purge all backups\&. Useful after successfull reliable recover from the disaster\&. Normally all backups needs to be re\-taken right after database has been successfully verified and reconciled after global restore\&.
+.RE
+.PP
+\fBbackup\-restore\fR
+.RS 4
+Restore the SUSE Manager Database from backup\&. If you have one\&. :\-)
+.RE
+.PP
+\fBdb\-check\fR
+.RS 4
+Check full connection to the database\&. In some vendors it involves check of the whole chain of listeners and backend connectivity\&.
+.RE
+.PP
+\fBdb\-start\fR
+.RS 4
+Start SUSE Manager database\&.
+.RE
+.PP
+\fBdb\-status\fR
+.RS 4
+Display SUSE Manager database runtime status\&.
+.RE
+.PP
+\fBdb\-stop\fR
+.RS 4
+Stop SUSE Manager database\&.
+.RE
+.PP
+\fBlistener\-restart\fR
+.RS 4
+Restart database listener\&.
+.RE
+.PP
+\fBlistener\-start\fR
+.RS 4
+Start database listener\&.
+.RE
+.PP
+\fBlistener\-status\fR
+.RS 4
+Display database listener status\&.
+.RE
+.PP
+\fBlistener\-stop\fR
+.RS 4
+Stop database listener\&.
+.RE
+.PP
+\fBspace\-overview\fR
+.RS 4
+Display report about taken space in the tablespace by data files (dbf)\&.
+.RE
+.PP
+\fBspace\-reclaim\fR
+.RS 4
+Try to find out what data can be moved elsewhere and thus try to free the disk space\&.
+.RE
+.PP
+\fBspace\-tables\fR
+.RS 4
+Display report about taken space in each table in the database\&.
+.RE
+.PP
+\fBstats\-overview\fR
+.RS 4
+Find all tables with stale or empty statistics\&.
+.RE
+.PP
+\fBstats\-refresh\fR
+.RS 4
+Gather statistics on database objects\&.
+.RE
+.PP
+\fBsystem\-check\fR
+.RS 4
+Common backend healthcheck and automatic configuration\&.
+.RE
+.SH "HELP ON COMMANDS"
+.sp
+Each command has complete description, which can be displayed by issuing \fIhelp\fR parameter after any command\&.
+.PP
+Example
+.RS 4
+
+\fBsmdba command help\fR
+.RE
+.SH "AUTHOR"
+.sp
+SMDBA was originally designed and written by Bo Maryniuk <bo@suse\&.de>
+.SH "RESOURCES"
+.sp
+Source code at GitHub: http://github\&.com/suse/smdba
+.sp
+SUSE Manager web site: http://www\&.suse\&.com/products/suse\-manager/
+.SH "COPYING"
+.sp
+The MIT License (MIT)
+.sp
+Copyright (c) 2012 SUSE Linux Products GmbH
+.sp
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+.sp
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software\&.
+.sp
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\&. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE\&.

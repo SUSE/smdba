@@ -1,0 +1,13 @@
+How to make man pages
+---------------------
+
+In order to avoid killing yourself with troff syntax :) you will need 
+asciidoc installed. 
+
+Procedure:
+1. Write a valid to-be-man page with asciidoc. Examlpe can be found here:
+   http://code.google.com/p/asciidoc/source/browse/doc/asciidoc.1.txt
+
+2. Compile man page:
+   a2x --doctype manpage --format manpage my-man-page-source.txt
+
