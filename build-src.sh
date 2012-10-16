@@ -14,6 +14,7 @@ find . | grep '~$' | xargs rm 2>/dev/null
 # Archive
 mkdir $NAME-$VERSION
 cp -rv src $NAME-$VERSION/
+cp -rv doc $NAME-$VERSION/
 cp -v LICENSE README $NAME-$VERSION/
 cp -v setup.py $NAME-$VERSION/
 
