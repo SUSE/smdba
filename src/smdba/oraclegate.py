@@ -232,10 +232,7 @@ class OracleGate(BaseGate):
 
     def do_backup_hot(self, *args, **params):
         """
-        Perform host database backup.
-
-        @help
-        --backup-dir=<path>\tDirectory for backup data to be stored.
+        Perform hot backup on running database.
         """
         #if not params.get('backup-dir'):
         #    raise Exception("\tPlease run this as \"%s backup-hot help\" first." % sys.argv[0])
@@ -373,7 +370,7 @@ class OracleGate(BaseGate):
 
     def do_backup_restore(self, *args, **params):
         """
-        Restore the SUSE Manager Database from backup.
+        Restore the SUSE Manager database from backup.
         @help
         force\t\t\tShutdown database prior backup, if running.
         start\t\t\tAttempt to start a database after restore.
@@ -450,7 +447,7 @@ class OracleGate(BaseGate):
 
     def do_stats_refresh(self, *args, **params):
         """
-        Gather statistics on SUSE Manager Database database objects.
+        Gather statistics on SUSE Manager database objects.
         """
         self.vw_check_database_ready("Database must be healthy and running in order to get statistics of it!");
 
@@ -673,7 +670,7 @@ class OracleGate(BaseGate):
 
     def do_listener_start(self, *args, **params):
         """
-        Start the SUSE Manager Database listener.
+        Start the SUSE Manager database listener.
         """
         if not 'quiet' in args:
             print >> sys.stdout, "Starting database listener...\t",
@@ -704,7 +701,7 @@ class OracleGate(BaseGate):
 
     def do_listener_stop(self, *args, **params):
         """
-        Stop the SUSE Manager Database listener.
+        Stop the SUSE Manager database listener.
         @help
         quiet\tSuppress any output.
         """
@@ -760,7 +757,7 @@ class OracleGate(BaseGate):
 
     def do_listener_restart(self, *args, **params):
         """
-        Restart SUSE Database Listener.
+        Restart SUSE Manager database listener.
         """
         print >> sys.stdout, "Restarting listener...",
         sys.stdout.flush()
@@ -867,7 +864,7 @@ class OracleGate(BaseGate):
 
     def do_db_status(self, *args, **params):
         """
-        Get SUSE Database running status.
+        Display SUSE Manager database runtime status.
         """
         print >> sys.stdout, "Checking database core...\t",
         sys.stdout.flush()
@@ -989,7 +986,7 @@ class OracleGate(BaseGate):
         @help
         force-archivelog-off\tForce archivelog mode to off.
         """
-        print >> sys.stdout, "Checking SUSE Manager Database backend\n"
+        print >> sys.stdout, "Checking SUSE Manager database backend\n"
 
         # Set data table autoextensible.
         stdout, stderr = self.call_scenario('cnf-get-noautoext')
