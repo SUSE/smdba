@@ -112,8 +112,8 @@ class Console:
 
     @staticmethod
     def usage_header():
-        print >> sys.stderr, "SUSE Manager Database Control. Version", Console.VERSION
-        print >> sys.stderr, "Copyright (c) by SUSE Linux Products GmbH\n"
+        print "SUSE Manager Database Control. Version", Console.VERSION
+        print "Copyright (c) 2012 by SUSE Linux Products GmbH\n"
 
 
     def usage(self, command=None):
