@@ -1,0 +1,2 @@
+column type noprint;
+show parameter db_recovery_file_dest;

@@ -1,0 +1,1 @@
+alter system set db_recovery_file_dest_size = @destsize scope = both;

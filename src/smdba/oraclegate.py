@@ -1268,6 +1268,66 @@ class OracleGate(BaseGate):
             raise GateException(message);
 
 
+    def get_current_rfds(self):
+        """
+        Get current recovery file destination size.
+        """
+        stdout, stderr = self.call_scenario('ora-archive-info')
+        stdout = stdout and stdout.lower()
+        curr_fds = ""
+        if stdout and stdout.find("db_recovery_file_dest_size") > -1:
+            for line in stdout.split("\n"):
+                if line.find("db_recovery_file_dest_size") > -1:
+                    curr_fds = (line.split(" ")[-1] + "").upper()
+
+        return curr_fds.replace("B", "")
+
+    def get_current_fra_dir(self):
+        """
+        Get current recovery area directory.
+        """
+        stdout, stderr = self.call_scenario('ora-archive-fra-dir')
+        return (stdout or '/opt/apps/oracle/flash_recovery_area').strip()
+
+
+    def autoresize_available_archive(self, target_fds):
+        """
+        Set Oracle environment always up to the current media size.
+        """
+        stdout, stderr = self.call_scenario('ora-archive-setup', destsize=target_fds)
+        if stdout.find("System altered") > -1:
+            return True
+
+        print >> sys.stderr, "ERROR:", stderr
+
+        return False
+
+
+
+    def startup(self):
+        """
+        Hooks before the Oracle gate operations starts.
+        """
+        # Always set FRA to the current size of the media.
+        curr_fds = self.get_current_rfds()
+        target_fds = self.size_pretty(self.media_usage(self.get_current_fra_dir())['free'], int_only=True, no_whitespace=True).replace("B", "")
+
+        if curr_fds != target_fds:
+            print >> sys.stderr, "WARNING: Reserved space for the backup is smaller than available disk space. Adjusting."
+            if not self.autoresize_available_archive(target_fds):
+                print >> sys.stderr, "WARNING: Could not adjust system for backup reserved space!"
+            else:
+                print >> sys.stdout, "INFO: System settings for the backup recovery area has been altered successfully."
+
+
+    def finish(self):
+        """
+        Hooks after the Oracle gate operations finished.
+        """
+        pass
+
+
+
 def getGate(config):
     """
     Get gate to the database engine.

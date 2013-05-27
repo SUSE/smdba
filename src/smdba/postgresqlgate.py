@@ -897,6 +897,19 @@ class PgSQLGate(BaseGate):
         return True
 
 
+    def startup(self):
+        """
+        Hooks before the PostgreSQL gate operations starts.
+        """
+        pass
+
+
+    def finish(self):
+        """
+        Hooks after the PostgreSQL gate operations finished.
+        """
+        pass
+
 
 def getGate(config):
     """

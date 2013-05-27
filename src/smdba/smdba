@@ -170,7 +170,9 @@ class Console:
                 if 'help' in args:
                     self.usage(command=method)
                 params['__console_location'] = self.console_location
+                self.gate.startup()
                 getattr(self.gate, method)(*args, **params)
+                self.gate.finish()
             else:
                 raise Exception(("The parameter \"%s\" is an unknown command.\n\n"  % command[0]) + 
                                 "Hint: Try with no parameters first, perhaps?")

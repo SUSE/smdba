@@ -203,21 +203,52 @@ class BaseGate:
         raise GateException("No check implemented for this gate.")
 
 
-    def size_pretty(self, size):
+    def size_pretty(self, size, int_only=False, no_whitespace=False):
         """
         Make pretty size from bytes to other metrics.
         Size: amount (int, long)
         """
 
         size = float(size)
+        ws = not no_whitespace and ' ' or ''
+        wrap = not int_only and (lambda dummy:dummy) or int
+        sz_ptn = int_only and '%s' or '%.2f'
 
         if size >= 0x10000000000:
-            return '%.2f TB' % (size / 0x10000000000)
+            return (sz_ptn + '%sTB') % (wrap((size / 0x10000000000)), ws)
         elif size >= 0x40000000:
-            return '%.2f GB' % (size / 0x40000000)
+            return (sz_ptn + '%sGB') % (wrap((size / 0x40000000)), ws)
         elif size >= 0x100000:
-            return '%.2f MB' % (size / 0x100000)
+            return (sz_ptn + '%sMB') % (wrap((size / 0x100000)), ws)
         elif size >= 0x400:
-            return '%.2f KB' % (size / 0x400)
+            return (sz_ptn + '%sKB') % (wrap((size / 0x400)), ws)
         else:
-            return '%.f Bytes' % size
+            return ((int_only and '%s' or '%.f') + '%sBytes') % (wrap(size), ws)
+
+
+    def media_usage(self, path):
+        """Return media usage statistics about the given path.
+
+        Returned valus is a dictionary with keys 'total', 'used' and
+        'free', which are the amount of total, used and free space, in bytes.
+        """
+        st = os.statvfs(path)
+        free = st.f_bavail * st.f_frsize
+        total = st.f_blocks * st.f_frsize
+        used = (st.f_blocks - st.f_bfree) * st.f_frsize
+
+        return {'free' : free, 'total' : total, 'used' : used}
+
+
+    def startup(self):
+        """
+        Placeholder for the gate-specific hooks before starting any operations.
+        """
+        print "Starting gate state: Not used."
+
+
+    def finish(self):
+        """
+        Placeholder for the gate-specific hooks after finishing all operations.
+        """
+        print "Finishing gate state: Not used."
