@@ -1308,6 +1308,9 @@ class OracleGate(BaseGate):
         """
         Hooks before the Oracle gate operations starts.
         """
+        # Do we have sudo permission?
+        self.check_sudo('oracle')
+
         # Always set FRA to the current size of the media.
         curr_fds = self.get_current_rfds()
         target_fds = self.size_pretty(self.media_usage(self.get_current_fra_dir())['free'], int_only=True, no_whitespace=True).replace("B", "")

@@ -901,7 +901,8 @@ class PgSQLGate(BaseGate):
         """
         Hooks before the PostgreSQL gate operations starts.
         """
-        pass
+        # Do we have sudo permission?
+        self.check_sudo('postgres')
 
 
     def finish(self):

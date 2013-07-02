@@ -240,6 +240,16 @@ class BaseGate:
         return {'free' : free, 'total' : total, 'used' : used}
 
 
+    def check_sudo(self, uid):
+        """
+        Check if UID has sudo permission.
+        """
+        sudo = os.popen("which sudo").read().strip()
+        stdout, stderr = self.syscall(sudo, "", None, "-nu", uid, "-S", "true", "/bin/bash")
+        if stdout + stderr:
+            raise GateException("Access denied to UID \"%s\" via sudo." % uid);
+
+
     def startup(self):
         """
         Placeholder for the gate-specific hooks before starting any operations.
