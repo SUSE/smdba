@@ -352,6 +352,10 @@ class PgSQLGate(BaseGate):
         """
         stdout, stderr = self.call_scenario('pg-tablesizes', target='psql')
 
+        if stderr:
+            print >> sys.stderr, stderr
+            raise GateException("Unhandled underlying error occurred, see above.")
+
         if stdout:
             t_index = []
             t_ref = {}
@@ -375,10 +379,6 @@ class PgSQLGate(BaseGate):
             table.append(('', '',))
             table.append(('Total', ('%.2f' % round(t_total / 1024. / 1024)) + 'M',))
             print >> sys.stdout, "\n", TablePrint(table), "\n"
-
-        if stderr:
-            print >> sys.stderr, stderr
-            raise GateException("Unhandled underlying error occurred, see above.")
 
 
     def _get_partition(self, fdir):
@@ -430,6 +430,7 @@ class PgSQLGate(BaseGate):
         stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario',
                                                                                                 'select pg_database_size(datname), datname from pg_database;'),
                                       None, "-u", "postgres", "/bin/bash")
+        self.to_stderr(stderr)
         overview = [('Tablespace', 'Size (Mb)', 'Avail (Mb)', 'Use %',)]
         for line in stdout.split("\n")[2:]:
             line = filter(None, line.strip().replace('|', '').split(" "))

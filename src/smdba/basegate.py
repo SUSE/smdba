@@ -26,6 +26,8 @@
 # 
 
 import os
+import sys
+import textwrap
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 
@@ -161,7 +163,9 @@ class BaseGate:
                                stdin=PIPE, 
                                stderr=STDOUT,
                                env=os.environ).communicate(input=input)
-
+        if not stderr:
+            stderr = ""
+        stderr += self.extract_errors(stdout)
         return stdout and stdout.strip() or '', stderr and stderr.strip() or ''
 
 
@@ -262,3 +266,38 @@ class BaseGate:
         Placeholder for the gate-specific hooks after finishing all operations.
         """
         print "Finishing gate state: Not used."
+
+
+    def extract_errors(self, stdout):
+        """
+        Extract errors from the RMAN and SQLPlus.
+        Based on http://docs.oracle.com/cd/B28359_01/backup.111/b28270/rcmtroub.htm
+        List of the errors: http://docs.oracle.com/cd/B28359_01/server.111/b28278/toc.htm
+        """
+        if not (stdout + "").strip():
+            return ""
+
+        out = []
+        for line in filter(None, str(stdout).replace("\\n", "\n").split("\n")):
+            if line.lower().startswith("ora-") or line.lower().startswith("rman-"):
+                if not line.find("===") > -1: # Skip ugly Oracle error emphasis
+                    out += textwrap.wrap(line.strip())
+
+        return '\n'.join(out)
+
+
+    def to_stderr(self, stderr):
+        """
+        Format an error output to STDERR and terminate everything at once.
+        """
+        if not (stderr + "").strip():
+            return False
+
+        out = []
+        for line in filter(None, str(stderr).replace("\\n", "\n").split("\n")):
+            out.append("  " + line.strip())
+        print >> sys.stderr, "\nError:\n" + ("-" * 80)
+        print >> sys.stderr, "\n".join(out)
+        print >> sys.stderr, "-" * 80
+
+        sys.exit(1)

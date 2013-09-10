@@ -138,6 +138,7 @@ class OracleGate(BaseGate):
         class InfoNode:pass
         infoset = []
         stdout, stderr = self.call_scenario('rman-list-backups', target='rman')
+        self.to_stderr(stderr)
 
         roller.stop("finished")
         time.sleep(1)
@@ -192,10 +193,6 @@ class OracleGate(BaseGate):
                         print >> sys.stdout, "\tFile:", dbf.file
                     print >> sys.stdout
 
-        if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
-
             
     def do_backup_purge(self, *args, **params):
         """
@@ -223,8 +220,7 @@ class OracleGate(BaseGate):
         if stderr:
             roller.stop("failed")
             time.sleep(1)
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            self.to_stderr(stderr)
         
         roller.stop("finished")
         time.sleep(1)
@@ -262,8 +258,7 @@ class OracleGate(BaseGate):
         if stderr:
             roller.stop("failed")
             time.sleep(1)
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            self.to_stderr(stderr)
 
         if stdout:
             roller.stop("finished")
@@ -431,8 +426,7 @@ class OracleGate(BaseGate):
         if stderr:
             roller.stop("failed")
             time.sleep(1)
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            self.to_stderr(stderr)
             
         if stdout:
             roller.stop("finished")
@@ -464,10 +458,7 @@ class OracleGate(BaseGate):
             roller.stop('failed')
 
         time.sleep(1)
-
-        if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+        self.to_stderr(stderr)
             
 
     def do_space_overview(self, *args, **params):
@@ -476,10 +467,7 @@ class OracleGate(BaseGate):
         """
         self.vw_check_database_ready("Database must be healthy and running in order to get space overview!");
         stdout, stderr = self.call_scenario('report')
-        if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
-            return
+        self.to_stderr(stderr)
         
         ora_error = self.has_ora_error(stdout)
         if ora_error:
@@ -506,6 +494,8 @@ class OracleGate(BaseGate):
 
         roller.stop('finished')
         time.sleep(1)
+
+        self.to_stderr(stderr)
 
         stale = []
         empty = []
@@ -565,9 +555,7 @@ class OracleGate(BaseGate):
         if stderr:
             roller.stop('failed')
             time.sleep(1)
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
-            return
+            self.to_stderr(stderr)
         else:
             roller.stop('done')
             time.sleep(1)
@@ -695,8 +683,7 @@ class OracleGate(BaseGate):
                 print >> sys.stdout, (ready and "done" or "failed")
 
         if stderr and not 'quiet' in args:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            self.to_stderr(stderr)
 
 
     def do_listener_stop(self, *args, **params):
@@ -729,8 +716,7 @@ class OracleGate(BaseGate):
                 print >> sys.stdout, (success and "done" or "failed")
 
         if stderr and not 'quiet' in args:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            self.to_stderr(stderr)
 
 
     def do_listener_status(self, *args, **params):
@@ -800,7 +786,7 @@ class OracleGate(BaseGate):
         roller.stop('done')
         time.sleep(1)
 
-        return
+        self.to_stderr(stderr)
     
         if stdout and stdout.find("Database opened") > -1 \
                 and stdout.find("Database mounted") > -1:
@@ -857,9 +843,7 @@ class OracleGate(BaseGate):
             roller.stop("done")
             time.sleep(1)
 
-        if stderr:
-            print >> sys.stderr, "\nError dump:"
-            print >> sys.stderr, stderr + "\n"
+        self.to_stderr(stderr)
 
 
     def do_db_status(self, *args, **params):
@@ -888,6 +872,7 @@ class OracleGate(BaseGate):
         table = [('Table', 'Size',)]
         total = 0
         stdout, stderr = self.call_scenario('tablesizes', user=self.config.get('db_user', '').upper())
+        self.to_stderr(stderr)
         ora_error = self.has_ora_error(stdout)
         if ora_error:
             raise GateException("Please visit http://%s.ora-code.com/ page to know more details." % ora_error.lower())
