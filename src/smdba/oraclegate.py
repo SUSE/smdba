@@ -226,21 +226,31 @@ class OracleGate(BaseGate):
         time.sleep(1)
 
 
+    def _backup_rotate(self):
+        """
+        Rotate backup by purging the obsolete/expired backup set.
+        This method is internal and needs to be performed on a healthy, ensured database.
+        """
+        print >> sys.stdout, "Rotating the backup:\t",
+        roller = Roller()
+        roller.start()
+
+        stdout, stderr = self.call_scenario('rman-hot-backup-roll', target='rman')
+
+        if stderr:
+            roller.stop("failed")
+            time.sleep(1)
+            self.to_stderr(stderr)
+
+        if stdout:
+            roller.stop("finished")
+            time.sleep(1)
+
+
     def do_backup_hot(self, *args, **params):
         """
         Perform hot backup on running database.
         """
-        #if not params.get('backup-dir'):
-        #    raise Exception("\tPlease run this as \"%s backup-hot help\" first." % sys.argv[0])
-
-        #if not os.path.exists(params.get('backup-dir')):
-        #    print >> sys.stdout, "Creating \"%s\" path" % params.get('backup-dir')
-        #    utils.create_dirs(params.get('backup-dir'), "oracle")
-
-        #owner = utils.get_path_owner(params.get('backup-dir'))
-        #if owner.user != 'oracle':
-        #    raise Exception("\tDirectory \"%s\" does not have proper permissions!" % params.get('backup-dir'))
-
         self.vw_check_database_ready("Database must be healthy and running in order to take a backup of it!");
 
         # Check DBID is around all the time (when DB is healthy!)
@@ -252,7 +262,7 @@ class OracleGate(BaseGate):
         print >> sys.stdout, "Backing up the database:\t",
         roller = Roller()
         roller.start()
-        #stdout, stderr = self.call_scenario('rman-hot-backup', target='rman', backupdir=params.get('backup-dir'))
+
         stdout, stderr = self.call_scenario('rman-hot-backup', target='rman')
 
         if stderr:
@@ -283,8 +293,11 @@ class OracleGate(BaseGate):
                 print >> sys.stdout, "\t" + arc
             print >> sys.stdout
 
-        # Finalize
+        # Rotate and check
         self.autoresolve_backup()
+        self._backup_rotate()
+
+        # Finalize
         hb, fb, ha, fa = self.check_backup_info()
         print >> sys.stdout, "Backup summary as follows:"
         if len(hb):
