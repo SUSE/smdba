@@ -49,7 +49,7 @@ class PgTune(object):
 
 
     def __init__(self):
-        self.max_connections = 80
+        self.max_connections = 400
         self.config = {}
 
 
