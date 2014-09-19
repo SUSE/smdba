@@ -90,16 +90,12 @@ class PgBackup(object):
         This method depends on pg_archivecleanup external utility which removes
         older WAL files from PostgreSQL archives.
         """
-        for path in [self.target_path, self.pg_xlog]:
-            checkpoints, history, restart_filename = self._get_latest_restart_filename(path)
-            for obsolete_bkp_chkpnt in checkpoints:
-                os.unlink(os.path.join(path, obsolete_bkp_chkpnt))
+        checkpoints, history, restart_filename = self._get_latest_restart_filename(self.target_path)
+        for obsolete_bkp_chkpnt in checkpoints:
+            os.unlink(os.path.join(self.target_path, obsolete_bkp_chkpnt))
 
-            for obsolete_hst in history:
-                os.unlink(os.path.join(path, obsolete_hst))
-
-            if restart_filename:
-                os.system("%s %s %s" % (PgBackup.PG_ARCHIVE_CLEANUP, path, restart_filename))
+        if restart_filename:
+            os.system("%s %s %s" % (PgBackup.PG_ARCHIVE_CLEANUP, self.target_path, restart_filename))
 
 
 
