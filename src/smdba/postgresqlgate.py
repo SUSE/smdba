@@ -788,7 +788,7 @@ class PgSQLGate(BaseGate):
 
     def _get_partition_size(self, path):
         """
-        Get a size of the partition, where path belongs to."
+        Get a size of the partition, where path belongs to.
         """
         return long((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
 
