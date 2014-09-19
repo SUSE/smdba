@@ -771,6 +771,10 @@ class PgSQLGate(BaseGate):
 
             if os.path.exists(backup_dir + "/tmp/base.tar.gz"):
                 os.rename(backup_dir + "/tmp/base.tar.gz", backup_dir + "/base.tar.gz")
+
+            # Cleanup/rotate backup
+            PgBackup(backup_dir, pg_data=self.config.get('pcnf_data_directory', '/var/lib/pgsql')).cleanup_backup()
+
         else:
             # Disable backups
             if enable == 'purge' and os.path.exists(backup_dir):
