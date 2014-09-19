@@ -38,6 +38,69 @@ import time
 import shutil
 import tempfile
 import utils
+import stat
+
+class PgBackup(object):
+    """
+    PostgreSQL backup utilities wrapper.
+    """
+    # NOTE: First attempt to restructure
+    #       all the wrapping behind bunch of the utilities, needed for
+    #       the backup.
+
+    DEFAULT_PG_DATA = "/var/lib/pgsql/data/"
+    PG_ARCHIVE_CLEANUP = "/usr/bin/pg_archivecleanup"
+
+    def __init__(self, target_path, pg_data=None):
+        if not os.path.exists(PgBackup.PG_ARCHIVE_CLEANUP):
+            raise Exception("The utility pg_archivecleanup was not found on the path.")
+
+        self.target_path = target_path
+        self.pg_data = pg_data or PgBackup.DEFAULT_PG_DATA
+        self.pg_xlog = os.path.join(self.pg_data, "pg_xlog")
+
+
+    def _get_latest_restart_filename(self, path):
+        checkpoints = []
+        history = []
+        restart_filename = None
+
+        for fname in os.listdir(path):
+            if not stat.S_ISREG(os.stat(os.path.join(path, fname)).st_mode):
+                continue
+            if fname.endswith(".backup"):
+                checkpoints.append(fname)
+            if fname.endswith(".history"):
+                history.append(fname)
+
+        checkpoints = sorted(checkpoints)
+        history = sorted(history)
+        if checkpoints:
+           restart_filename = checkpoints.pop(len(checkpoints) - 1)
+
+        if history:
+           history.pop(len(history) - 1)
+
+        return (checkpoints, history, restart_filename)
+
+
+    def cleanup_backup(self):
+        """
+        Cleans up the whole backup.
+        This method depends on pg_archivecleanup external utility which removes
+        older WAL files from PostgreSQL archives.
+        """
+        for path in [self.target_path, self.pg_xlog]:
+            checkpoints, history, restart_filename = self._get_latest_restart_filename(path)
+            for obsolete_bkp_chkpnt in checkpoints:
+                os.unlink(os.path.join(path, obsolete_bkp_chkpnt))
+
+            for obsolete_hst in history:
+                os.unlink(os.path.join(path, obsolete_hst))
+
+            if restart_filename:
+                os.system("%s %s %s" % (PgBackup.PG_ARCHIVE_CLEANUP, path, restart_filename))
+
 
 
 class PgTune(object):
