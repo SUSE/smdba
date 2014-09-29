@@ -719,6 +719,15 @@ class PgSQLGate(BaseGate):
             raise GateException("Where I have to put backups?")
 
         if 'enable' in args.keys():
+            # Same owner?
+            if os.lstat(args['backup-dir']).st_uid != os.lstat(self.config['pcnf_pg_data']).st_uid \
+                   or os.lstat(args['backup-dir']).st_gid != os.lstat(self.config['pcnf_pg_data']).st_gid:
+                raise GateException("The \"%s\" directory must belong to the same user and group as \"%s\" directory."
+                                    % (args['backup-dir'], self.config['pcnf_pg_data']))
+            # Same permissions?
+            if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
+                raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
+                                    % (args['backup-dir'], self.config['pcnf_pg_data']))                
             self._perform_enable_backups(**args)
 
         if 'source' in args.keys():
