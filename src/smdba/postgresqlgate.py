@@ -716,7 +716,7 @@ class PgSQLGate(BaseGate):
         #NOTE: All parameters above are used automatically!\n
 
         if 'backup-dir' not in args.keys():
-            raise GateException("Where I have to put backups?")
+            raise GateException("Where is your backup?")
 
         if 'enable' in args.keys():
             # Same owner?
