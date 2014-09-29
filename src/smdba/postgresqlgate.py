@@ -715,6 +715,9 @@ class PgSQLGate(BaseGate):
         #--autosource=%p --destination=/root/of/your/backups\n
         #NOTE: All parameters above are used automatically!\n
 
+        if 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
+            raise GateException("No relative paths please.")
+
         # Already enabled?
         arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] + "/postgresql.conf").get("archive_command", "''")).strip().split(" ")[1:])
         if '--destination' in arch_cmd:
