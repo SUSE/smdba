@@ -925,7 +925,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # Stub
-        if conf.get('archive_command', '') != "'/bin/true'":
+        if not conf.get('archive_command'):
             conf['archive_command'] = "'/bin/true'"
             changed = True
 
