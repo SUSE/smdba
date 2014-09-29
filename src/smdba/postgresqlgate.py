@@ -715,6 +715,19 @@ class PgSQLGate(BaseGate):
         #--autosource=%p --destination=/root/of/your/backups\n
         #NOTE: All parameters above are used automatically!\n
 
+        # Already enabled?
+        arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] + "/postgresql.conf").get("archive_command", "''")).strip().split(" ")[1:])
+        if '--destination' in arch_cmd:
+            target = '/'.join([''] + filter(None, eval(arch_cmd[arch_cmd.index("--destination") + 1]).replace("%f", '').split("/")))
+            if filter(None, args.get('backup-dir', target).split("/")) != filter(None, target.split("/")):
+                raise GateException(("You've specified \"%s\" as a destination,\n" + \
+                                     "but your backup is already in \"%s\" directory.\n" + \
+                                     "In order to specify a new target directory,\n" + \
+                                     "you must purge (or disable) current backup.") % (args.get('backup-dir'), target))
+            args['backup-dir'] = target
+            if not args.get('enable'):
+                args['enable'] = 'on'
+
         if 'backup-dir' not in args.keys():
             raise GateException("Where is your backup?")
 
