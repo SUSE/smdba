@@ -727,7 +727,7 @@ class PgSQLGate(BaseGate):
             # Same permissions?
             if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
                 raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
-                                    % (args['backup-dir'], self.config['pcnf_pg_data']))                
+                                    % (args['backup-dir'], self.config['pcnf_pg_data']))
             self._perform_enable_backups(**args)
 
         if 'source' in args.keys():
