@@ -32,12 +32,72 @@ from utils import TablePrint
 
 import sys
 import os
+import re
 import pwd
 import grp
 import time
 import shutil
 import tempfile
 import utils
+import stat
+
+class PgBackup(object):
+    """
+    PostgreSQL backup utilities wrapper.
+    """
+    # NOTE: First attempt to restructure
+    #       all the wrapping behind bunch of the utilities, needed for
+    #       the backup.
+
+    DEFAULT_PG_DATA = "/var/lib/pgsql/data/"
+    PG_ARCHIVE_CLEANUP = "/usr/bin/pg_archivecleanup"
+
+    def __init__(self, target_path, pg_data=None):
+        if not os.path.exists(PgBackup.PG_ARCHIVE_CLEANUP):
+            raise Exception("The utility pg_archivecleanup was not found on the path.")
+
+        self.target_path = target_path
+        self.pg_data = pg_data or PgBackup.DEFAULT_PG_DATA
+        self.pg_xlog = os.path.join(self.pg_data, "pg_xlog")
+
+
+    def _get_latest_restart_filename(self, path):
+        checkpoints = []
+        history = []
+        restart_filename = None
+
+        for fname in os.listdir(path):
+            if not stat.S_ISREG(os.stat(os.path.join(path, fname)).st_mode):
+                continue
+            if fname.endswith(".backup"):
+                checkpoints.append(fname)
+            if fname.endswith(".history"):
+                history.append(fname)
+
+        checkpoints = sorted(checkpoints)
+        history = sorted(history)
+        if checkpoints:
+           restart_filename = checkpoints.pop(len(checkpoints) - 1)
+
+        if history:
+           history.pop(len(history) - 1)
+
+        return (checkpoints, history, restart_filename)
+
+
+    def cleanup_backup(self):
+        """
+        Cleans up the whole backup.
+        This method depends on pg_archivecleanup external utility which removes
+        older WAL files from PostgreSQL archives.
+        """
+        checkpoints, history, restart_filename = self._get_latest_restart_filename(self.target_path)
+        for obsolete_bkp_chkpnt in checkpoints:
+            os.unlink(os.path.join(self.target_path, obsolete_bkp_chkpnt))
+
+        if restart_filename:
+            os.system("%s %s %s" % (PgBackup.PG_ARCHIVE_CLEANUP, self.target_path, restart_filename))
+
 
 
 class PgTune(object):
@@ -656,10 +716,35 @@ class PgSQLGate(BaseGate):
         #--autosource=%p --destination=/root/of/your/backups\n
         #NOTE: All parameters above are used automatically!\n
 
+        if 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
+            raise GateException("No relative paths please.")
+
+        # Already enabled?
+        arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] + "/postgresql.conf").get("archive_command", "''")).split(" "))
+        if '--destination' in arch_cmd:
+            target = re.sub("/+$", "", eval(arch_cmd[arch_cmd.index("--destination") + 1].replace("%f", '')))
+            if re.sub("/+$", "", args.get('backup-dir', target)) != target:
+                raise GateException(("You've specified \"%s\" as a destination,\n" + \
+                                     "but your backup is already in \"%s\" directory.\n" + \
+                                     "In order to specify a new target directory,\n" + \
+                                     "you must purge (or disable) current backup.") % (args.get('backup-dir'), target))
+            args['backup-dir'] = target
+            if not args.get('enable'):
+                args['enable'] = 'on'
+
         if 'backup-dir' not in args.keys():
-            raise GateException("Where I have to put backups?")
+            raise GateException("Backup destination is not defined. Please issue '--backup-dir' option.")
 
         if 'enable' in args.keys():
+            # Same owner?
+            if os.lstat(args['backup-dir']).st_uid != os.lstat(self.config['pcnf_pg_data']).st_uid \
+                   or os.lstat(args['backup-dir']).st_gid != os.lstat(self.config['pcnf_pg_data']).st_gid:
+                raise GateException("The \"%s\" directory must belong to the same user and group as \"%s\" directory."
+                                    % (args['backup-dir'], self.config['pcnf_pg_data']))
+            # Same permissions?
+            if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
+                raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
+                                    % (args['backup-dir'], self.config['pcnf_pg_data']))
             self._perform_enable_backups(**args)
 
         if 'source' in args.keys():
@@ -708,6 +793,10 @@ class PgSQLGate(BaseGate):
 
             if os.path.exists(backup_dir + "/tmp/base.tar.gz"):
                 os.rename(backup_dir + "/tmp/base.tar.gz", backup_dir + "/base.tar.gz")
+
+            # Cleanup/rotate backup
+            PgBackup(backup_dir, pg_data=self.config.get('pcnf_data_directory', '/var/lib/pgsql')).cleanup_backup()
+
         else:
             # Disable backups
             if enable == 'purge' and os.path.exists(backup_dir):
@@ -788,7 +877,7 @@ class PgSQLGate(BaseGate):
 
     def _get_partition_size(self, path):
         """
-        Get a size of the partition, where path belongs to."
+        Get a size of the partition, where path belongs to.
         """
         return long((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
 
@@ -837,7 +926,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # Stub
-        if conf.get('archive_command', '') != "'/bin/true'":
+        if not conf.get('archive_command'):
             conf['archive_command'] = "'/bin/true'"
             changed = True
 
