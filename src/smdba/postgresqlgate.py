@@ -733,7 +733,7 @@ class PgSQLGate(BaseGate):
                 args['enable'] = 'on'
 
         if 'backup-dir' not in args.keys():
-            raise GateException("Where is your backup?")
+            raise GateException("Backup destination is not defined. Please issue '--backup-dir' option.")
 
         if 'enable' in args.keys():
             # Same owner?
