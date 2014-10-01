@@ -753,6 +753,8 @@ class PgSQLGate(BaseGate):
             # Copy xlog entry
             self._perform_archive_operation(**args)
 
+        print >> sys.stdout, "INFO: Finished"
+
 
     def _perform_enable_backups(self, **args):
         """
@@ -802,6 +804,7 @@ class PgSQLGate(BaseGate):
         else:
             # Disable backups
             if enable == 'purge' and os.path.exists(backup_dir):
+                print >> sys.stdout, "INFO: Removing the whole backup tree \"%s\"" % backup_dir
                 shutil.rmtree(backup_dir)
 
             cmd = "'/bin/true'"
@@ -809,6 +812,8 @@ class PgSQLGate(BaseGate):
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
                 self._apply_db_conf()
+            else:
+                print >> sys.stdout, "INFO: Backup was not enabled."
 
 
     def _apply_db_conf(self):
