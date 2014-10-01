@@ -778,7 +778,7 @@ class PgSQLGate(BaseGate):
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
-                self._restart_db()
+                self._apply_db_conf()
 
             # round robin of base backups
             if os.path.exists(backup_dir + "/base.tar.gz"):
@@ -806,17 +806,19 @@ class PgSQLGate(BaseGate):
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
-                self._restart_db()
+                self._apply_db_conf()
 
 
-    def _restart_db(self):
+    def _apply_db_conf(self):
         """
-        Restart the entire db.
+        Reload the configuration.
         """
-        if self._get_db_status():
-            self.do_db_stop()
-        self.do_db_start()
-        self.do_db_status()
+        stdout, stderr = self.call_scenario('pg-reload-conf', target='psql')
+        if stderr:
+            print >> sys.stderr, stderr
+            raise GateException("Unhandled underlying error occurred, see above.")
+        if stdout and stdout.strip() == 't':
+            print >> sys.stdout, "INFO: New configuration has been applied."
 
 
     def _perform_archive_operation(self, **args):
@@ -962,7 +964,7 @@ class PgSQLGate(BaseGate):
         # Commit the changes
         #
         if changed or hba_changed:
-            print >> sys.stdout, "INFO: Database needs to be restarted."
+            print >> sys.stdout, "INFO: Database configuration has been changed."
             if changed:
                 conf_bk = self._write_conf(conf_path, **conf)
                 if conf_bk:
@@ -976,8 +978,9 @@ class PgSQLGate(BaseGate):
 
             # Restart
             if self._get_db_status():
-                self.do_db_stop()
-            self.do_db_start()
+                self._apply_db_conf()
+            else:
+                print >> sys.stdout, "INFO: Configuration has been changed, but your database is right now offline."
             self.do_db_status()
         else:
             print >> sys.stdout, "INFO: No changes required."
