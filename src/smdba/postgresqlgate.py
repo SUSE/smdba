@@ -716,7 +716,7 @@ class PgSQLGate(BaseGate):
         #--autosource=%p --destination=/root/of/your/backups\n
         #NOTE: All parameters above are used automatically!\n
 
-        if 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
+        if args.get('enable') == 'on' and 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
             raise GateException("No relative paths please.")
 
         # Already enabled?
@@ -732,19 +732,21 @@ class PgSQLGate(BaseGate):
             if not args.get('enable'):
                 args['enable'] = 'on'
 
-        if 'backup-dir' not in args.keys():
+        if args.get('enable') == 'on' and 'backup-dir' not in args.keys():
             raise GateException("Backup destination is not defined. Please issue '--backup-dir' option.")
 
         if 'enable' in args.keys():
-            # Same owner?
-            if os.lstat(args['backup-dir']).st_uid != os.lstat(self.config['pcnf_pg_data']).st_uid \
-                   or os.lstat(args['backup-dir']).st_gid != os.lstat(self.config['pcnf_pg_data']).st_gid:
-                raise GateException("The \"%s\" directory must belong to the same user and group as \"%s\" directory."
-                                    % (args['backup-dir'], self.config['pcnf_pg_data']))
-            # Same permissions?
-            if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
-                raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
-                                    % (args['backup-dir'], self.config['pcnf_pg_data']))
+            # Check destination only in case user is enabling the backup
+            if args.get('enable') == 'on':
+                # Same owner?
+                if os.lstat(args['backup-dir']).st_uid != os.lstat(self.config['pcnf_pg_data']).st_uid \
+                       or os.lstat(args['backup-dir']).st_gid != os.lstat(self.config['pcnf_pg_data']).st_gid:
+                    raise GateException("The \"%s\" directory must belong to the same user and group as \"%s\" directory."
+                                        % (args['backup-dir'], self.config['pcnf_pg_data']))
+                # Same permissions?
+                if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
+                    raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
+                                        % (args['backup-dir'], self.config['pcnf_pg_data']))
             self._perform_enable_backups(**args)
 
         if 'source' in args.keys():
