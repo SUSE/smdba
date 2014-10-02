@@ -15,18 +15,18 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-The smdba(1) command transparently controls the database backend in the
-SUSE Manager appliance. It offers basic operations and backup options for
-daily maintenance.
+The smdba(1) command transparently controls the installed database
+backend in the SUSE Manager appliance. It offers basic operations and
+backup options for the daily maintenance.
 
 
 IMPORTANT
 ---------
-Set of available commands may differ, depends on what database backend is
+Set of available commands may differ, depending on the database backend is
 currently in use. Therefore some commands might not be available and therefore
-not shown in the list.
+not shown in the list or behave different.
 
-Each command can have expanded help by adding "'help'" command (see an example
+Each command can have expanded help by adding "'help'" directive (see an example
 below).
 
 
@@ -41,15 +41,24 @@ COMMANDS
 
 *backup-hot*::
     Perform hot backup on running database. This function 'requires' database
-    to be healthy and running. Optionally, this command might differ,
-    depending on the database vendor at your current system, therefore
-    additionally it may accept optional parameters like *--key='VALUE'*:
+    to be healthy and running.
+    Backup is rotated automatically by SMDBA on each available
+    database backend and no interaction is required to minimize it. In
+    order to refresh the backup, the old one needs to be archived and
+    new, frech backup can be taken as is.
+    Optionally, this command might differ, depending on the database
+    vendor at your current system, therefore additionally it may
+    accept optional parameters like *--key='VALUE'*:
 
     *--enable='ATTRIBUTE'*;;
-        Valid attribute values are: "'on'" or "'off'".
+        Valid attribute values are: "'on'" or "'off'". It might be not
+        required for currently installed database backend and is
+        needed only once, when enabling or disabling the backup.
 
     *--backup-dir='ATTRIBUTE'*;;
-        Full path to the backup directory.
+        Full path to the backup directory. Is might be not required
+        for currently installed database backend and is needed only
+        once when enabling or disabling backup.
 
 *backup-list*::
     List of available backups.

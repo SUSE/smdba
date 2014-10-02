@@ -14,16 +14,16 @@
 </refsynopsisdiv>
 <refsect1 id="_description">
 <title>DESCRIPTION</title>
-<simpara>The smdba(1) command transparently controls the database backend in the
-SUSE Manager appliance. It offers basic operations and backup options for
-daily maintenance.</simpara>
+<simpara>The smdba(1) command transparently controls the installed database
+backend in the SUSE Manager appliance. It offers basic operations and
+backup options for the daily maintenance.</simpara>
 </refsect1>
 <refsect1 id="_important">
 <title>IMPORTANT</title>
-<simpara>Set of available commands may differ, depends on what database backend is
+<simpara>Set of available commands may differ, depending on the database backend is
 currently in use. Therefore some commands might not be available and therefore
-not shown in the list.</simpara>
-<simpara>Each command can have expanded help by adding "<emphasis>help</emphasis>" command (see an example
+not shown in the list or behave different.</simpara>
+<simpara>Each command can have expanded help by adding "<emphasis>help</emphasis>" directive (see an example
 below).</simpara>
 </refsect1>
 <refsect1 id="_commands">
@@ -50,9 +50,14 @@ below).</simpara>
 <listitem>
 <simpara>
     Perform hot backup on running database. This function <emphasis>requires</emphasis> database
-    to be healthy and running. Optionally, this command might differ,
-    depending on the database vendor at your current system, therefore
-    additionally it may accept optional parameters like <emphasis role="strong">--key=<emphasis>VALUE</emphasis></emphasis>:
+    to be healthy and running.
+    Backup is rotated automatically by SMDBA on each available
+    database backend and no interaction is required to minimize it. In
+    order to refresh the backup, the old one needs to be archived and
+    new, frech backup can be taken as is.
+    Optionally, this command might differ, depending on the database
+    vendor at your current system, therefore additionally it may
+    accept optional parameters like <emphasis role="strong">--key=<emphasis>VALUE</emphasis></emphasis>:
 </simpara>
 <variablelist>
 <varlistentry>
@@ -61,7 +66,9 @@ below).</simpara>
 </term>
 <listitem>
 <simpara>
-        Valid attribute values are: "<emphasis>on</emphasis>" or "<emphasis>off</emphasis>".
+        Valid attribute values are: "<emphasis>on</emphasis>" or "<emphasis>off</emphasis>". It might be not
+        required for currently installed database backend and is
+        needed only once, when enabling or disabling the backup.
 </simpara>
 </listitem>
 </varlistentry>
@@ -71,7 +78,9 @@ below).</simpara>
 </term>
 <listitem>
 <simpara>
-        Full path to the backup directory.
+        Full path to the backup directory. Is might be not required
+        for currently installed database backend and is needed only
+        once when enabling or disabling backup.
 </simpara>
 </listitem>
 </varlistentry>
@@ -265,7 +274,7 @@ Example
 </term>
 <listitem>
 <simpara>
-        <emphasis role="strong">smdba command help</emphasis>
+    <emphasis role="strong">smdba command help</emphasis>
 </simpara>
 </listitem>
 </varlistentry>

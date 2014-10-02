@@ -716,7 +716,7 @@ class PgSQLGate(BaseGate):
         #--autosource=%p --destination=/root/of/your/backups\n
         #NOTE: All parameters above are used automatically!\n
 
-        if 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
+        if args.get('enable') == 'on' and 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
             raise GateException("No relative paths please.")
 
         # Already enabled?
@@ -732,24 +732,28 @@ class PgSQLGate(BaseGate):
             if not args.get('enable'):
                 args['enable'] = 'on'
 
-        if 'backup-dir' not in args.keys():
+        if args.get('enable') == 'on' and 'backup-dir' not in args.keys():
             raise GateException("Backup destination is not defined. Please issue '--backup-dir' option.")
 
         if 'enable' in args.keys():
-            # Same owner?
-            if os.lstat(args['backup-dir']).st_uid != os.lstat(self.config['pcnf_pg_data']).st_uid \
-                   or os.lstat(args['backup-dir']).st_gid != os.lstat(self.config['pcnf_pg_data']).st_gid:
-                raise GateException("The \"%s\" directory must belong to the same user and group as \"%s\" directory."
-                                    % (args['backup-dir'], self.config['pcnf_pg_data']))
-            # Same permissions?
-            if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
-                raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
-                                    % (args['backup-dir'], self.config['pcnf_pg_data']))
+            # Check destination only in case user is enabling the backup
+            if args.get('enable') == 'on':
+                # Same owner?
+                if os.lstat(args['backup-dir']).st_uid != os.lstat(self.config['pcnf_pg_data']).st_uid \
+                       or os.lstat(args['backup-dir']).st_gid != os.lstat(self.config['pcnf_pg_data']).st_gid:
+                    raise GateException("The \"%s\" directory must belong to the same user and group as \"%s\" directory."
+                                        % (args['backup-dir'], self.config['pcnf_pg_data']))
+                # Same permissions?
+                if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
+                    raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
+                                        % (args['backup-dir'], self.config['pcnf_pg_data']))
             self._perform_enable_backups(**args)
 
         if 'source' in args.keys():
             # Copy xlog entry
             self._perform_archive_operation(**args)
+
+        print >> sys.stdout, "INFO: Finished"
 
 
     def _perform_enable_backups(self, **args):
@@ -778,7 +782,7 @@ class PgSQLGate(BaseGate):
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
-                self._restart_db()
+                self._apply_db_conf()
 
             # round robin of base backups
             if os.path.exists(backup_dir + "/base.tar.gz"):
@@ -800,23 +804,28 @@ class PgSQLGate(BaseGate):
         else:
             # Disable backups
             if enable == 'purge' and os.path.exists(backup_dir):
+                print >> sys.stdout, "INFO: Removing the whole backup tree \"%s\"" % backup_dir
                 shutil.rmtree(backup_dir)
 
             cmd = "'/bin/true'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
                 conf_bk = self._write_conf(conf_path, **conf)
-                self._restart_db()
+                self._apply_db_conf()
+            else:
+                print >> sys.stdout, "INFO: Backup was not enabled."
 
 
-    def _restart_db(self):
+    def _apply_db_conf(self):
         """
-        Restart the entire db.
+        Reload the configuration.
         """
-        if self._get_db_status():
-            self.do_db_stop()
-        self.do_db_start()
-        self.do_db_status()
+        stdout, stderr = self.call_scenario('pg-reload-conf', target='psql')
+        if stderr:
+            print >> sys.stderr, stderr
+            raise GateException("Unhandled underlying error occurred, see above.")
+        if stdout and stdout.strip() == 't':
+            print >> sys.stdout, "INFO: New configuration has been applied."
 
 
     def _perform_archive_operation(self, **args):
@@ -962,7 +971,7 @@ class PgSQLGate(BaseGate):
         # Commit the changes
         #
         if changed or hba_changed:
-            print >> sys.stdout, "INFO: Database needs to be restarted."
+            print >> sys.stdout, "INFO: Database configuration has been changed."
             if changed:
                 conf_bk = self._write_conf(conf_path, **conf)
                 if conf_bk:
@@ -976,8 +985,9 @@ class PgSQLGate(BaseGate):
 
             # Restart
             if self._get_db_status():
-                self.do_db_stop()
-            self.do_db_start()
+                self._apply_db_conf()
+            else:
+                print >> sys.stdout, "INFO: Configuration has been changed, but your database is right now offline."
             self.do_db_status()
         else:
             print >> sys.stdout, "INFO: No changes required."
