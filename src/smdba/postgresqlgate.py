@@ -360,7 +360,7 @@ class PgSQLGate(BaseGate):
         # Start the db
         cwd = os.getcwd()
         os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
-        if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s"
+        if not os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s 2>&1>/dev/null"
                          % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', '""'))):
             print >> sys.stdout,  "done"
         else:
