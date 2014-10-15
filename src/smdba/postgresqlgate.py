@@ -916,7 +916,7 @@ class PgSQLGate(BaseGate):
                 conf[item] = value
 
         # WAL should be at least archive.
-        if not conf.get('wal_level') or conf.get('wal_level') == 'minimal':
+        if not conf.get('wal_level', '') != 'archive':
             conf['wal_level'] = 'archive'
 
         # WAL senders at least 5
