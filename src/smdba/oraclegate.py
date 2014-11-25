@@ -650,7 +650,7 @@ class OracleGate(BaseGate):
                         for segment, size in tree[tsn][obj]['AUTO']:
                             print >> sys.stdout, "\t", segment + "...\t",
                             sys.stdout.flush()
-                            stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', self.__get_reclaim_space_statement(segment)),
+                            stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', self.__get_reclaim_space_statement(segment, obj)),
                                                           None, "-u", "oracle", "/bin/bash")
                             if stderr:
                                 print >> sys.stdout, "failed"
@@ -661,10 +661,13 @@ class OracleGate(BaseGate):
         print >> sys.stdout, "Reclaiming space finished"
 
 
-    def __get_reclaim_space_statement(self, segment):
+    def __get_reclaim_space_statement(self, segment, obj):
             query = []
-            query.append("alter table %s.%s enable row movement;" % (self.config.get('db_user', '').upper(), segment))
-            query.append("alter table %s.%s shrink space compact;" % (self.config.get('db_user', '').upper(), segment))
+            if obj != 'INDEX':
+                query.append("alter %s %s.%s enable row movement;" % (obj, self.config.get('db_user', '').upper(), segment))
+            query.append("alter %s %s.%s shrink space compact;" % (obj, self.config.get('db_user', '').upper(), segment))
+            query.append("alter %s %s.%s deallocate unused space;" % (obj, self.config.get('db_user', '').upper(), segment))
+            query.append("alter %s %s.%s coalesce;" % (obj, self.config.get('db_user', '').upper(), segment))
 
             return '\n'.join(query)
 
