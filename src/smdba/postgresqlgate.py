@@ -153,7 +153,7 @@ class PgTune(object):
             raise Exception("Cannot get total memory of this system")
 
         mem = mem / KB
-        if mem < (0xff * KB):
+        if mem < 0xff * KB:
             raise Exception("This is a low memory system and is not supported!")
 
         self.config['shared_buffers'] = self.toMB(self.br(mem / 4))
