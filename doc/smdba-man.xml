@@ -55,6 +55,13 @@ below).</simpara>
     database backend and no interaction is required to minimize it. In
     order to refresh the backup, the old one needs to be archived and
     new, frech backup can be taken as is.
+    In order to initialize backup, <emphasis role="strong">--enable</emphasis> and <emphasis role="strong">--backup-dir</emphasis> options
+    are required. This command needs to be performed only once, manually.
+    All further backups should be continued periodically. This is usually
+    done with <emphasis role="strong">crontab (1)</emphasis>.
+    For PostgreSQL this will rotate backup WAL records and clean up backup
+    directory. Such operation must be done in order to prevent WAL records
+    exceed the disk size.
     Optionally, this command might differ, depending on the database
     vendor at your current system, therefore additionally it may
     accept optional parameters like <emphasis role="strong">--key=<emphasis>VALUE</emphasis></emphasis>:

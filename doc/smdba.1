@@ -2,12 +2,12 @@
 .\"     Title: smdba
 .\"    Author: [see the "AUTHOR" section]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 10/01/2014
+.\"      Date: 10/05/2015
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SMDBA" "1" "10/01/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SMDBA" "1" "10/05/2015" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -44,7 +44,12 @@ which will try to automatically resolve errors and inconsistencies, fixing broke
 .RS 4
 Perform hot backup on running database\&. This function
 \fIrequires\fR
-database to be healthy and running\&. Backup is rotated automatically by SMDBA on each available database backend and no interaction is required to minimize it\&. In order to refresh the backup, the old one needs to be archived and new, frech backup can be taken as is\&. Optionally, this command might differ, depending on the database vendor at your current system, therefore additionally it may accept optional parameters like
+database to be healthy and running\&. Backup is rotated automatically by SMDBA on each available database backend and no interaction is required to minimize it\&. In order to refresh the backup, the old one needs to be archived and new, frech backup can be taken as is\&. In order to initialize backup,
+\fB\-\-enable\fR
+and
+\fB\-\-backup\-dir\fR
+options are required\&. This command needs to be performed only once, manually\&. All further backups should be continued periodically\&. This is usually done with
+\fBcrontab (1)\fR\&. For PostgreSQL this will rotate backup WAL records and clean up backup directory\&. Such operation must be done in order to prevent WAL records exceed the disk size\&. Optionally, this command might differ, depending on the database vendor at your current system, therefore additionally it may accept optional parameters like
 \fB\-\-key=\fR\fB\fIVALUE\fR\fR:
 .PP
 \fB\-\-enable=\fR\fB\fIATTRIBUTE\fR\fR
