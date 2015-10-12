@@ -941,7 +941,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # max_locks_per_transaction
-        if not conf.get('max_locks_per_transaction'):
+        if not conf.get('max_locks_per_transaction') or conf.get('max_locks_per_transaction') < '100':
             conf['max_locks_per_transaction'] = 100
             changed = True
 
