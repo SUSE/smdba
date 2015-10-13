@@ -108,8 +108,8 @@ class PgTune(object):
     #       With a time it going to get more smart and dynamic.
 
 
-    def __init__(self):
-        self.max_connections = 400
+    def __init__(self, max_connections):
+        self.max_connections = max_connections
         self.config = {}
 
 
@@ -903,14 +903,22 @@ class PgSQLGate(BaseGate):
         conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
         conf = self._get_conf(conf_path)
         changed = False
+        max_connections = 400
 
         #
         # Setup postgresql.conf
         #
 
         # Built-in tuner
+        if params.get('max_connections') != None:
+            max_connections = int (params.get('max_connections'))
+
+        if max_connections < 400:
+            print >> sys.stdout, "INFO: max_connections should be at least 400."
+            max_connections = 400
+
         if 'autotuning' in args:
-            for item, value in PgTune().estimate().config.items():
+            for item, value in PgTune(max_connections).estimate().config.items():
                 if not changed and str(conf.get(item, None)) != str(value):
                     changed = True
                 conf[item] = value
