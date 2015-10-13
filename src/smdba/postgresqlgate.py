@@ -108,8 +108,8 @@ class PgTune(object):
     #       With a time it going to get more smart and dynamic.
 
 
-    def __init__(self):
-        self.max_connections = 400
+    def __init__(self, max_connections):
+        self.max_connections = max_connections
         self.config = {}
 
 
@@ -909,8 +909,14 @@ class PgSQLGate(BaseGate):
         #
 
         # Built-in tuner
+        conn_lowest = 400
+        max_conn = int(params.get('max_connections', conn_lowest))
+        if max_conn < conn_lowest:
+            print >> sys.stdout, 'INFO: max_connections should be at least {0}'.format(conn_lowest)
+            max_conn = conn_lowest
+
         if 'autotuning' in args:
-            for item, value in PgTune().estimate().config.items():
+            for item, value in PgTune(max_conn).estimate().config.items():
                 if not changed and str(conf.get(item, None)) != str(value):
                     changed = True
                 conf[item] = value
