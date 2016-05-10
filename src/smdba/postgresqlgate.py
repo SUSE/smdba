@@ -498,9 +498,8 @@ class PgSQLGate(BaseGate):
                 continue
             d_size = int(line[0])
             d_name = line[1]
-            d_size_available = (info.available - d_size)
             overview.append((d_name, self._bt_to_mb(d_size),
-                             self._bt_to_mb(d_size_available),
+                             self._bt_to_mb(info.available - d_size),
                              '%.3f' % round((float(d_size) / float(info.available) * 100), 3)))
 
         print >> sys.stdout, "\n", TablePrint(overview), "\n"
