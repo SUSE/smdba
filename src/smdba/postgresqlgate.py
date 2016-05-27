@@ -493,7 +493,7 @@ class PgSQLGate(BaseGate):
                                                                                                 'select pg_database_size(datname), datname from pg_database;'),
                                       None, "-u", "postgres", "/bin/bash")
         self.to_stderr(stderr)
-        overview = [('Tablespace', 'Size (Mb)', 'Avail (Mb)', 'Use %',)]
+        overview = [('Database', 'DB Size (Mb)', 'Avail (Mb)', 'Partition Disk Size (Mb)', 'Use %',)]
         for line in stdout.split("\n")[2:]:
             line = filter(None, line.strip().replace('|', '').split(" "))
             if len(line) != 2:
@@ -501,8 +501,9 @@ class PgSQLGate(BaseGate):
             d_size = int(line[0])
             d_name = line[1]
             overview.append((d_name, self._bt_to_mb(d_size),
-                             self._bt_to_mb(info.available - d_size),
-                             '%.3f' % round((float(d_size) / float(info.available) * 100), 3)))
+                             self._bt_to_mb(info.available),
+                             self._bt_to_mb(info.size),
+                             '%.3f' % round((float(d_size) / float(info.size) * 100), 3)))
 
 
         print >> sys.stdout, "\n", TablePrint(overview), "\n"
