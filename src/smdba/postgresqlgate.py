@@ -760,13 +760,14 @@ class PgSQLGate(BaseGate):
                     os.remove(backup_dir + "/base-old.tar.gz")
                 os.rename(backup_dir + "/base.tar.gz", backup_dir + "/base-old.tar.gz")
 
+            b_dir_temp = os.path.join(backup_dir, 'tmp')
             cwd = os.getcwd()
             os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
-            os.system('sudo -u postgres /usr/bin/pg_basebackup -D %s -Ft -c fast -x -v -P -z' % (backup_dir + "/tmp/"))
+            os.system('sudo -u postgres /usr/bin/pg_basebackup -D {0}/ -Ft -c fast -x -v -P -z'.format(b_dir_temp))
             os.chdir(cwd)
 
-            if os.path.exists(backup_dir + "/tmp/base.tar.gz"):
-                os.rename(backup_dir + "/tmp/base.tar.gz", backup_dir + "/base.tar.gz")
+            if os.path.exists("{0}/base.tar.gz".format(b_dir_temp)):
+                os.rename("{0}/base.tar.gz".format(b_dir_temp), "{0}/base.tar.gz".format(backup_dir))
 
             # Cleanup/rotate backup
             PgBackup(backup_dir, pg_data=self.config.get('pcnf_data_directory', '/var/lib/pgsql')).cleanup_backup()
