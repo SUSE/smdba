@@ -811,7 +811,6 @@ class PgSQLGate(BaseGate):
         backup_dst = ""
         backup_on = False
         conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
-        conf = self._get_conf(conf_path)
         cmd = self._get_conf(conf_path).get('archive_command', '').split(" ")
         found_dest = False
         for comp in cmd:
