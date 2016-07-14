@@ -838,7 +838,7 @@ class PgSQLGate(BaseGate):
                     continue
                 space_usage = (filter(None, line.split(' '))[5] + '').replace('%', '')
 
-        if not '--silent' in opts:
+        if '--silent' not in opts:
             print >> sys.stdout, "Backup status:\t\t", (backup_on and 'ON' or 'OFF')
             print >> sys.stdout, "Destination:\t\t", (backup_dst or '--')
             print >> sys.stdout, "Last transaction:\t", backup_last_transaction and time.ctime(backup_last_transaction) or '--'
