@@ -488,7 +488,7 @@ class PgSQLGate(BaseGate):
         #roller.start()
 
         if not self._get_db_status():
-            roller.stop('failed')
+            #roller.stop('failed')
             time.sleep(1)
             #print >> sys.stderr, "failed"
             raise GateException("Database must be online.")
