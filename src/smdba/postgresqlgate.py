@@ -747,7 +747,7 @@ class PgSQLGate(BaseGate):
             cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + backup_dir + "/%f\"'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
-                conf_bk = self._write_conf(conf_path, **conf)
+                self._write_conf(conf_path, **conf)
                 self._apply_db_conf()
 
             # round robin of base backups
@@ -776,7 +776,7 @@ class PgSQLGate(BaseGate):
             cmd = "'/bin/true'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
-                conf_bk = self._write_conf(conf_path, **conf)
+                self._write_conf(conf_path, **conf)
                 self._apply_db_conf()
             else:
                 print >> sys.stdout, "INFO: Backup was not enabled."
