@@ -252,7 +252,7 @@ class PgSQLGate(BaseGate):
         if stdout:
             for line in stdout.strip().split("\n")[2:]:
                 try:
-                    k, v = map(lambda line:line.strip(), line.split('|')[:2])
+                    k, v = map(lambda line: line.strip(), line.split('|')[:2])
                     self.config['pcnf_' + k] = v
                 except Exception:
                     print >> sys.stdout, "Cannot parse line:", line
