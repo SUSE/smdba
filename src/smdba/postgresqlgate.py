@@ -343,7 +343,6 @@ class PgSQLGate(BaseGate):
         else:
             print >> sys.stderr, "failed"
         os.chdir(cwd)
-
         time.sleep(1)
 
     def do_db_stop(self, **args):
@@ -709,7 +708,8 @@ class PgSQLGate(BaseGate):
                 # Same owner?
                 if os.lstat(args['backup-dir']).st_uid != os.lstat(self.config['pcnf_pg_data']).st_uid \
                        or os.lstat(args['backup-dir']).st_gid != os.lstat(self.config['pcnf_pg_data']).st_gid:
-                    raise GateException("The \"%s\" directory must belong to the same user and group as \"%s\" directory."
+                    raise GateException("The \"%s\" directory must belong to the "
+                                        "same user and group as \"%s\" directory."
                                         % (args['backup-dir'], self.config['pcnf_pg_data']))
                 # Same permissions?
                 if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
