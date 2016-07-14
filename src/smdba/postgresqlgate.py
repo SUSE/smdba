@@ -433,7 +433,7 @@ class PgSQLGate(BaseGate):
         partition = self._get_partition(self.config['pcnf_data_directory'])
 
         # Build info
-        class Info:
+        class Info(object):
             fs_dev = None
             fs_type = None
             size = None
