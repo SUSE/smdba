@@ -687,7 +687,8 @@ class PgSQLGate(BaseGate):
             raise GateException("No relative paths please.")
 
         # Already enabled?
-        arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] + "/postgresql.conf").get("archive_command", "''")).split(" "))
+        arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] +
+                                                    "/postgresql.conf").get("archive_command", "''")).split(" "))
         if '--destination' in arch_cmd:
             target = re.sub("/+$", "", eval(arch_cmd[arch_cmd.index("--destination") + 1].replace("%f", '')))
             if re.sub("/+$", "", args.get('backup-dir', target)) != target:
