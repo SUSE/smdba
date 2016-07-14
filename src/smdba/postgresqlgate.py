@@ -114,7 +114,7 @@ class PgTune(object):
         """
         try:
             return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
-        except Exception as error:
+        except Exception:
             return None
 
     def br(self, value):
@@ -212,7 +212,7 @@ class PgSQLGate(BaseGate):
             try:
                 k, v = line.split("=", 1)
                 self.config['sysconfig_' + k] = v
-            except:
+            except Exception:
                 print >> sys.stderr, "Cannot parse line", line, "from sysconfig."
 
     def _get_db_status(self):
@@ -254,7 +254,7 @@ class PgSQLGate(BaseGate):
                 try:
                     k, v = map(lambda line:line.strip(), line.split('|')[:2])
                     self.config['pcnf_' + k] = v
-                except:
+                except Exception:
                     print >> sys.stdout, "Cannot parse line:", line
         else:
             print >> sys.stderr, stderr
