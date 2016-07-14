@@ -546,7 +546,7 @@ class PgSQLGate(BaseGate):
             if os.path.isdir(f):
                 found = self._rst_get_backup_root(f)
                 if found:
-                    break;
+                    break
 
         return found
 
