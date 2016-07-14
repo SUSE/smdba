@@ -690,11 +690,11 @@ class PgSQLGate(BaseGate):
         arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] +
                                                     "/postgresql.conf").get("archive_command", "''")).split(" "))
         if '--destination' in arch_cmd:
-            target = re.sub("/+$", "", eval(arch_cmd[arch_cmd.index("--destination") + 1].replace("%f", '')))
-            if re.sub("/+$", "", args.get('backup-dir', target)) != target:
-                raise GateException(("You've specified \"%s\" as a destination,\n" + \
-                                     "but your backup is already in \"%s\" directory.\n" + \
-                                     "In order to specify a new target directory,\n" + \
+            target = re.sub(r"/+$", "", eval(arch_cmd[arch_cmd.index("--destination") + 1].replace("%f", '')))
+            if re.sub(r"/+$", "", args.get('backup-dir', target)) != target:
+                raise GateException(("You've specified \"%s\" as a destination,\n" +
+                                     "but your backup is already in \"%s\" directory.\n" +
+                                     "In order to specify a new target directory,\n" +
                                      "you must purge (or disable) current backup.") % (args.get('backup-dir'), target))
             args['backup-dir'] = target
             if not args.get('enable'):
