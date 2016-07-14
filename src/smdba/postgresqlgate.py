@@ -603,7 +603,7 @@ class PgSQLGate(BaseGate):
         roller.start()
 
         destination_tar = backup_dst + "/base.tar.gz"
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = tempfile.mkdtemp(dir=os.path.join(backup_dst, "tmp"))
         pguid = pwd.getpwnam('postgres')[2]
         pggid = grp.getgrnam('postgres')[2]
         os.chown(temp_dir, pguid, pggid)
