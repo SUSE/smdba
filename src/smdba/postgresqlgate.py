@@ -843,8 +843,8 @@ class PgSQLGate(BaseGate):
             print >> sys.stdout, "Destination:\t\t", (backup_dst or '--')
             print >> sys.stdout, "Last transaction:\t", backup_last_transaction and time.ctime(backup_last_transaction) or '--'
             print >> sys.stdout, "Space available:\t", space_usage and str((100 - int(space_usage))) + '%' or '--'
-        else:
-            return backup_dst, backup_on
+
+        return backup_dst, backup_on
 
     def _get_partition_size(self, path):
         """
