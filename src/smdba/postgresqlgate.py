@@ -688,6 +688,9 @@ class PgSQLGate(BaseGate):
         # Already enabled?
         arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] +
                                                     "/postgresql.conf").get("archive_command", "''")).split(" "))
+        if '--destination' not in arch_cmd and args.get('enable') != 'on':
+            raise GateException('Backups are not enabled. Please enable them first. See help for more information.')
+
         if '--destination' in arch_cmd:
             target = re.sub(r"/+$", "", eval(arch_cmd[arch_cmd.index("--destination") + 1].replace("%f", '')))
             if re.sub(r"/+$", "", args.get('backup-dir', target)) != target:
