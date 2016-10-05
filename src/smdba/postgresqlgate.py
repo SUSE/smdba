@@ -28,7 +28,7 @@
 from basegate import BaseGate
 from basegate import GateException
 from roller import Roller
-from utils import TablePrint
+from utils import TablePrint, get_path_owner
 
 import sys
 import os
@@ -627,6 +627,11 @@ class PgSQLGate(BaseGate):
         cfg = open(recovery_conf, 'w')
         cfg.write("restore_command = 'cp " + backup_dst + "/%f %p'\n")
         cfg.close()
+
+        # Set recovery.conf correct ownership (SMDBA is running as root at this moment)
+        data_owner = get_path_owner(self.config.get('pcnf_pg_data', PgBackup.DEFAULT_PG_DATA))
+        os.chown(recovery_conf, data_owner.uid, data_owner.gid)
+
         print >> sys.stdout, "finished"
         sys.stdout.flush()
 
