@@ -639,6 +639,10 @@ class PgSQLGate(BaseGate):
         """
         Restore the SUSE Manager Database from backup.
         """
+        # Go out from the current position, in case user is calling SMDBA inside the "data" directory
+        location_begin = os.getcwd()
+        os.chdir('/')
+
         # This is the ratio of compressing typical PostgreSQL cluster tablespace
         ratio = 0.134
 
@@ -673,6 +677,10 @@ class PgSQLGate(BaseGate):
         # Replace with new backup
         self._rst_replace_new_backup(backup_dst)
         self.do_db_start()
+
+        # Move back where backup has been invoked
+        os.chdir(location_begin)
+
 
     def do_backup_hot(self, *opts, **args):
         """
