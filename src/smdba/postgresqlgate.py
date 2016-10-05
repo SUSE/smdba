@@ -28,7 +28,7 @@
 from basegate import BaseGate
 from basegate import GateException
 from roller import Roller
-from utils import TablePrint
+from utils import TablePrint, get_path_owner
 
 import sys
 import os
@@ -623,9 +623,15 @@ class PgSQLGate(BaseGate):
         sys.stdout.flush()
 
         print >> sys.stdout, "Write recovery.conf:\t ",
-        cfg = open(os.path.dirname(self.config['pcnf_pg_data']) + "/data/recovery.conf", 'w')
+        recovery_conf = os.path.join(self.config['pcnf_pg_data'], "recovery.conf")
+        cfg = open(recovery_conf, 'w')
         cfg.write("restore_command = 'cp " + backup_dst + "/%f %p'\n")
         cfg.close()
+
+        # Set recovery.conf correct ownership (SMDBA is running as root at this moment)
+        data_owner = get_path_owner(self.config.get('pcnf_pg_data', PgBackup.DEFAULT_PG_DATA))
+        os.chown(recovery_conf, data_owner.uid, data_owner.gid)
+
         print >> sys.stdout, "finished"
         sys.stdout.flush()
 
@@ -633,6 +639,10 @@ class PgSQLGate(BaseGate):
         """
         Restore the SUSE Manager Database from backup.
         """
+        # Go out from the current position, in case user is calling SMDBA inside the "data" directory
+        location_begin = os.getcwd()
+        os.chdir('/')
+
         # This is the ratio of compressing typical PostgreSQL cluster tablespace
         ratio = 0.134
 
@@ -667,6 +677,10 @@ class PgSQLGate(BaseGate):
         # Replace with new backup
         self._rst_replace_new_backup(backup_dst)
         self.do_db_start()
+
+        # Move back where backup has been invoked
+        os.chdir(location_begin)
+
 
     def do_backup_hot(self, *opts, **args):
         """
