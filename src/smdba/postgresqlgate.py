@@ -623,7 +623,8 @@ class PgSQLGate(BaseGate):
         sys.stdout.flush()
 
         print >> sys.stdout, "Write recovery.conf:\t ",
-        cfg = open(os.path.dirname(self.config['pcnf_pg_data']) + "/data/recovery.conf", 'w')
+        recovery_conf = os.path.join(self.config['pcnf_pg_data'], "recovery.conf")
+        cfg = open(recovery_conf, 'w')
         cfg.write("restore_command = 'cp " + backup_dst + "/%f %p'\n")
         cfg.close()
         print >> sys.stdout, "finished"
