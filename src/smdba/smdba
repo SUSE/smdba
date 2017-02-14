@@ -44,7 +44,6 @@ class Console:
     # Config
     DB_BACKEND = "db_backend"
 
-
     def __init__(self, configpath=None):
         """
         Constructor.
@@ -56,7 +55,6 @@ class Console:
         else:
             self.get_config_auto()
         self.load_db_backend()
-
 
     def load_db_backend(self):
         """
@@ -75,7 +73,6 @@ class Console:
             else:
                 raise Exception("Unknown database backend and config was not specified.")
 
-
     def get_config_auto(self):
         """
         Manual config.
@@ -85,7 +82,6 @@ class Console:
         if not 'backend' in params.keys():
             raise Exception("When using Auto, you need also load backend.\nBut you should not manually use Auto at first place!")
         self.config = {'db_backend' : params.get('backend', 'unknown')}
-
 
     def get_config(self):
         """
@@ -109,12 +105,10 @@ class Console:
             except:
                 pass
 
-
     @staticmethod
     def usage_header():
         print "SUSE Manager Database Control. Version", Console.VERSION
         print "Copyright (c) 2012 by SUSE Linux Products GmbH\n"
-
 
     def usage(self, command=None):
         """
@@ -147,7 +141,6 @@ class Console:
         print >> sys.stderr, "\nTo know a complete description of each command, use parameter 'help'."
         print >> sys.stderr, "Usage:\n\tsmdba <command> help <ENTER>\n"
 
-
     def translate_command(self, command):
         """
         Translate from "do_something_like_this" as a method name
@@ -155,7 +148,6 @@ class Console:
         """
 
         return command.startswith("do_") and command[3:].replace("_", "-") or ("do_" + command.replace("-", "_"))
-
 
     def execute(self, command):
         """
@@ -177,14 +169,12 @@ class Console:
                 raise Exception(("The parameter \"%s\" is an unknown command.\n\n"  % command[0]) + 
                                 "Hint: Try with no parameters first, perhaps?")
 
-
     def execute_static(self, commands):
         """
         Execute static commands.
         """
         if commands[0] == '--help':
             self.usage()
-
 
     def get_opts(self, opts):
         """
@@ -223,12 +213,12 @@ def main():
     """
     Main app runner.
     """
-    Console.usage_header()
     try:
         console = Console()
         if len(sys.argv[1:]) > 0:
             console.execute(sys.argv[1:])
         else:
+            Console.usage_header()
             console.usage()
     except GateException, err:
         format_error("Backend error", err)
@@ -236,7 +226,6 @@ def main():
     except Exception, err:
         format_error("General error", err)
         sys.exit(1)
-
 
 
 if __name__ == "__main__":
