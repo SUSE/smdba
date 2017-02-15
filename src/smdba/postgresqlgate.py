@@ -175,9 +175,12 @@ class PgSQLGate(BaseGate):
         self.config = config or {}
         self._get_sysconfig()
         self._get_pg_data()
+
+        self._pid_file = os.path.join(self.config.get('pcnf_pg_data', ''), 'postmaster.pid')
+        self._with_systemd = os.path.exists('/usr/bin/systemctl')
+
         if self._get_db_status():
             self._get_pg_config()
-        self._with_systemd = os.path.exists('/usr/bin/systemctl')
 
     # Utils
     def check(self):
@@ -225,9 +228,8 @@ class PgSQLGate(BaseGate):
         Return True if DB is running, False otherwise.
         """
         status = False
-        pid_file = self.config.get('pcnf_pg_data', '') + '/postmaster.pid'
-        if os.path.exists(pid_file):
-            if os.path.exists('/proc/' + open(pid_file).readline().strip()):
+        if os.path.exists(self._pid_file):
+            if os.path.exists('/proc/' + open(self._pid_file).readline().strip()):
                 status = True
 
         return status
@@ -278,6 +280,11 @@ class PgSQLGate(BaseGate):
         for f in os.listdir('/tmp'):
             if f.startswith('.s.PGSQL.'):
                 os.unlink('/tmp/' + f)
+
+        # Remove postgresql.pid (versions 9.x) if postmaster was just killed
+        if os.path.exists(self._pid_file):
+            print >> sys.stderr, 'Info: Found stale PID file, removing'
+            os.unlink(self._pid_file)
 
     def _get_conf(self, conf_path):
         """
