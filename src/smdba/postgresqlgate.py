@@ -353,7 +353,7 @@ class PgSQLGate(BaseGate):
         if self._with_systemd:
             result = os.system('systemctl start postgresql.service')
         else:
-            # This is obsolete code, going to be removed after 2.1 EOL
+            # TODO: This is obsolete code, going to be removed after 2.1 EOL
             result = os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s 2>&1>/dev/null"
                                % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', '""')))
         print >> sys.stdout, result and "failed" or "done"
@@ -380,7 +380,7 @@ class PgSQLGate(BaseGate):
         if self._with_systemd:
             result = os.system('systemctl stop postgresql.service')
         else:
-            # This is obsolete code, going to be removed after 2.1 EOL
+            # TODO: This is obsolete code, going to be removed after 2.1 EOL
             result = os.system("sudo -u postgres /usr/bin/pg_ctl stop -s -D %s -m fast"
                                % self.config.get('pcnf_data_directory', ''))
         print >> sys.stdout, result and "failed" or "done"
