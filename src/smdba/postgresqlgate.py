@@ -197,9 +197,13 @@ class PgSQLGate(BaseGate):
             msg = 'control'
         elif not os.path.exists("/usr/bin/pg_basebackup"):
             msg = 'backup'
-
         if msg:
             raise GateException("Cannot find required %s component." % msg)
+
+        # Prevent running this tool within the PostgreSQL data directory
+        # See bsc#1024058 for details
+        if os.path.abspath(".") == self.config["pcnf_pg_data"]:
+            raise GateException("Please do not call SMDBA inside {0} directory.".format(os.path.abspath(".")))
 
         return True
 
