@@ -229,7 +229,7 @@ class PgSQLGate(BaseGate):
         """
         status = False
         if os.path.exists(self._pid_file):
-            if os.path.exists('/proc/' + open(self._pid_file).readline().strip()):
+            if os.path.exists(os.path.join('/proc', open(self._pid_file).readline().strip())):
                 status = True
 
         return status
