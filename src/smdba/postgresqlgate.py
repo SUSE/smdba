@@ -191,11 +191,11 @@ class PgSQLGate(BaseGate):
         if os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1] < '9.1':
             raise GateException("Core component is too old version.")
         elif not os.path.exists("/etc/sysconfig/postgresql"):
-            raise GateException("Custom core component? Please strictly use SUSE components only!")
+            raise GateException("Custom database component? Please strictly use SUSE components only!")
         elif not os.path.exists("/usr/bin/psql"):
             msg = 'operations'
         elif not os.path.exists("/usr/bin/postmaster"):
-            msg = 'core'
+            msg = 'database'
         elif not os.path.exists("/usr/bin/pg_ctl"):
             msg = 'control'
         elif not os.path.exists("/usr/bin/pg_basebackup"):
@@ -247,7 +247,7 @@ class PgSQLGate(BaseGate):
             self.config['pcnf_pg_data'] = '/var/lib/pgsql/data'
 
         if not os.path.exists(self.config.get('pcnf_pg_data', '')):
-            raise GateException('Cannot find core component tablespace on disk')
+            raise GateException('Cannot find database component tablespace on disk')
 
     def _get_pg_config(self):
         """
@@ -335,7 +335,7 @@ class PgSQLGate(BaseGate):
         """
         Start the SUSE Manager Database.
         """
-        print >> sys.stdout, "Starting core...\t",
+        print >> sys.stdout, "Starting database...\t",
         sys.stdout.flush()
 
         if self._get_db_status():
@@ -363,7 +363,7 @@ class PgSQLGate(BaseGate):
         """
         Stop the SUSE Manager Database.
         """
-        print >> sys.stdout, "Stopping core...\t",
+        print >> sys.stdout, "Stopping database...\t",
         sys.stdout.flush()
 
         if not self._get_db_status():
@@ -496,7 +496,7 @@ class PgSQLGate(BaseGate):
         """
         Free disk space from unused object in tables and indexes.
         """
-        print >> sys.stdout, "Examining core...\t",
+        print >> sys.stdout, "Examining database...\t",
         sys.stdout.flush()
 
         #roller = Roller()
