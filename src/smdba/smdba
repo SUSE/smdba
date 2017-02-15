@@ -27,6 +27,7 @@ from smdba.basegate import GateException
 import sys
 import os
 import time
+import datetime
 from threading import Thread
 
 
@@ -38,7 +39,7 @@ class Console:
     """
 
     # General
-    VERSION = "1.5.6"
+    VERSION = "1.5.7"
     DEFAULT_CONFIG = "/etc/rhn/rhn.conf"
 
     # Config
@@ -108,7 +109,7 @@ class Console:
     @staticmethod
     def usage_header():
         print "SUSE Manager Database Control. Version", Console.VERSION
-        print "Copyright (c) 2012 by SUSE Linux Products GmbH\n"
+        print "Copyright (c) 2012-{0} by SUSE Linux LLC\n".format(datetime.date.today().year)
 
     def usage(self, command=None):
         """

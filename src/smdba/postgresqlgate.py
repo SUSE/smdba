@@ -125,7 +125,7 @@ class PgTune(object):
         m = 1
         while value > 0x10:
             value = int(value / 2)
-            m = m * 2
+            m *= 2
 
         return m * value
 
@@ -175,9 +175,12 @@ class PgSQLGate(BaseGate):
         self.config = config or {}
         self._get_sysconfig()
         self._get_pg_data()
+
+        self._pid_file = os.path.join(self.config.get('pcnf_pg_data', ''), 'postmaster.pid')
+        self._with_systemd = os.path.exists('/usr/bin/systemctl')
+
         if self._get_db_status():
             self._get_pg_config()
-        self._with_systemd = os.path.exists('/usr/bin/systemctl')
 
     # Utils
     def check(self):
@@ -188,18 +191,22 @@ class PgSQLGate(BaseGate):
         if os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1] < '9.1':
             raise GateException("Core component is too old version.")
         elif not os.path.exists("/etc/sysconfig/postgresql"):
-            raise GateException("Custom core component? Please strictly use SUSE components only!")
+            raise GateException("Custom database component? Please strictly use SUSE components only!")
         elif not os.path.exists("/usr/bin/psql"):
             msg = 'operations'
         elif not os.path.exists("/usr/bin/postmaster"):
-            msg = 'core'
+            msg = 'database'
         elif not os.path.exists("/usr/bin/pg_ctl"):
             msg = 'control'
         elif not os.path.exists("/usr/bin/pg_basebackup"):
             msg = 'backup'
-
         if msg:
             raise GateException("Cannot find required %s component." % msg)
+
+        # Prevent running this tool within the PostgreSQL data directory
+        # See bsc#1024058 for details
+        if self.config["pcnf_pg_data"].strip('/') in os.path.abspath("."):
+            raise GateException("Please do not call SMDBA inside the '{0}' directory.".format(os.path.abspath(".")))
 
         return True
 
@@ -213,17 +220,17 @@ class PgSQLGate(BaseGate):
             try:
                 k, v = line.split("=", 1)
                 self.config['sysconfig_' + k] = v
-            except Exception:
+            except Exception as ex:
                 print >> sys.stderr, "Cannot parse line", line, "from sysconfig."
+                print >> sys.stderr, ex
 
     def _get_db_status(self):
         """
         Return True if DB is running, False otherwise.
         """
         status = False
-        pid_file = self.config.get('pcnf_pg_data', '') + '/postmaster.pid'
-        if os.path.exists(pid_file):
-            if os.path.exists('/proc/' + open(pid_file).readline().strip()):
+        if os.path.exists(self._pid_file):
+            if os.path.exists(os.path.join('/proc', open(self._pid_file).readline().strip())):
                 status = True
 
         return status
@@ -241,7 +248,7 @@ class PgSQLGate(BaseGate):
             self.config['pcnf_pg_data'] = '/var/lib/pgsql/data'
 
         if not os.path.exists(self.config.get('pcnf_pg_data', '')):
-            raise GateException('Cannot find core component tablespace on disk')
+            raise GateException('Cannot find database component tablespace on disk')
 
     def _get_pg_config(self):
         """
@@ -275,12 +282,17 @@ class PgSQLGate(BaseGate):
             if f.startswith('.s.PGSQL.'):
                 os.unlink('/tmp/' + f)
 
+        # Remove postgresql.pid (versions 9.x) if postmaster was just killed
+        if os.path.exists(self._pid_file):
+            print >> sys.stderr, 'Info: Found stale PID file, removing'
+            os.unlink(self._pid_file)
+
     def _get_conf(self, conf_path):
         """
         Get a PostgreSQL config file into a dictionary.
         """
         if not os.path.exists(conf_path):
-            raise GateException("Cannot open config at \"%s\"." % conf_path)
+            raise GateException('Cannot open config at "{0}".'.format(conf_path))
 
         conf = {}
         for line in open(conf_path).readlines():
@@ -291,7 +303,7 @@ class PgSQLGate(BaseGate):
                 k, v = [el.strip() for el in line.split('#')[0].strip().split('=', 1)]
                 conf[k] = v
             except Exception, ex:
-                raise GateException("Cannot parse line [%s] in %s." % (line, conf_path))
+                raise GateException("Cannot parse line '{0}' in '{1}'.".format(line, conf_path))
 
         return conf
 
@@ -324,7 +336,7 @@ class PgSQLGate(BaseGate):
         """
         Start the SUSE Manager Database.
         """
-        print >> sys.stdout, "Starting core...\t",
+        print >> sys.stdout, "Starting database...\t",
         sys.stdout.flush()
 
         if self._get_db_status():
@@ -341,7 +353,7 @@ class PgSQLGate(BaseGate):
         if self._with_systemd:
             result = os.system('systemctl start postgresql.service')
         else:
-            # This is obsolete code, going to be removed after 2.1 EOL
+            # TODO: This is obsolete code, going to be removed after 2.1 EOL
             result = os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s 2>&1>/dev/null"
                                % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', '""')))
         print >> sys.stdout, result and "failed" or "done"
@@ -352,7 +364,7 @@ class PgSQLGate(BaseGate):
         """
         Stop the SUSE Manager Database.
         """
-        print >> sys.stdout, "Stopping core...\t",
+        print >> sys.stdout, "Stopping database...\t",
         sys.stdout.flush()
 
         if not self._get_db_status():
@@ -368,7 +380,7 @@ class PgSQLGate(BaseGate):
         if self._with_systemd:
             result = os.system('systemctl stop postgresql.service')
         else:
-            # This is obsolete code, going to be removed after 2.1 EOL
+            # TODO: This is obsolete code, going to be removed after 2.1 EOL
             result = os.system("sudo -u postgres /usr/bin/pg_ctl stop -s -D %s -m fast"
                                % self.config.get('pcnf_data_directory', ''))
         print >> sys.stdout, result and "failed" or "done"
@@ -454,9 +466,9 @@ class PgSQLGate(BaseGate):
             line = filter(None, line.split(" "))
             info.fs_dev = line[0]
             info.fs_type = line[1]
-            info.size = int(line[2]) * 1024 # Bytes
-            info.used = int(line[3]) * 1024 # Bytes
-            info.available = int(line[4]) * 1024 # Bytes
+            info.size = int(line[2]) * 1024  # Bytes
+            info.used = int(line[3]) * 1024  # Bytes
+            info.available = int(line[4]) * 1024  # Bytes
             info.used_prc = line[5]
             info.mountpoint = line[6]
 
@@ -485,7 +497,7 @@ class PgSQLGate(BaseGate):
         """
         Free disk space from unused object in tables and indexes.
         """
-        print >> sys.stdout, "Examining core...\t",
+        print >> sys.stdout, "Examining database...\t",
         sys.stdout.flush()
 
         #roller = Roller()
@@ -765,8 +777,8 @@ class PgSQLGate(BaseGate):
                 os.system('sudo -u postgres /bin/mkdir -p -m 0700 %s' % backup_dir)
 
             # first write the archive_command and restart the db
-	    # if we create the base backup after this, we prevent a race
-	    # and do not loose archive logs
+            # if we create the base backup after this, we prevent a race conditions
+            # and do not lose archive logs
             cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + backup_dir + "/%f\"'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
