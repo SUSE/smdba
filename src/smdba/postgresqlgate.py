@@ -125,7 +125,7 @@ class PgTune(object):
         m = 1
         while value > 0x10:
             value = int(value / 2)
-            m = m * 2
+            m *= 2
 
         return m * value
 
@@ -292,7 +292,7 @@ class PgSQLGate(BaseGate):
         Get a PostgreSQL config file into a dictionary.
         """
         if not os.path.exists(conf_path):
-            raise GateException("Cannot open config at \"%s\"." % conf_path)
+            raise GateException('Cannot open config at "{0}".'.format(conf_path))
 
         conf = {}
         for line in open(conf_path).readlines():
@@ -303,7 +303,7 @@ class PgSQLGate(BaseGate):
                 k, v = [el.strip() for el in line.split('#')[0].strip().split('=', 1)]
                 conf[k] = v
             except Exception, ex:
-                raise GateException("Cannot parse line [%s] in %s." % (line, conf_path))
+                raise GateException("Cannot parse line '{0}' in '{1}'.".format(line, conf_path))
 
         return conf
 
@@ -466,9 +466,9 @@ class PgSQLGate(BaseGate):
             line = filter(None, line.split(" "))
             info.fs_dev = line[0]
             info.fs_type = line[1]
-            info.size = int(line[2]) * 1024 # Bytes
-            info.used = int(line[3]) * 1024 # Bytes
-            info.available = int(line[4]) * 1024 # Bytes
+            info.size = int(line[2]) * 1024  # Bytes
+            info.used = int(line[3]) * 1024  # Bytes
+            info.available = int(line[4]) * 1024  # Bytes
             info.used_prc = line[5]
             info.mountpoint = line[6]
 
@@ -777,8 +777,8 @@ class PgSQLGate(BaseGate):
                 os.system('sudo -u postgres /bin/mkdir -p -m 0700 %s' % backup_dir)
 
             # first write the archive_command and restart the db
-	    # if we create the base backup after this, we prevent a race
-	    # and do not loose archive logs
+            # if we create the base backup after this, we prevent a race conditions
+            # and do not lose archive logs
             cmd = "'" + "/usr/bin/smdba-pgarchive --source \"%p\" --destination \"" + backup_dir + "/%f\"'"
             if conf.get('archive_command', '') != cmd:
                 conf['archive_command'] = cmd
