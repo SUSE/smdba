@@ -4,5 +4,5 @@
 ** DONE Prevent /var/lib/pgsql/data (bsc#1024058)
 ** DONE Remove nag-screen every time shown
 ** DONE Update nag-screen to the current data (company name, years etc)
-** TODO Add cleanup feature (remove pid). This should be transparent with the db-start function.
-** TODO Take a snapshot of the current database configuration (include all files from /var/lib/pgsql/data)
+** DONE Add cleanup feature (remove pid). This should be transparent with the db-start function.
+** DONE Take a snapshot of the current database configuration (include all files from /var/lib/pgsql/data)
