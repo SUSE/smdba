@@ -220,8 +220,9 @@ class PgSQLGate(BaseGate):
             try:
                 k, v = line.split("=", 1)
                 self.config['sysconfig_' + k] = v
-            except Exception:
+            except Exception as ex:
                 print >> sys.stderr, "Cannot parse line", line, "from sysconfig."
+                print >> sys.stderr, ex
 
     def _get_db_status(self):
         """
