@@ -1,7 +1,7 @@
 * SMDBA upcoming improvements:
 
 ** DONE Use systemd (bsc#1024058)
-** TODO Prevent /var/lib/pgsql/data (bsc#1024058)
+** DONE Prevent /var/lib/pgsql/data (bsc#1024058)
 ** DONE Remove nag-screen every time shown
 ** DONE Update nag-screen to the current data (company name, years etc)
 ** TODO Add cleanup feature (remove pid). This should be transparent with the db-start function.
