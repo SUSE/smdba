@@ -137,6 +137,7 @@ class PgTune(object):
         """
         Estimate the data.
         """
+
         kilobytes = 0x400
         megabytes = kilobytes * 0x400
 
@@ -155,9 +156,14 @@ class PgTune(object):
         # No more than 1GB
         self.config['maintenance_work_mem'] = self.to_mb(self.br((mem / 0x10) > megabytes and megabytes or mem / 0x10))
 
-        self.config['checkpoint_segments'] = 8
+        pg_version = [int(v_el) for v_el in os.popen("psql --version | sed -e 's/.*\s//g'").read().split('.')]
+        if pg_version < [9, 6, 0]:
+            self.config['checkpoint_segments'] = 8
+        else:
+            self.config['max_wal_size'] = self.to_mb(0x60000)
+
         self.config['checkpoint_completion_target'] = '0.7'
-        self.config['wal_buffers'] = self.to_mb(0x200 * self.config['checkpoint_segments'])
+        self.config['wal_buffers'] = self.to_mb(0x200 * 8)
         self.config['constraint_exclusion'] = 'off'
         self.config['default_statistics_target'] = 10
         self.config['max_connections'] = self.max_connections
