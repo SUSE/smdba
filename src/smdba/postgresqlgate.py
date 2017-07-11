@@ -161,7 +161,7 @@ class PgTune(object):
         if "postgresql94" in os.path.realpath(PG_VERSION):
             self.config['checkpoint_segments'] = 8
         else:
-            self.config['max_wal_size'] = 384
+            self.config['max_wal_size'] = '384MB'
 
         self.config['checkpoint_completion_target'] = '0.7'
         self.config['wal_buffers'] = '4MB'
