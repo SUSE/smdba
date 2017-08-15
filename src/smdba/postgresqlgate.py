@@ -165,7 +165,6 @@ class PgTune(object):
         self.config['checkpoint_completion_target'] = '0.7'
         self.config['wal_buffers'] = self.to_mb(0x200 * 8)
         self.config['constraint_exclusion'] = 'off'
-        self.config['default_statistics_target'] = 10
         self.config['max_connections'] = self.max_connections
 
         return self

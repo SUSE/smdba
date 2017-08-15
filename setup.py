@@ -8,7 +8,7 @@ except ImportError:
 
 setup (
   name = 'SUSE Manager Database Control',
-  version = '1.5.8',
+  version = '1.5.9',
   package_dir = {'': 'src'},
   package_data={'smdba': ['scenarios/*.scn']},
   packages = [
