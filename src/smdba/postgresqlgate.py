@@ -910,8 +910,9 @@ class PgSQLGate(BaseGate):
         #
 
         # Built-in tuner
-        conn_lowest = 400
-        max_conn = int(params.get('max_connections', conn_lowest))
+        conn_lowest = 270
+        conn_default = 400
+        max_conn = int(params.get('max_connections', conn_default))
         if max_conn < conn_lowest:
             print >> sys.stdout, 'INFO: max_connections should be at least {0}'.format(conn_lowest)
             max_conn = conn_lowest
