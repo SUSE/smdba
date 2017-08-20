@@ -929,7 +929,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # WAL senders at least 5
-        if not conf.get('max_wal_senders') or conf.get('max_wal_senders') < '5':
+        if not conf.get('max_wal_senders') or int(conf.get('max_wal_senders')) < 5:
             conf['max_wal_senders'] = 5
             changed = True
 
@@ -949,7 +949,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # max_locks_per_transaction
-        if not conf.get('max_locks_per_transaction') or conf.get('max_locks_per_transaction') < '100':
+        if not conf.get('max_locks_per_transaction') or int(conf.get('max_locks_per_transaction')) < 100:
             conf['max_locks_per_transaction'] = 100
             changed = True
 
