@@ -896,7 +896,8 @@ class PgSQLGate(BaseGate):
         """
         Common backend healthcheck.
         @help
-        autotuning\tperform initial autotuning of the database
+        autotuning\t\tperform initial autotuning of the database
+	--max_connections=<num>\tdefine maximal number of database connections (default: 400)
         """
         # Check enough space
 
