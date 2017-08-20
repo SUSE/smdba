@@ -963,6 +963,11 @@ class PgSQLGate(BaseGate):
             conf['bytea_output'] = "'escape'"
             changed = True
 
+        # bsc#1022286 - too low value for statistic_target
+        if int(conf.get('default_statistics_target', 100)) <= 10:
+            del conf['default_statistics_target']
+            changed = True
+
         #
         # Setup pg_hba.conf
         # Format is pretty specific :-)
