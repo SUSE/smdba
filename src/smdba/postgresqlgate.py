@@ -896,7 +896,8 @@ class PgSQLGate(BaseGate):
         """
         Common backend healthcheck.
         @help
-        autotuning\tperform initial autotuning of the database
+        autotuning\t\tperform initial autotuning of the database
+	--max_connections=<num>\tdefine maximal number of database connections (default: 400)
         """
         # Check enough space
 
@@ -910,8 +911,9 @@ class PgSQLGate(BaseGate):
         #
 
         # Built-in tuner
-        conn_lowest = 400
-        max_conn = int(params.get('max_connections', conn_lowest))
+        conn_lowest = 270
+        conn_default = 400
+        max_conn = int(params.get('max_connections', conn_default))
         if max_conn < conn_lowest:
             print >> sys.stdout, 'INFO: max_connections should be at least {0}'.format(conn_lowest)
             max_conn = conn_lowest
@@ -928,7 +930,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # WAL senders at least 5
-        if not conf.get('max_wal_senders') or conf.get('max_wal_senders') < '5':
+        if not conf.get('max_wal_senders') or int(conf.get('max_wal_senders')) < 5:
             conf['max_wal_senders'] = 5
             changed = True
 
@@ -948,7 +950,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # max_locks_per_transaction
-        if not conf.get('max_locks_per_transaction') or conf.get('max_locks_per_transaction') < '100':
+        if not conf.get('max_locks_per_transaction') or int(conf.get('max_locks_per_transaction')) < 100:
             conf['max_locks_per_transaction'] = 100
             changed = True
 
@@ -960,6 +962,11 @@ class PgSQLGate(BaseGate):
         # bnc#775591
         if conf.get('bytea_output', '') != "'escape'":
             conf['bytea_output'] = "'escape'"
+            changed = True
+
+        # bsc#1022286 - too low value for statistic_target
+        if int(conf.get('default_statistics_target', 100)) <= 10:
+            del conf['default_statistics_target']
             changed = True
 
         #
