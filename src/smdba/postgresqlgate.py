@@ -193,7 +193,9 @@ class PgSQLGate(BaseGate):
         Check system requirements for this gate.
         """
         msg = None
-        if os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1] < '9.1':
+        minversion = [10, 5]
+        pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
+        if int(pg_version[0]) < minversion[0] or (int(pg_version[0]) == minversion[0] and int(pg_version[1]) < minversion[1]):
             raise GateException("Core component is too old version.")
         elif not os.path.exists("/etc/sysconfig/postgresql"):
             raise GateException("Custom database component? Please strictly use SUSE components only!")
