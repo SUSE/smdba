@@ -193,8 +193,8 @@ class PgSQLGate(BaseGate):
         Check system requirements for this gate.
         """
         msg = None
-        minversion = [10, 5]
-        pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
+        minversion = [9, 6]
+        pg_version = self._get_postgres_version()
         if int(pg_version[0]) < minversion[0] or (int(pg_version[0]) == minversion[0] and int(pg_version[1]) < minversion[1]):
             raise GateException("Core component is too old version.")
         elif not os.path.exists("/etc/sysconfig/postgresql"):
@@ -337,6 +337,16 @@ class PgSQLGate(BaseGate):
             raise IOError("Cannot write two different types of config into the same file!")
 
         return backup
+
+    def _get_postgres_version(self):
+        """
+        Get postgresql version
+        """
+        pg_version = []
+        with os.popen('/usr/bin/postmaster --version') as pgh:
+            pg_version = map(int, pgh.read().strip().split(' ')[-1].split('.'))
+
+        return pg_version
 
     # Commands
     def do_db_start(self, **args):
@@ -801,7 +811,12 @@ class PgSQLGate(BaseGate):
             b_dir_temp = os.path.join(backup_dir, 'tmp')
             cwd = os.getcwd()
             os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
-            os.system('sudo -u postgres /usr/bin/pg_basebackup -D {0}/ -Ft -c fast -x -v -P -z'.format(b_dir_temp))
+            cmd = ['sudo -u postgres /usr/bin/pg_basebackup -D {0}/']
+            if self._get_postgres_version()[0] < 10:
+                cmd.append('-Ft -c fast -x -v -P -z')
+            else:
+                cmd.append('-Ft -c fast -X fetch -v -P -z')
+            os.system(' '.join(cmd).format(b_dir_temp))
             os.chdir(cwd)
 
             if os.path.exists("{0}/base.tar.gz".format(b_dir_temp)):
