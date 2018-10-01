@@ -193,7 +193,7 @@ class PgSQLGate(BaseGate):
         Check system requirements for this gate.
         """
         msg = None
-        minversion = [10, 5]
+        minversion = [9, 6]
         pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
         if int(pg_version[0]) < minversion[0] or (int(pg_version[0]) == minversion[0] and int(pg_version[1]) < minversion[1]):
             raise GateException("Core component is too old version.")
@@ -801,7 +801,7 @@ class PgSQLGate(BaseGate):
             b_dir_temp = os.path.join(backup_dir, 'tmp')
             cwd = os.getcwd()
             os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
-            os.system('sudo -u postgres /usr/bin/pg_basebackup -D {0}/ -Ft -c fast -x -v -P -z'.format(b_dir_temp))
+            os.system('sudo -u postgres /usr/bin/pg_basebackup -D {0}/ -Ft -c fast -X fetch -v -P -z'.format(b_dir_temp))
             os.chdir(cwd)
 
             if os.path.exists("{0}/base.tar.gz".format(b_dir_temp)):
