@@ -128,17 +128,6 @@ below).</simpara>
 </varlistentry>
 <varlistentry>
 <term>
-<emphasis role="strong">db-check</emphasis>
-</term>
-<listitem>
-<simpara>
-    Check full connection to the database. In some vendors it involves check
-    of the whole chain of listeners and backend connectivity.
-</simpara>
-</listitem>
-</varlistentry>
-<varlistentry>
-<term>
 <emphasis role="strong">db-start</emphasis>
 </term>
 <listitem>
