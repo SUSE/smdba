@@ -166,6 +166,7 @@ class PgTune(object):
         self.config['wal_buffers'] = self.to_mb(0x200 * 8)
         self.config['constraint_exclusion'] = 'off'
         self.config['max_connections'] = self.max_connections
+        self.config['cpu_tuple_cost'] = '0.5'
 
         return self
 
