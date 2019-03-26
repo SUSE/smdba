@@ -488,7 +488,9 @@ class PgSQLGate(BaseGate):
                                       None, "-u", "postgres", "/bin/bash")
         self.to_stderr(stderr)
         overview = [('Database', 'DB Size (Mb)', 'Avail (Mb)', 'Partition Disk Size (Mb)', 'Use %',)]
-        for line in stdout.split("\n")[2:]:
+        for line in stdout.split("\n"):
+            if "|" not in line or "pg_database_size" in line:  # Different versions of postgresql
+                continue
             line = filter(None, line.strip().replace('|', '').split(" "))
             if len(line) != 2:
                 continue
