@@ -166,6 +166,7 @@ class PgTune(object):
         self.config['wal_buffers'] = self.to_mb(0x200 * 8)
         self.config['constraint_exclusion'] = 'off'
         self.config['max_connections'] = self.max_connections
+        self.config['cpu_tuple_cost'] = '0.5'
 
         return self
 
@@ -487,7 +488,9 @@ class PgSQLGate(BaseGate):
                                       None, "-u", "postgres", "/bin/bash")
         self.to_stderr(stderr)
         overview = [('Database', 'DB Size (Mb)', 'Avail (Mb)', 'Partition Disk Size (Mb)', 'Use %',)]
-        for line in stdout.split("\n")[2:]:
+        for line in stdout.split("\n"):
+            if "|" not in line or "pg_database_size" in line:  # Different versions of postgresql
+                continue
             line = filter(None, line.strip().replace('|', '').split(" "))
             if len(line) != 2:
                 continue

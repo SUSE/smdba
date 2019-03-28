@@ -39,7 +39,7 @@ class Console:
     """
 
     # General
-    VERSION = "1.6.3"
+    VERSION = "1.6.5"
     DEFAULT_CONFIG = "/etc/rhn/rhn.conf"
 
     # Config
