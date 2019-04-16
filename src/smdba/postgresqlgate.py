@@ -330,7 +330,7 @@ class PgSQLGate(BaseGate):
         if data or table:
             cfg = open(conf_path, 'w')
             if data and not table:
-                [cfg.write('%s = %s\n' % items) for items in list(data.items())]
+                [cfg.write('%s = %s\n' % items) for items in data.items()]
             elif table and not data:
                 [cfg.write('\t'.join(items) + "\n") for items in table]
             cfg.close()
@@ -723,7 +723,7 @@ class PgSQLGate(BaseGate):
         #--autosource=%p --destination=/root/of/your/backups\n
         #NOTE: All parameters above are used automatically!\n
 
-        if args.get('enable') == 'on' and 'backup-dir' in list(args.keys()) and not args['backup-dir'].startswith('/'):
+        if args.get('enable') == 'on' and 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
             raise GateException("No relative paths please.")
 
         # Already enabled?
@@ -761,7 +761,7 @@ class PgSQLGate(BaseGate):
                                         % (args['backup-dir'], self.config['pcnf_pg_data']))
             self._perform_enable_backups(**args)
 
-        if 'source' in list(args.keys()):
+        if 'source' in args.keys():
             # Copy xlog entry
             self._perform_archive_operation(**args)
 
@@ -924,7 +924,7 @@ class PgSQLGate(BaseGate):
             max_conn = conn_lowest
 
         if 'autotuning' in args:
-            for item, value in list(PgTune(max_conn).estimate().config.items()):
+            for item, value in PgTune(max_conn).estimate().config.items():
                 if not changed and str(conf.get(item, None)) != str(value):
                     changed = True
                 conf[item] = value

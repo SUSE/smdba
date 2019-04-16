@@ -135,7 +135,7 @@ class BaseGate:
         template = self.get_scenario_template(target=target, login=login).replace('@scenario', self.get_scn(scenario).read().replace('$', '\$'))
 
         if variables:
-            for k_var, v_var in list(variables.items()):
+            for k_var, v_var in variables.items():
                 template = template.replace('@' + k_var, v_var)
 
         user = None
