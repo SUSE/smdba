@@ -25,16 +25,16 @@
 # IN THE SOFTWARE. 
 # 
 
-from basegate import BaseGate
-from basegate import GateException
-from roller import Roller
-from utils import TablePrint
+from .basegate import BaseGate
+from .basegate import GateException
+from .roller import Roller
+from .utils import TablePrint
 
 import os
 import sys
 import re
 import time
-import utils
+from . import utils
 import random
 
 
@@ -98,7 +98,7 @@ class OracleGate(BaseGate):
             raise Exception("Underlying error: file \"%s\" does not exists or cannot be read." % self.ORATAB)
 
         dbsid = self.config.get("db_name")
-        for tabline in filter(None, [line.strip() for line in open(self.ORATAB).readlines()]):
+        for tabline in [_f for _f in [line.strip() for line in open(self.ORATAB).readlines()] if _f]:
             sid, home, default_start = tabline.split(":")
             if sid == dbsid:
                 self.ora_home = home
@@ -133,7 +133,7 @@ class OracleGate(BaseGate):
 
         roller = Roller()
         roller.start()
-        print >> sys.stdout, "Getting available backups:\t",
+        print("Getting available backups:\t", end=' ', file=sys.stdout)
 
         class InfoNode:pass
         infoset = []
@@ -144,7 +144,7 @@ class OracleGate(BaseGate):
         time.sleep(1)
 
         if stdout:
-            for chunk in filter(None, [re.sub('=+', '', c).strip() for c in stdout.split("\n=")[-1].split('BS Key')]):
+            for chunk in [_f for _f in [re.sub('=+', '', c).strip() for c in stdout.split("\n=")[-1].split('BS Key')] if _f]:
                 try:
                     info = InfoNode()
                     info.files = []
@@ -154,7 +154,7 @@ class OracleGate(BaseGate):
                         if line.lower().startswith('piece name'):
                             info.backup = line.split(" ")[-1]
                         if line.lower().find('status') > -1:
-                            status_line = filter(None, line.replace(':', '').split("Status")[-1].split(" "))
+                            status_line = [_f for _f in line.replace(':', '').split("Status")[-1].split(" ") if _f]
                             if len(status_line) ==  5:
                                 info.status = status_line[0]
                                 info.compression = status_line[2]
@@ -167,7 +167,7 @@ class OracleGate(BaseGate):
                             cutoff = None
                             continue
                         else:
-                            line = filter(None, line.split(" "))
+                            line = [_f for _f in line.split(" ") if _f]
                             if len(line) > 4:
                                 if line[0] == 'File':
                                     continue
@@ -178,20 +178,20 @@ class OracleGate(BaseGate):
                                 info.files.append(dbf)
                     infoset.append(info)
                 except:
-                    print >> sys.stderr, "No backup snapshots available."
+                    print("No backup snapshots available.", file=sys.stderr)
                     sys.exit(1)
 
             # Display backup data
             if (infoset):
-                print >> sys.stdout, "Backups available:\n"
+                print("Backups available:\n", file=sys.stdout)
                 for info in infoset:
-                    print >> sys.stdout, "Name:\t", info.backup
-                    print >> sys.stdout, "Files:"
+                    print("Name:\t", info.backup, file=sys.stdout)
+                    print("Files:", file=sys.stdout)
                     for dbf in info.files:
-                        print >> sys.stdout, "\tType:", dbf.type,
-                        print >> sys.stdout, "\tDate:", dbf.date,
-                        print >> sys.stdout, "\tFile:", dbf.file
-                    print >> sys.stdout
+                        print("\tType:", dbf.type, end=' ', file=sys.stdout)
+                        print("\tDate:", dbf.date, end=' ', file=sys.stdout)
+                        print("\tFile:", dbf.file, file=sys.stdout)
+                    print(file=sys.stdout)
 
             
     def do_backup_purge(self, *args, **params):
@@ -200,7 +200,7 @@ class OracleGate(BaseGate):
         """
         self.vw_check_database_ready("Database must be healthy and running in order to purge assigned backups of it!");
 
-        print >> sys.stdout, "Checking backups:\t",
+        print("Checking backups:\t", end=' ', file=sys.stdout)
         roller = Roller()
         roller.start()
 
@@ -208,12 +208,12 @@ class OracleGate(BaseGate):
         if not len(info):
             roller.stop("failed")
             time.sleep(1)
-            print >> sys.stderr, "No backup snapshots available."
+            print("No backup snapshots available.", file=sys.stderr)
             sys.exit(1)
         roller.stop("finished")
         time.sleep(1)
 
-        print >> sys.stdout, "Removing %s backup%s:\t" % (len(info), len(info) > 1 and 's' or ''),
+        print("Removing %s backup%s:\t" % (len(info), len(info) > 1 and 's' or ''), end=' ', file=sys.stdout)
         roller = Roller()
         roller.start()
         stdout, stderr = self.call_scenario('rman-backup-purge', target='rman')
@@ -231,7 +231,7 @@ class OracleGate(BaseGate):
         Rotate backup by purging the obsolete/expired backup set.
         This method is internal and needs to be performed on a healthy, ensured database.
         """
-        print >> sys.stdout, "Rotating the backup:\t",
+        print("Rotating the backup:\t", end=' ', file=sys.stdout)
         roller = Roller()
         roller.start()
 
@@ -259,7 +259,7 @@ class OracleGate(BaseGate):
         if not self.get_archivelog_mode():
             raise GateException("Archivelog is not turned on.\n\tPlease shutdown SUSE Manager and run system-check first!")
 
-        print >> sys.stdout, "Backing up the database:\t",
+        print("Backing up the database:\t", end=' ', file=sys.stdout)
         roller = Roller()
         roller.start()
 
@@ -283,15 +283,15 @@ class OracleGate(BaseGate):
                 elif line.startswith("archived"):
                     arclogs.append(line.split("name=")[-1].split(" ")[0])
 
-            print >> sys.stdout, "Data files archived:"
+            print("Data files archived:", file=sys.stdout)
             for f in files:
-                print >> sys.stdout, "\t" + f
-            print >> sys.stdout
+                print("\t" + f, file=sys.stdout)
+            print(file=sys.stdout)
 
-            print >> sys.stdout, "Archive logs:"
+            print("Archive logs:", file=sys.stdout)
             for arc in arclogs:
-                print >> sys.stdout, "\t" + arc
-            print >> sys.stdout
+                print("\t" + arc, file=sys.stdout)
+            print(file=sys.stdout)
 
         # Rotate and check
         self.autoresolve_backup()
@@ -299,31 +299,31 @@ class OracleGate(BaseGate):
 
         # Finalize
         hb, fb, ha, fa = self.check_backup_info()
-        print >> sys.stdout, "Backup summary as follows:"
+        print("Backup summary as follows:", file=sys.stdout)
         if len(hb):
-            print >> sys.stdout, "\tBackups:"
+            print("\tBackups:", file=sys.stdout)
             for bkp in hb:
-                print >> sys.stdout, "\t\t", bkp.handle
-            print >> sys.stdout
+                print("\t\t", bkp.handle, file=sys.stdout)
+            print(file=sys.stdout)
 
         if len(ha):
-            print >> sys.stdout, "\tArchive logs:"
+            print("\tArchive logs:", file=sys.stdout)
             for bkp in ha:
-                print >> sys.stdout, "\t\t", bkp.handle
-            print >> sys.stdout
+                print("\t\t", bkp.handle, file=sys.stdout)
+            print(file=sys.stdout)
         
         if len(fb):
-            print >> sys.stderr, "WARNING! Broken backups has been detected:"
+            print("WARNING! Broken backups has been detected:", file=sys.stderr)
             for bkp in fb:
-                print >> sys.stderr, "\t\t", bkp.handle
-            print >> sys.stderr
+                print("\t\t", bkp.handle, file=sys.stderr)
+            print(file=sys.stderr)
 
         if len(fa):
-            print >> sys.stderr, "WARNING! Broken archive logs has been detected:"
+            print("WARNING! Broken archive logs has been detected:", file=sys.stderr)
             for bkp in fa:
-                print >> sys.stderr, "\t\t", bkp.handle
-            print >> sys.stderr
-        print >> sys.stdout, "\nFinished."
+                print("\t\t", bkp.handle, file=sys.stderr)
+            print(file=sys.stderr)
+        print("\nFinished.", file=sys.stdout)
 
         
     def do_backup_check(self, *args, **params):
@@ -336,44 +336,44 @@ class OracleGate(BaseGate):
 
         info = self.get_backup_info()
         if len(info):
-            print >> sys.stdout, "Last known backup:", info[0].completion
+            print("Last known backup:", info[0].completion, file=sys.stdout)
         else:
             raise GateException("No backups has been found!")
         
         hb, fb, ha, fa = self.check_backup_info()
         # Display backups info
         if fb:
-            print >> sys.stderr, "WARNING! Failed backups has been found as follows:"
+            print("WARNING! Failed backups has been found as follows:", file=sys.stderr)
             for bkp in fb:
-                print >> sys.stderr, "\tName:", bkp.handle
-            print >> sys.stderr
+                print("\tName:", bkp.handle, file=sys.stderr)
+            print(file=sys.stderr)
         else:
-            print >> sys.stdout, ("%s available backup%s seems healthy." % (len(hb), len(hb) > 1 and 's are' or '' ))
+            print(("%s available backup%s seems healthy." % (len(hb), len(hb) > 1 and 's are' or '' )), file=sys.stdout)
         
         # Display ARCHIVELOG info
         if fa:
-            print >> sys.stderr, "WARNING! Failed archive logs has been found as follows:"
+            print("WARNING! Failed archive logs has been found as follows:", file=sys.stderr)
             for arc in fa:
-                print >> sys.stderr, "\tName:", arc.handle
-            print >> sys.stderr
+                print("\tName:", arc.handle, file=sys.stderr)
+            print(file=sys.stderr)
             if 'autoresolve' not in args:
-                print >> sys.stderr, "Try using \"autoresolve\" directive."
+                print("Try using \"autoresolve\" directive.", file=sys.stderr)
                 sys.exit(1)
             else:
                 self.autoresolve_backup()
                 hb, fb, ha, fa = self.check_backup_info()
                 if fa:
-                    print >> sys.stderr, "WARNING! Still are failed archive logs:"
+                    print("WARNING! Still are failed archive logs:", file=sys.stderr)
                     for arc in fa:
-                        print >> sys.stderr, "\tName:", arc.handle
-                        print >> sys.stderr
+                        print("\tName:", arc.handle, file=sys.stderr)
+                        print(file=sys.stderr)
                     if 'ignore-errors' not in args:
-                        print >> sys.stderr, "Maybe you want to try \"ignore-errors\" directive and... cross the fingers."
+                        print("Maybe you want to try \"ignore-errors\" directive and... cross the fingers.", file=sys.stderr)
                         sys.exit(1)
                 else:
-                    print >> sys.stdout, "Hooray! No failures in backups found!"
+                    print("Hooray! No failures in backups found!", file=sys.stdout)
         else:
-            print >> sys.stdout, ("%s available archive log%s seems healthy." % (len(ha), len(ha) > 1 and 's are' or '' ))
+            print(("%s available archive log%s seems healthy." % (len(ha), len(ha) > 1 and 's are' or '' )), file=sys.stdout)
 
 
     def do_backup_restore(self, *args, **params):
@@ -405,14 +405,14 @@ class OracleGate(BaseGate):
                     strategy = "partial"
                     break
 
-        print >> sys.stdout, ("Restoring the SUSE Manager Database using %s strategy" % strategy)
+        print(("Restoring the SUSE Manager Database using %s strategy" % strategy), file=sys.stdout)
 
         # Could be database just not cleanly killed
         # In this case great almighty RMAN won't connect at all and just crashes. :-(
         self.do_db_start()
         self.do_db_stop()
 
-        print >> sys.stdout, "Preparing database:\t",
+        print("Preparing database:\t", end=' ', file=sys.stdout)
         roller = Roller()
         roller.start()
 
@@ -430,7 +430,7 @@ class OracleGate(BaseGate):
             roller.stop("success")
             time.sleep(1)
         
-        print >> sys.stdout, "Restoring from backup:\t",
+        print("Restoring from backup:\t", end=' ', file=sys.stdout)
         roller = Roller()
         roller.start()
 
@@ -458,7 +458,7 @@ class OracleGate(BaseGate):
         """
         self.vw_check_database_ready("Database must be healthy and running in order to get statistics of it!");
 
-        print >> sys.stdout, "Gathering statistics on SUSE Manager database...\t",
+        print("Gathering statistics on SUSE Manager database...\t", end=' ', file=sys.stdout)
 
         roller = Roller()
         roller.start()
@@ -487,10 +487,10 @@ class OracleGate(BaseGate):
             raise GateException("Please visit http://%s.ora-code.com/ page to know more details." % ora_error.lower())
 
         table = [("Tablespace", "Avail (Mb)", "Used (Mb)", "Size (Mb)", "Use %",),]
-        for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
+        for name, free, used, size in [" ".join([_f for _f in line.replace("\t", " ").split(" ") if _f]).split(" ") 
                                        for line in stdout.strip().split("\n")[2:]]:
             table.append((name, free, used, size, str(int(float(used) / float(size) * 100)),))
-        print >> sys.stdout, "\n", TablePrint(table), "\n"
+        print("\n", TablePrint(table), "\n", file=sys.stdout)
 
 
     def do_stats_overview(self, *args, **params):
@@ -498,7 +498,7 @@ class OracleGate(BaseGate):
         Show tables with stale or empty statistics.
         """
         self.vw_check_database_ready("Database must be healthy and running in order to get stats overview!");
-        print >> sys.stdout, "Preparing data:\t\t",
+        print("Preparing data:\t\t", end=' ', file=sys.stdout)
         
         roller = Roller()
         roller.start()
@@ -529,27 +529,27 @@ class OracleGate(BaseGate):
                 elif segment and segment == 'empty':
                     empty.append(line)
                 else:
-                    print "Ignoring", repr(line)
+                    print("Ignoring", repr(line))
 
         if stale:
-            print >> sys.stdout, "\nList of stale objects:"
+            print("\nList of stale objects:", file=sys.stdout)
             for obj in stale:
-                print >> sys.stdout, "\t", obj
-            print >> sys.stdout, "\nFound %s stale objects\n" % len(stale)
+                print("\t", obj, file=sys.stdout)
+            print("\nFound %s stale objects\n" % len(stale), file=sys.stdout)
         else:
-            print >> sys.stdout, "No stale objects found"
+            print("No stale objects found", file=sys.stdout)
 
         if empty:
-            print >> sys.stdout, "\nList of empty objects:"
+            print("\nList of empty objects:", file=sys.stdout)
             for obj in empty:
-                print >> sys.stdout, "\t", obj
-            print >> sys.stdout, "\nFound %s objects that currently have no statistics.\n" % len(stale)
+                print("\t", obj, file=sys.stdout)
+            print("\nFound %s objects that currently have no statistics.\n" % len(stale), file=sys.stdout)
         else:
-            print >> sys.stdout, "No empty objects found."
+            print("No empty objects found.", file=sys.stdout)
 
         if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            print("Error dump:", file=sys.stderr)
+            print(stderr, file=sys.stderr)
 
 
     def do_space_reclaim(self, *args, **params):
@@ -558,7 +558,7 @@ class OracleGate(BaseGate):
         """
         self.vw_check_database_ready("Database must be healthy and running in order to reclaim the used space!");        
 
-        print >> sys.stdout, "Examining the database...\t",
+        print("Examining the database...\t", end=' ', file=sys.stdout)
         roller = Roller()
         roller.start()
 
@@ -573,7 +573,7 @@ class OracleGate(BaseGate):
             roller.stop('done')
             time.sleep(1)
 
-        print >> sys.stdout, "Gathering recommendations...\t",
+        print("Gathering recommendations...\t", end=' ', file=sys.stdout)
 
         roller = Roller()
         roller.start()
@@ -584,7 +584,7 @@ class OracleGate(BaseGate):
         if not stdout and not stderr:
             roller.stop("finished")
             time.sleep(1)
-            print >> sys.stdout, "\nNo space reclamation possible at this time.\n"
+            print("\nNo space reclamation possible at this time.\n", file=sys.stdout)
             return
 
         elif stdout:
@@ -594,8 +594,8 @@ class OracleGate(BaseGate):
         else:
             roller.stop("failed")
             time.sleep(1)
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            print("Error dump:", file=sys.stderr)
+            print(stderr, file=sys.stderr)
 
 
         messages = {
@@ -609,7 +609,7 @@ class OracleGate(BaseGate):
         wseg = 0
 
         if stdout:
-            lines = [tuple(filter(None, line.strip().replace("\t", " ").split(" "))) for line in stdout.strip().split("\n")]
+            lines = [tuple([_f for _f in line.strip().replace("\t", " ").split(" ") if _f]) for line in stdout.strip().split("\n")]
             for ssm, sname, rspace, tsn, stype in lines:
                 tsns = tree.get(tsn, {})
                 stypes = tsns.get(stype, {})
@@ -621,44 +621,44 @@ class OracleGate(BaseGate):
                 tree[tsn] = tsns
 
             total = 0
-            for tsn in tree.keys():
-                print >> sys.stdout, "\nTablespace:", tsn
-                for obj in tree[tsn].keys():
-                    print >> sys.stdout, "\n\t" +  messages.get(obj, "Object: " + obj)
-                    for stype in tree[tsn][obj].keys():
+            for tsn in list(tree.keys()):
+                print("\nTablespace:", tsn, file=sys.stdout)
+                for obj in list(tree[tsn].keys()):
+                    print("\n\t" +  messages.get(obj, "Object: " + obj), file=sys.stdout)
+                    for stype in list(tree[tsn][obj].keys()):
                         typetotal = 0
-                        print >> sys.stdout, "\t" + messages.get(stype, "Type: " + stype)
+                        print("\t" + messages.get(stype, "Type: " + stype), file=sys.stdout)
                         for segment, size in tree[tsn][obj][stype]:
-                            print >> sys.stdout, "\t\t", \
+                            print("\t\t", \
                                 (segment + ((wseg - len(segment)) * " ")), \
-                                "\t", '%.2fM' % (size / 1024. / 1024.)
+                                "\t", '%.2fM' % (size / 1024. / 1024.), file=sys.stdout)
                             total += size
                             typetotal += size
                         total_message = "Total " + messages.get(obj, '').lower()
-                        print >> sys.stdout, "\n\t\t", \
+                        print("\n\t\t", \
                             (total_message + ((wseg - len(total_message)) * " ")), \
-                            "\t", '%.2fM' % (typetotal / 1024. / 1024.)
+                            "\t", '%.2fM' % (typetotal / 1024. / 1024.), file=sys.stdout)
 
-            print >> sys.stdout, "\nTotal reclaimed space: %.2fGB" % (total / 1024. / 1024. / 1024.)
+            print("\nTotal reclaimed space: %.2fGB" % (total / 1024. / 1024. / 1024.), file=sys.stdout)
 
         # Reclaim space
         if tree:
-            for tsn in tree.keys():
-                for obj in tree[tsn].keys():
+            for tsn in list(tree.keys()):
+                for obj in list(tree[tsn].keys()):
                     if tree[tsn][obj].get('AUTO', None):
-                        print >> sys.stdout, "\nReclaiming space on %s:" % messages[obj].lower()
+                        print("\nReclaiming space on %s:" % messages[obj].lower(), file=sys.stdout)
                         for segment, size in tree[tsn][obj]['AUTO']:
-                            print >> sys.stdout, "\t", segment + "...\t",
+                            print("\t", segment + "...\t", end=' ', file=sys.stdout)
                             sys.stdout.flush()
                             stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', self.__get_reclaim_space_statement(segment, obj)),
                                                           None, "-u", "oracle", "/bin/bash")
                             if stderr:
-                                print >> sys.stdout, "failed"
-                                print >> sys.stderr, stderr
+                                print("failed", file=sys.stdout)
+                                print(stderr, file=sys.stderr)
                             else:
-                                print >> sys.stdout, "done"
+                                print("done", file=sys.stdout)
 
-        print >> sys.stdout, "Reclaiming space finished"
+        print("Reclaiming space finished", file=sys.stdout)
 
 
     def __get_reclaim_space_statement(self, segment, obj):
@@ -677,14 +677,14 @@ class OracleGate(BaseGate):
         Start the SUSE Manager database listener.
         """
         if not 'quiet' in args:
-            print >> sys.stdout, "Starting database listener...\t",
+            print("Starting database listener...\t", end=' ', file=sys.stdout)
             sys.stdout.flush()
 
         dbstatus = self.get_status()
         if dbstatus.ready:
             if not 'quiet' in args:
-                print >> sys.stdout, "Failed"
-                print >> sys.stderr, "Error: listener already running."
+                print("Failed", file=sys.stdout)
+                print("Error: listener already running.", file=sys.stderr)
             return
 
         ready = False
@@ -696,7 +696,7 @@ class OracleGate(BaseGate):
                     break
 
             if not 'quiet' in args:
-                print >> sys.stdout, (ready and "done" or "failed")
+                print((ready and "done" or "failed"), file=sys.stdout)
 
         if stderr and not 'quiet' in args:
             self.to_stderr(stderr)
@@ -709,14 +709,14 @@ class OracleGate(BaseGate):
         quiet\tSuppress any output.
         """
         if not 'quiet' in args:
-            print >> sys.stdout, "Stopping database listener...\t",
+            print("Stopping database listener...\t", end=' ', file=sys.stdout)
             sys.stdout.flush()
 
         dbstatus = self.get_status()
         if not dbstatus.ready:
             if not 'quiet' in args:
-                print >> sys.stdout, "Failed"
-                print >> sys.stderr, "Error: listener is not running."
+                print("Failed", file=sys.stdout)
+                print("Error: listener is not running.", file=sys.stderr)
                 return
 
         success = False
@@ -729,7 +729,7 @@ class OracleGate(BaseGate):
                     break
 
             if not 'quiet' in args:
-                print >> sys.stdout, (success and "done" or "failed")
+                print((success and "done" or "failed"), file=sys.stdout)
 
         if stderr and not 'quiet' in args:
             self.to_stderr(stderr)
@@ -739,29 +739,29 @@ class OracleGate(BaseGate):
         """
         Show database status.
         """
-        print >> sys.stdout, "Listener:\t",
+        print("Listener:\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
 
         dbstatus = self.get_status()
-        print >> sys.stdout, (dbstatus.ready and "running" or "down")
-        print >> sys.stdout, "Uptime:\t\t", dbstatus.uptime and dbstatus.uptime or ""
-        print >> sys.stdout, "Instances:\t", dbstatus.available
+        print((dbstatus.ready and "running" or "down"), file=sys.stdout)
+        print("Uptime:\t\t", dbstatus.uptime and dbstatus.uptime or "", file=sys.stdout)
+        print("Instances:\t", dbstatus.available, file=sys.stdout)
         
         if dbstatus.stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, dbstatus.stderr
+            print("Error dump:", file=sys.stderr)
+            print(dbstatus.stderr, file=sys.stderr)
 
         if dbstatus.unknown:
-            print >> sys.stderr, "Warning: %s unknown instance%s." % (dbstatus.unknown, dbstatus.unknown > 1 and 's' or '')
+            print("Warning: %s unknown instance%s." % (dbstatus.unknown, dbstatus.unknown > 1 and 's' or ''), file=sys.stderr)
         if not dbstatus.available:
-            print >> sys.stderr, "Critical: No available instances found!"
+            print("Critical: No available instances found!", file=sys.stderr)
 
 
     def do_listener_restart(self, *args, **params):
         """
         Restart SUSE Manager database listener.
         """
-        print >> sys.stdout, "Restarting listener...",
+        print("Restarting listener...", end=' ', file=sys.stdout)
         sys.stdout.flush()
 
         dbstatus = self.get_status()
@@ -770,14 +770,14 @@ class OracleGate(BaseGate):
 
         self.do_listener_start()
 
-        print >> sys.stdout, "done"
+        print("done", file=sys.stdout)
 
 
     def do_db_start(self, *args, **params):
         """
         Start SUSE Manager database.
         """
-        print >> sys.stdout, "Starting listener:\t",
+        print("Starting listener:\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -793,7 +793,7 @@ class OracleGate(BaseGate):
         roller.stop('done')
         time.sleep(1)
 
-        print >> sys.stdout, "Starting core...\t",
+        print("Starting core...\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -811,22 +811,22 @@ class OracleGate(BaseGate):
         else:
             roller.stop('failed')
             time.sleep(1)
-            print >> sys.stderr, "Output dump:"
-            print >> sys.stderr, stdout
+            print("Output dump:", file=sys.stderr)
+            print(stdout, file=sys.stderr)
 
         if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            print("Error dump:", file=sys.stderr)
+            print(stderr, file=sys.stderr)
 
 
     def do_db_stop(self, *args, **params):
         """
         Stop SUSE Manager database.
         """
-        print >> sys.stdout, "Stopping the SUSE Manager database..."
+        print("Stopping the SUSE Manager database...", file=sys.stdout)
         sys.stdout.flush()
 
-        print >> sys.stdout, "Stopping listener:\t",
+        print("Stopping listener:\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -840,7 +840,7 @@ class OracleGate(BaseGate):
             roller.stop("not running")
             time.sleep(1)
 
-        print >> sys.stdout, "Stopping core:\t\t",
+        print("Stopping core:\t\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -866,14 +866,14 @@ class OracleGate(BaseGate):
         """
         Display SUSE Manager database runtime status.
         """
-        print >> sys.stdout, "Checking database core...\t",
+        print("Checking database core...\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
 
         dbstatus = self.get_db_status()
         if dbstatus.ready:
-            print >> sys.stdout, "online"
+            print("online", file=sys.stdout)
         else:
-            print >> sys.stdout, "offline"
+            print("offline", file=sys.stdout)
             
 
 
@@ -893,18 +893,18 @@ class OracleGate(BaseGate):
         if ora_error:
             raise GateException("Please visit http://%s.ora-code.com/ page to know more details." % ora_error.lower())
 
-        for tname, tsize in filter(None, [filter(None, line.replace("\t", " ").split(" ")) for line in stdout.split("\n")]):
+        for tname, tsize in [_f for _f in [[_f for _f in line.replace("\t", " ").split(" ") if _f] for line in stdout.split("\n")] if _f]:
             table.append((tname, ('%.2fK' % round(float(tsize) / 1024.)),))
             total += float(tsize)
         table.append(('', '',))
         table.append(('Total', ('%.2fM' % round(total / 1024. / 1024.))))
 
         if table:
-            print >> sys.stdout, "\n", TablePrint(table), "\n"
+            print("\n", TablePrint(table), "\n", file=sys.stdout)
 
         if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            print("Error dump:", file=sys.stderr)
+            print(stderr, file=sys.stderr)
             raise Exception("Unhandled underlying error.")
 
 
@@ -912,7 +912,7 @@ class OracleGate(BaseGate):
         """
         Check full connection to the database.
         """
-        print >> sys.stdout, "Checking connection:\t",
+        print("Checking connection:\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -987,24 +987,24 @@ class OracleGate(BaseGate):
         @help
         force-archivelog-off\tForce archivelog mode to off.
         """
-        print >> sys.stdout, "Checking SUSE Manager database backend\n"
+        print("Checking SUSE Manager database backend\n", file=sys.stdout)
 
         # Set data table autoextensible.
         stdout, stderr = self.call_scenario('cnf-get-noautoext')
         if stderr:
-            print >> sys.stderr, "Autoextend check error:"
-            print >> sys.stderr, stderr
+            print("Autoextend check error:", file=sys.stderr)
+            print(stderr, file=sys.stderr)
             raise GateException("Unable continue system check")
 
         if stdout:
-            print >> sys.stdout, "Autoextensible:\tOff"
+            print("Autoextensible:\tOff", file=sys.stdout)
             scenario = []
             [scenario.append("alter database datafile '%s' autoextend on;" % fname) for fname in stdout.strip().split("\n")]
             self.syscall("sudo", self.get_scenario_template().replace('@scenario', '\n'.join(scenario)), 
                          None, "-u", "oracle", "/bin/bash")
-            print >> sys.stdout, "%s table%s has been autoextended" % (len(scenario), len(scenario) > 1 and 's' or '')
+            print("%s table%s has been autoextended" % (len(scenario), len(scenario) > 1 and 's' or ''), file=sys.stdout)
         else:
-            print >> sys.stdout, "Autoextensible:\tYes"
+            print("Autoextensible:\tYes", file=sys.stdout)
 
         # Turn on archivelog.
         #
@@ -1012,29 +1012,29 @@ class OracleGate(BaseGate):
             if self.get_archivelog_mode():
                 self.set_archivelog_mode(status=False)
             else:
-                print >> sys.stdout, "Archivelog mode is not used."
+                print("Archivelog mode is not used.", file=sys.stdout)
         else:
             if not self.get_archivelog_mode():
                 self.set_archivelog_mode(True)
                 if not self.get_archivelog_mode():
-                    print >> sys.stderr, "No archive log"
+                    print("No archive log", file=sys.stderr)
                 else:
-                    print >> sys.stdout,  "Database is now running in archivelog mode."
+                    print("Database is now running in archivelog mode.", file=sys.stdout)
             else:
-                print >> sys.stdout, "Archivelog:\tYes"
+                print("Archivelog:\tYes", file=sys.stdout)
 
         # Free space on the storage.
         #
         # TBD
 
-        print >> sys.stdout, "\nFinished\n"
+        print("\nFinished\n", file=sys.stdout)
 
 
     def set_archivelog_mode(self, status=True):
         """
         Set archive log mode status.
         """
-        print >> sys.stdout, ("Turning %s archivelog mode...\t" % (status and 'on' or 'off')),
+        print(("Turning %s archivelog mode...\t" % (status and 'on' or 'off')), end=' ', file=sys.stdout)
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -1089,7 +1089,7 @@ class OracleGate(BaseGate):
         dbid = None
         if stdout:
             try:
-                dbid = long(stdout.split("\n")[-1])
+                dbid = int(stdout.split("\n")[-1])
             except:
                 # Failed to get dbid anyway, let's just stay silent for now.
                 if known_db_status:
@@ -1104,10 +1104,10 @@ class OracleGate(BaseGate):
                 line = line.strip()
                 if not line or line.startswith('#') or (line.find('=') == -1):
                     continue
-                dbidkey, dbid = map(lambda el:el.strip(), line.split('=', 1))
+                dbidkey, dbid = [el.strip() for el in line.split('=', 1)]
                 if dbid:
                     try:
-                        dbid = long(dbid)
+                        dbid = int(dbid)
                     except:
                         # Failed get dbid again.
                         pass
@@ -1131,7 +1131,7 @@ class OracleGate(BaseGate):
             return None
 
         for line in raw.split('\n'):
-            ftkn = filter(None, line.split(" "))[0]
+            ftkn = [_f for _f in line.split(" ") if _f][0]
             if ftkn.startswith('ORA-') and ftkn.endswith(':'):
                 err = None
                 try:
@@ -1164,8 +1164,8 @@ class OracleGate(BaseGate):
         # Get database backups
         stdout, stderr = self.call_scenario('rman-backup-check-db', target='rman')
         if stderr:
-            print >> sys.stderr, "Backup information check failure:"
-            print >> sys.stderr, stderr
+            print("Backup information check failure:", file=sys.stderr)
+            print(stderr, file=sys.stderr)
             raise GateException("Unable to check the backups.")
 
         for chunk in stdout.split("RMAN>"):
@@ -1179,8 +1179,8 @@ class OracleGate(BaseGate):
         # Get database archive logs check
         stdout, stderr = self.call_scenario('rman-backup-check-al', target='rman')
         if stderr:
-            print >> sys.stderr, "Archive log information check failure:"
-            print >> sys.stderr, stderr
+            print("Archive log information check failure:", file=sys.stderr)
+            print(stderr, file=sys.stderr)
             raise GateException("Unable to check the archive logs backup.")
         
         for chunk in stdout.split("RMAN>"):
@@ -1193,13 +1193,13 @@ class OracleGate(BaseGate):
 
         # Check failed backups
         if bkpsout:
-            for line in map(lambda elm:elm.strip(), bkpsout.split("crosschecked")):
+            for line in [elm.strip() for elm in bkpsout.split("crosschecked")]:
                 if not line.startswith("backup piece"):
                     continue
                 obj_raw = line.split("\n")[:2]
                 if len(obj_raw) == 2:
                     status = obj_raw[0].strip().split(" ")[-1].replace("'", '').lower()
-                    data = dict(filter(None, map(lambda elm:"=" in elm and tuple(elm.split("=", 1)) or None, filter(None, obj_raw[-1].split(" ")))))
+                    data = dict([_f for _f in ["=" in elm and tuple(elm.split("=", 1)) or None for elm in [_f for _f in obj_raw[-1].split(" ") if _f]] if _f])
                     hinfo = HandleInfo(status, handle=data['handle'], recid=data['RECID'], stamp=data['STAMP'])
                     if hinfo.availability == 'available':
                         healthy_backups.append(hinfo)
@@ -1208,11 +1208,11 @@ class OracleGate(BaseGate):
 
         # Check failed archive logs
         if arlgout:
-            for archline in map(lambda elm:elm.strip(), arlgout.split("validation", 1)[-1].split("Crosschecked")[0].split("validation")):
+            for archline in [elm.strip() for elm in arlgout.split("validation", 1)[-1].split("Crosschecked")[0].split("validation")]:
                 obj_raw = archline.split("\n")
                 if len(obj_raw) == 2:
                     status = obj_raw[0].split(" ")[0]
-                    data = dict(filter(None, map(lambda elm:'=' in elm and tuple(elm.split('=', 1)) or None, obj_raw[1].split(" "))))
+                    data = dict([_f for _f in ['=' in elm and tuple(elm.split('=', 1)) or None for elm in obj_raw[1].split(" ")] if _f])
                     hinfo = HandleInfo(status == 'succeeded' and 'available' or 'unavailable', recid=data['RECID'], stamp=data['STAMP'], handle=data['name']) # Ask RMAN devs why this time it is called "name"
                     if hinfo.availability == 'available':
                         healthy_archivelogs.append(hinfo)
@@ -1228,8 +1228,8 @@ class OracleGate(BaseGate):
         """
         stdout, stderr = self.call_scenario('rman-backup-info', target='rman')
         if stderr:
-            print >> sys.stderr, "Backup information listing failure:"
-            print >> sys.stderr, stderr
+            print("Backup information listing failure:", file=sys.stderr)
+            print(stderr, file=sys.stderr)
             raise GateException("Unable to get information about backups.")
 
         capture = False
@@ -1245,7 +1245,7 @@ class OracleGate(BaseGate):
                 if not line:
                     capture = False
                     continue
-                tkn = filter(None, line.replace("\t", " ").split(" "))
+                tkn = [_f for _f in line.replace("\t", " ").split(" ") if _f]
                 info[tkn[5]] = BackupInfo(tkn[0], tkn[5], tkn[-1])
                 idx.append(tkn[5])
 
@@ -1256,7 +1256,7 @@ class OracleGate(BaseGate):
         """
         Check if database is ready. Otherwise crash with the given message.
         """
-        print >> sys.stdout, "Checking the database:" + ("\t" * output_shift),
+        print("Checking the database:" + ("\t" * output_shift), end=' ', file=sys.stdout)
         roller = Roller()
         roller.start()
         dbstatus = self.get_db_status()
@@ -1299,7 +1299,7 @@ class OracleGate(BaseGate):
         if stdout.find("System altered") > -1:
             return True
 
-        print >> sys.stderr, "ERROR:", stderr
+        print("ERROR:", stderr, file=sys.stderr)
 
         return False
 
@@ -1317,11 +1317,11 @@ class OracleGate(BaseGate):
         target_fds = self.size_pretty(self.media_usage(self.get_current_fra_dir())['free'], int_only=True, no_whitespace=True).replace("B", "")
 
         if curr_fds != target_fds:
-            print >> sys.stderr, "WARNING: Reserved space for the backup is smaller than available disk space. Adjusting."
+            print("WARNING: Reserved space for the backup is smaller than available disk space. Adjusting.", file=sys.stderr)
             if not self.autoresize_available_archive(target_fds):
-                print >> sys.stderr, "WARNING: Could not adjust system for backup reserved space!"
+                print("WARNING: Could not adjust system for backup reserved space!", file=sys.stderr)
             else:
-                print >> sys.stdout, "INFO: System settings for the backup recovery area has been altered successfully."
+                print("INFO: System settings for the backup recovery area has been altered successfully.", file=sys.stdout)
 
 
     def finish(self):

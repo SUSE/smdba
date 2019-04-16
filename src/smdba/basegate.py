@@ -51,7 +51,7 @@ class BaseGate:
         Warning: very basic check and does not checks all the components.
         """
         initd = '/etc/init.d'
-        print "Checking SUSE Manager running..."
+        print("Checking SUSE Manager running...")
 
         # Get tomcat
         tomcat = None
@@ -120,9 +120,9 @@ class BaseGate:
             scenario.append("EOF")
         
         if self.debug:
-            print "\n" + ("-" * 40) + "8<" + ("-" * 40)
-            print '\n'.join(scenario)
-            print ("-" * 40) + "8<" + ("-" * 40)
+            print("\n" + ("-" * 40) + "8<" + ("-" * 40))
+            print('\n'.join(scenario))
+            print(("-" * 40) + "8<" + ("-" * 40))
 
         return '\n'.join(scenario)
 
@@ -135,7 +135,7 @@ class BaseGate:
         template = self.get_scenario_template(target=target, login=login).replace('@scenario', self.get_scn(scenario).read().replace('$', '\$'))
 
         if variables:
-            for k_var, v_var in variables.items():
+            for k_var, v_var in list(variables.items()):
                 template = template.replace('@' + k_var, v_var)
 
         user = None
@@ -258,14 +258,14 @@ class BaseGate:
         """
         Placeholder for the gate-specific hooks before starting any operations.
         """
-        print "Starting gate state: Not used."
+        print("Starting gate state: Not used.")
 
 
     def finish(self):
         """
         Placeholder for the gate-specific hooks after finishing all operations.
         """
-        print "Finishing gate state: Not used."
+        print("Finishing gate state: Not used.")
 
 
     def extract_errors(self, stdout):
@@ -278,7 +278,7 @@ class BaseGate:
             return ""
 
         out = []
-        for line in filter(None, str(stdout).replace("\\n", "\n").split("\n")):
+        for line in [_f for _f in str(stdout).replace("\\n", "\n").split("\n") if _f]:
             if line.lower().startswith("ora-") or line.lower().startswith("rman-"):
                 if not line.find("===") > -1: # Skip ugly Oracle error emphasis
                     out += textwrap.wrap(line.strip())
@@ -294,10 +294,10 @@ class BaseGate:
             return False
 
         out = []
-        for line in filter(None, str(stderr).replace("\\n", "\n").split("\n")):
+        for line in [_f for _f in str(stderr).replace("\\n", "\n").split("\n") if _f]:
             out.append("  " + line.strip())
-        print >> sys.stderr, "\nError:\n" + ("-" * 80)
-        print >> sys.stderr, "\n".join(out)
-        print >> sys.stderr, "-" * 80
+        print("\nError:\n" + ("-" * 80), file=sys.stderr)
+        print("\n".join(out), file=sys.stderr)
+        print("-" * 80, file=sys.stderr)
 
         sys.exit(1)

@@ -62,7 +62,7 @@ class Roller(threading.Thread):
 
             self.__offset += 1
 
-        print >> sys.stdout, "\b" + self.__message
+        print("\b" + self.__message, file=sys.stdout)
         sys.stdout.flush()
 
 
@@ -75,7 +75,7 @@ class Roller(threading.Thread):
 
 # Test
 if __name__ == '__main__':
-    print >> sys.stdout, "Doing thing:\t",
+    print("Doing thing:\t", end=' ', file=sys.stdout)
     sys.stdout.flush()
 
     roller = Roller()
@@ -83,4 +83,4 @@ if __name__ == '__main__':
     time.sleep(5)
     roller.stop("finished")
     time.sleep(1)
-    print >> sys.stdout, "OK"
+    print("OK", file=sys.stdout)

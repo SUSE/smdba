@@ -25,10 +25,10 @@
 # IN THE SOFTWARE.
 #
 
-from basegate import BaseGate
-from basegate import GateException
-from roller import Roller
-from utils import TablePrint, get_path_owner
+from .basegate import BaseGate
+from .basegate import GateException
+from .roller import Roller
+from .utils import TablePrint, get_path_owner
 
 import sys
 import os
@@ -222,15 +222,15 @@ class PgSQLGate(BaseGate):
         """
         Read the system config for the postgresql.
         """
-        for line in filter(None, map(lambda line:line.strip(), open('/etc/sysconfig/postgresql').readlines())):
+        for line in [_f for _f in [line.strip() for line in open('/etc/sysconfig/postgresql').readlines()] if _f]:
             if line.startswith('#'):
                 continue
             try:
                 k, v = line.split("=", 1)
                 self.config['sysconfig_' + k] = v
             except Exception as ex:
-                print >> sys.stderr, "Cannot parse line", line, "from sysconfig."
-                print >> sys.stderr, ex
+                print("Cannot parse line", line, "from sysconfig.", file=sys.stderr)
+                print(ex, file=sys.stderr)
 
     def _get_db_status(self):
         """
@@ -268,12 +268,12 @@ class PgSQLGate(BaseGate):
         if stdout:
             for line in stdout.strip().split("\n")[2:]:
                 try:
-                    k, v = map(lambda line: line.strip(), line.split('|')[:2])
+                    k, v = [line.strip() for line in line.split('|')[:2]]
                     self.config['pcnf_' + k] = v
                 except Exception:
-                    print >> sys.stdout, "Cannot parse line:", line
+                    print("Cannot parse line:", line, file=sys.stdout)
         else:
-            print >> sys.stderr, stderr
+            print(stderr, file=sys.stderr)
             raise Exception("Underlying error: unable get backend configuration.")
 
     def _bt_to_mb(self, v):
@@ -292,7 +292,7 @@ class PgSQLGate(BaseGate):
 
         # Remove postgresql.pid (versions 9.x) if postmaster was just killed
         if os.path.exists(self._pid_file):
-            print >> sys.stderr, 'Info: Found stale PID file, removing'
+            print('Info: Found stale PID file, removing', file=sys.stderr)
             os.unlink(self._pid_file)
 
     def _get_conf(self, conf_path):
@@ -310,7 +310,7 @@ class PgSQLGate(BaseGate):
             try:
                 k, v = [el.strip() for el in line.split('#')[0].strip().split('=', 1)]
                 conf[k] = v
-            except Exception, ex:
+            except Exception as ex:
                 raise GateException("Cannot parse line '{0}' in '{1}'.".format(line, conf_path))
 
         return conf
@@ -330,7 +330,7 @@ class PgSQLGate(BaseGate):
         if data or table:
             cfg = open(conf_path, 'w')
             if data and not table:
-                [cfg.write('%s = %s\n' % items) for items in data.items()]
+                [cfg.write('%s = %s\n' % items) for items in list(data.items())]
             elif table and not data:
                 [cfg.write('\t'.join(items) + "\n") for items in table]
             cfg.close()
@@ -344,11 +344,11 @@ class PgSQLGate(BaseGate):
         """
         Start the SUSE Manager Database.
         """
-        print >> sys.stdout, "Starting database...\t",
+        print("Starting database...\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
 
         if self._get_db_status():
-            print >> sys.stdout, "failed"
+            print("failed", file=sys.stdout)
             time.sleep(1)
             return
 
@@ -364,7 +364,7 @@ class PgSQLGate(BaseGate):
             # TODO: This is obsolete code, going to be removed after 2.1 EOL
             result = os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s 2>&1>/dev/null"
                                % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', '""')))
-        print >> sys.stdout, result and "failed" or "done"
+        print(result and "failed" or "done", file=sys.stdout)
         os.chdir(cwd)
         time.sleep(1)
 
@@ -372,11 +372,11 @@ class PgSQLGate(BaseGate):
         """
         Stop the SUSE Manager Database.
         """
-        print >> sys.stdout, "Stopping database...\t",
+        print("Stopping database...\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
 
         if not self._get_db_status():
-            print >> sys.stdout, "failed"
+            print("failed", file=sys.stdout)
             time.sleep(1)
             return
 
@@ -391,7 +391,7 @@ class PgSQLGate(BaseGate):
             # TODO: This is obsolete code, going to be removed after 2.1 EOL
             result = os.system("sudo -u postgres /usr/bin/pg_ctl stop -s -D %s -m fast"
                                % self.config.get('pcnf_data_directory', ''))
-        print >> sys.stdout, result and "failed" or "done"
+        print(result and "failed" or "done", file=sys.stdout)
         os.chdir(cwd)
 
         # Cleanup
@@ -401,7 +401,7 @@ class PgSQLGate(BaseGate):
         """
         Show database status.
         """
-        print 'Database is', self._get_db_status() and 'online' or 'offline'
+        print('Database is', self._get_db_status() and 'online' or 'offline')
 
     def do_space_tables(self, **args):
         """
@@ -410,7 +410,7 @@ class PgSQLGate(BaseGate):
         stdout, stderr = self.call_scenario('pg-tablesizes', target='psql')
 
         if stderr:
-            print >> sys.stderr, stderr
+            print(stderr, file=sys.stderr)
             raise GateException("Unhandled underlying error occurred, see above.")
 
         if stdout:
@@ -419,7 +419,7 @@ class PgSQLGate(BaseGate):
             t_total = 0
             longest = 0
             for line in stdout.strip().split("\n")[2:]:
-                line = filter(None, map(lambda el:el.strip(), line.split('|')))
+                line = [_f for _f in [el.strip() for el in line.split('|')] if _f]
                 if len(line) == 3:
                     t_name, t_size_pretty, t_size = line[0], line[1], int(line[2])
                     t_ref[t_name] = t_size_pretty
@@ -435,7 +435,7 @@ class PgSQLGate(BaseGate):
                 table.append((name, t_ref[name],))
             table.append(('', '',))
             table.append(('Total', ('%.2f' % round(t_total / 1024. / 1024)) + 'M',))
-            print >> sys.stdout, "\n", TablePrint(table), "\n"
+            print("\n", TablePrint(table), "\n", file=sys.stdout)
 
     def _get_partition(self, fdir):
         """
@@ -471,7 +471,7 @@ class PgSQLGate(BaseGate):
             line = line.strip()
             if not line.startswith(partition):
                 continue
-            line = filter(None, line.split(" "))
+            line = [_f for _f in line.split(" ") if _f]
             info.fs_dev = line[0]
             info.fs_type = line[1]
             info.size = int(line[2]) * 1024  # Bytes
@@ -491,7 +491,7 @@ class PgSQLGate(BaseGate):
         for line in stdout.split("\n"):
             if "|" not in line or "pg_database_size" in line:  # Different versions of postgresql
                 continue
-            line = filter(None, line.strip().replace('|', '').split(" "))
+            line = [_f for _f in line.strip().replace('|', '').split(" ") if _f]
             if len(line) != 2:
                 continue
             d_size = int(line[0])
@@ -501,13 +501,13 @@ class PgSQLGate(BaseGate):
                              self._bt_to_mb(info.size),
                              '%.3f' % round((float(d_size) / float(info.size) * 100), 3)))
 
-        print >> sys.stdout, "\n", TablePrint(overview), "\n"
+        print("\n", TablePrint(overview), "\n", file=sys.stdout)
 
     def do_space_reclaim(self, **args):
         """
         Free disk space from unused object in tables and indexes.
         """
-        print >> sys.stdout, "Examining database...\t",
+        print("Examining database...\t", end=' ', file=sys.stdout)
         sys.stdout.flush()
 
         #roller = Roller()
@@ -519,7 +519,7 @@ class PgSQLGate(BaseGate):
             #print >> sys.stderr, "failed"
             raise GateException("Database must be online.")
 
-        print >> sys.stderr, "finished"
+        print("finished", file=sys.stderr)
         #roller.stop('done')
         time.sleep(1)
 
@@ -529,7 +529,7 @@ class PgSQLGate(BaseGate):
             ]
 
         for msg, operation in operations:
-            print >> sys.stdout, "%s...\t" % msg,
+            print("%s...\t" % msg, end=' ', file=sys.stdout)
             sys.stdout.flush()
             #roller = Roller()
             #roller.start()
@@ -539,15 +539,15 @@ class PgSQLGate(BaseGate):
             if stderr:
                 #roller.stop('failed')
                 #time.sleep(1)
-                print >> sys.stderr, "failed"
+                print("failed", file=sys.stderr)
                 sys.stdout.flush()
-                print >> sys.stderr, stderr
+                print(stderr, file=sys.stderr)
                 raise GateException("Unhandled underlying error occurred, see above.")
 
             else:
                 #roller.stop('done')
                 #time.sleep(1)
-                print >> sys.stdout, "done"
+                print("done", file=sys.stdout)
                 sys.stdout.flush()
                 #print stdout
 
@@ -555,7 +555,7 @@ class PgSQLGate(BaseGate):
         """
         Get tablespace size in bytes.
         """
-        return long(os.popen('/usr/bin/du -bc %s' % path).readlines()[-1].strip().replace('\t', ' ').split(' ')[0])
+        return int(os.popen('/usr/bin/du -bc %s' % path).readlines()[-1].strip().replace('\t', ' ').split(' ')[0])
 
     def _rst_get_backup_root(self, path):
         """
@@ -583,9 +583,9 @@ class PgSQLGate(BaseGate):
         old_data_dir = os.path.dirname(self.config['pcnf_pg_data']) + '/data.old'
         if not os.path.exists(old_data_dir):
             os.mkdir(old_data_dir)
-            print >> sys.stdout, "Created \"%s\" directory." % old_data_dir
+            print("Created \"%s\" directory." % old_data_dir, file=sys.stdout)
 
-        print >> sys.stdout, "Moving broken cluster:\t ",
+        print("Moving broken cluster:\t ", end=' ', file=sys.stdout)
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -605,7 +605,7 @@ class PgSQLGate(BaseGate):
             self.do_db_stop()
             self.do_db_status()
             if self._get_db_status():
-                print >> sys.stderr, "Error: Unable to stop database."
+                print("Error: Unable to stop database.", file=sys.stderr)
                 sys.exit(1)
 
     def _rst_replace_new_backup(self, backup_dst):
@@ -613,18 +613,18 @@ class PgSQLGate(BaseGate):
         Replace new backup.
         """
         # Archive into a tgz backup and place it near the cluster
-        print >> sys.stdout, "Restoring from backup:\t ",
+        print("Restoring from backup:\t ", end=' ', file=sys.stdout)
         sys.stdout.flush()
 
         # Remove cluster in general
-        print >> sys.stdout, "Remove broken cluster:\t ",
+        print("Remove broken cluster:\t ", end=' ', file=sys.stdout)
         sys.stdout.flush()
         shutil.rmtree(self.config['pcnf_pg_data'])
-        print >> sys.stdout, "finished"
+        print("finished", file=sys.stdout)
         sys.stdout.flush()
 
         # Unarchive cluster
-        print >> sys.stdout, "Unarchiving new backup:\t ",
+        print("Unarchiving new backup:\t ", end=' ', file=sys.stdout)
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -641,15 +641,15 @@ class PgSQLGate(BaseGate):
         roller.stop("finished")
         time.sleep(1)
 
-        print >> sys.stdout, "Restore cluster:\t ",
+        print("Restore cluster:\t ", end=' ', file=sys.stdout)
         backup_root = self._rst_get_backup_root(temp_dir)
         mv_command = '/bin/mv %s %s' % (backup_root, os.path.dirname(self.config['pcnf_pg_data']) + "/data")
         os.system(mv_command)
         #print mv_command
-        print >> sys.stdout, "finished"
+        print("finished", file=sys.stdout)
         sys.stdout.flush()
 
-        print >> sys.stdout, "Write recovery.conf:\t ",
+        print("Write recovery.conf:\t ", end=' ', file=sys.stdout)
         recovery_conf = os.path.join(self.config['pcnf_pg_data'], "recovery.conf")
         cfg = open(recovery_conf, 'w')
         cfg.write("restore_command = 'cp " + backup_dst + "/%f %p'\n")
@@ -659,7 +659,7 @@ class PgSQLGate(BaseGate):
         data_owner = get_path_owner(self.config.get('pcnf_pg_data', PgBackup.DEFAULT_PG_DATA))
         os.chown(recovery_conf, data_owner.uid, data_owner.gid)
 
-        print >> sys.stdout, "finished"
+        print("finished", file=sys.stdout)
         sys.stdout.flush()
 
     def do_backup_restore(self, *opts, **args):
@@ -675,7 +675,7 @@ class PgSQLGate(BaseGate):
 
         backup_dst, backup_on = self.do_backup_status('--silent')
         if not backup_on:
-            print >> sys.stderr, "No backup snapshots are available."
+            print("No backup snapshots are available.", file=sys.stderr)
             sys.exit(1)
 
         # Check if we have enough space to fit enough copy of the tablespace
@@ -683,14 +683,14 @@ class PgSQLGate(BaseGate):
         bckp_ts_size = self._get_tablespace_size(backup_dst)
         disk_size = self._get_partition_size(self.config['pcnf_pg_data'])
 
-        print >> sys.stdout, "Current cluster size:\t", self.size_pretty(curr_ts_size)
-        print >> sys.stdout, "Backup size:\t\t", self.size_pretty(bckp_ts_size)
-        print >> sys.stdout, "Current disk space:\t", self.size_pretty(disk_size)
-        print >> sys.stdout, "Predicted space:\t", self.size_pretty(disk_size - (curr_ts_size * ratio) - bckp_ts_size)
+        print("Current cluster size:\t", self.size_pretty(curr_ts_size), file=sys.stdout)
+        print("Backup size:\t\t", self.size_pretty(bckp_ts_size), file=sys.stdout)
+        print("Current disk space:\t", self.size_pretty(disk_size), file=sys.stdout)
+        print("Predicted space:\t", self.size_pretty(disk_size - (curr_ts_size * ratio) - bckp_ts_size), file=sys.stdout)
 
         # At least 1GB free disk space required *after* restore from the backup
         if disk_size - curr_ts_size - bckp_ts_size < 0x40000000:
-            print >> sys.stderr, "At least 1GB free disk space required after backup restoration."
+            print("At least 1GB free disk space required after backup restoration.", file=sys.stderr)
             sys.exit(1)
 
         # Requirements were met at this point.
@@ -723,12 +723,12 @@ class PgSQLGate(BaseGate):
         #--autosource=%p --destination=/root/of/your/backups\n
         #NOTE: All parameters above are used automatically!\n
 
-        if args.get('enable') == 'on' and 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
+        if args.get('enable') == 'on' and 'backup-dir' in list(args.keys()) and not args['backup-dir'].startswith('/'):
             raise GateException("No relative paths please.")
 
         # Already enabled?
-        arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] +
-                                                    "/postgresql.conf").get("archive_command", "''")).split(" "))
+        arch_cmd = [_f for _f in eval(self._get_conf(self.config['pcnf_pg_data'] +
+                                                    "/postgresql.conf").get("archive_command", "''")).split(" ") if _f]
         if '--destination' not in arch_cmd and args.get('enable') != 'on':
             raise GateException('Backups are not enabled. Please enable them first. See help for more information.')
 
@@ -743,10 +743,10 @@ class PgSQLGate(BaseGate):
             if not args.get('enable'):
                 args['enable'] = 'on'
 
-        if args.get('enable') == 'on' and 'backup-dir' not in args.keys():
+        if args.get('enable') == 'on' and 'backup-dir' not in list(args.keys()):
             raise GateException("Backup destination is not defined. Please issue '--backup-dir' option.")
 
-        if 'enable' in args.keys():
+        if 'enable' in list(args.keys()):
             # Check destination only in case user is enabling the backup
             if args.get('enable') == 'on':
                 # Same owner?
@@ -756,16 +756,16 @@ class PgSQLGate(BaseGate):
                                         "same user and group as \"%s\" directory."
                                         % (args['backup-dir'], self.config['pcnf_pg_data']))
                 # Same permissions?
-                if oct(os.lstat(args['backup-dir']).st_mode & 0777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0777):
+                if oct(os.lstat(args['backup-dir']).st_mode & 0o777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0o777):
                     raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
                                         % (args['backup-dir'], self.config['pcnf_pg_data']))
             self._perform_enable_backups(**args)
 
-        if 'source' in args.keys():
+        if 'source' in list(args.keys()):
             # Copy xlog entry
             self._perform_archive_operation(**args)
 
-        print >> sys.stdout, "INFO: Finished"
+        print("INFO: Finished", file=sys.stdout)
 
     def _perform_enable_backups(self, **args):
         """
@@ -816,7 +816,7 @@ class PgSQLGate(BaseGate):
         else:
             # Disable backups
             if enable == 'purge' and os.path.exists(backup_dir):
-                print >> sys.stdout, "INFO: Removing the whole backup tree \"%s\"" % backup_dir
+                print("INFO: Removing the whole backup tree \"%s\"" % backup_dir, file=sys.stdout)
                 shutil.rmtree(backup_dir)
 
             cmd = "'/bin/true'"
@@ -825,7 +825,7 @@ class PgSQLGate(BaseGate):
                 self._write_conf(conf_path, **conf)
                 self._apply_db_conf()
             else:
-                print >> sys.stdout, "INFO: Backup was not enabled."
+                print("INFO: Backup was not enabled.", file=sys.stdout)
 
     def _apply_db_conf(self):
         """
@@ -833,10 +833,10 @@ class PgSQLGate(BaseGate):
         """
         stdout, stderr = self.call_scenario('pg-reload-conf', target='psql')
         if stderr:
-            print >> sys.stderr, stderr
+            print(stderr, file=sys.stderr)
             raise GateException("Unhandled underlying error occurred, see above.")
         if stdout and stdout.strip() == 't':
-            print >> sys.stdout, "INFO: New configuration has been applied."
+            print("INFO: New configuration has been applied.", file=sys.stdout)
 
     def _perform_archive_operation(self, **args):
         """
@@ -881,13 +881,13 @@ class PgSQLGate(BaseGate):
                 line = line.strip()
                 if not line.startswith(partition):
                     continue
-                space_usage = (filter(None, line.split(' '))[5] + '').replace('%', '')
+                space_usage = ([_f for _f in line.split(' ') if _f][5] + '').replace('%', '')
 
         if '--silent' not in opts:
-            print >> sys.stdout, "Backup status:\t\t", (backup_on and 'ON' or 'OFF')
-            print >> sys.stdout, "Destination:\t\t", (backup_dst or '--')
-            print >> sys.stdout, "Last transaction:\t", backup_last_transaction and time.ctime(backup_last_transaction) or '--'
-            print >> sys.stdout, "Space available:\t", space_usage and str((100 - int(space_usage))) + '%' or '--'
+            print("Backup status:\t\t", (backup_on and 'ON' or 'OFF'), file=sys.stdout)
+            print("Destination:\t\t", (backup_dst or '--'), file=sys.stdout)
+            print("Last transaction:\t", backup_last_transaction and time.ctime(backup_last_transaction) or '--', file=sys.stdout)
+            print("Space available:\t", space_usage and str((100 - int(space_usage))) + '%' or '--', file=sys.stdout)
 
         return backup_dst, backup_on
 
@@ -895,7 +895,7 @@ class PgSQLGate(BaseGate):
         """
         Get a size of the partition, where path belongs to.
         """
-        return long((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
+        return int(([_f for _f in (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' ') if _f][4] + '').strip())
 
     def do_system_check(self, *args, **params):
         """
@@ -920,11 +920,11 @@ class PgSQLGate(BaseGate):
         conn_default = 400
         max_conn = int(params.get('max_connections', conn_default))
         if max_conn < conn_lowest:
-            print >> sys.stdout, 'INFO: max_connections should be at least {0}'.format(conn_lowest)
+            print('INFO: max_connections should be at least {0}'.format(conn_lowest), file=sys.stdout)
             max_conn = conn_lowest
 
         if 'autotuning' in args:
-            for item, value in PgTune(max_conn).estimate().config.items():
+            for item, value in list(PgTune(max_conn).estimate().config.items()):
                 if not changed and str(conf.get(item, None)) != str(value):
                     changed = True
                 conf[item] = value
@@ -984,7 +984,7 @@ class PgSQLGate(BaseGate):
         for line in open(pg_hba_cnf_path).readlines():
             line = line.strip()
             if not line or line.startswith('#'): continue
-            pg_hba_conf.append(filter(None, line.replace("\t", " ").split(' ')))
+            pg_hba_conf.append([_f for _f in line.replace("\t", " ").split(' ') if _f])
 
         replication_cfg = ['local', 'replication', 'postgres', 'peer']
 
@@ -996,28 +996,28 @@ class PgSQLGate(BaseGate):
         # Commit the changes
         #
         if changed or hba_changed:
-            print >> sys.stdout, "INFO: Database configuration has been changed."
+            print("INFO: Database configuration has been changed.", file=sys.stdout)
             if changed:
                 conf_bk = self._write_conf(conf_path, **conf)
                 if conf_bk:
-                    print >> sys.stdout, "INFO: Wrote new general configuration. Backup as", conf_bk
+                    print("INFO: Wrote new general configuration. Backup as", conf_bk, file=sys.stdout)
 
             # hba save
             if hba_changed:
                 conf_bk = self._write_conf(pg_hba_cnf_path, *pg_hba_conf)
                 if conf_bk:
-                    print >> sys.stdout, "INFO: Wrote new client auth configuration. Backup as", conf_bk
+                    print("INFO: Wrote new client auth configuration. Backup as", conf_bk, file=sys.stdout)
 
             # Restart
             if self._get_db_status():
                 self._apply_db_conf()
             else:
-                print >> sys.stdout, "INFO: Configuration has been changed, but your database is right now offline."
+                print("INFO: Configuration has been changed, but your database is right now offline.", file=sys.stdout)
             self.do_db_status()
         else:
-            print >> sys.stdout, "INFO: No changes required."
+            print("INFO: No changes required.", file=sys.stdout)
 
-        print >> sys.stdout, "System check finished"
+        print("System check finished", file=sys.stdout)
 
         return True
 

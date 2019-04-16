@@ -98,7 +98,7 @@ class TablePrint:
         return self._format()
 
 
-def create_dirs(path, owner, mode=0700):
+def create_dirs(path, owner, mode=0o700):
     """
     Create path and change owner of it accordingly.
     Default mode is 0700
@@ -159,4 +159,4 @@ if __name__ == '__main__':
         ('and so on', 7, 84542, '1.9'),
         ]
 
-    print TablePrint(table)
+    print(TablePrint(table))
