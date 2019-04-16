@@ -1,57 +1,39 @@
-# Base gate class for specific databases
-#
-# Author: Bo Maryniuk <bo@suse.de>
-#
-#
-# The MIT License (MIT)
-# Copyright (C) 2012 SUSE Linux Products GmbH
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to
-# deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# sell copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions: 
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software. 
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE. 
-# 
+# coding: utf-8
+"""
+Base gate class for specific databases.
+"""
 
 import os
 import sys
 import textwrap
-import subprocess
+import abc
+import typing
 from subprocess import Popen, PIPE, STDOUT
+from smdba.utils import eprint
 
 
-class GateException(Exception): pass
+class GateException(Exception):
+    """
+    Gate exception.
+    """
 
-class BaseGate:
+
+class BaseGate(metaclass=abc.ABCMeta):
     """
     Gate of tools for all supported databases.
     """
 
     debug = False
 
-
-    # XXX: This is a stub method that currently is OK to have here.
-    #      However, probably it shall be moved away to an external
-    #      class, in the fashion like DB gates.
-    def is_sm_running(self):
+    @staticmethod
+    def is_sm_running() -> bool:
         """
-        Returns True in case SUSE Manager is running.
-        Warning: very basic check and does not checks all the components.
+        Performs a pretty basic check without checking all the components.
+
+        :returns True in case SUSE Manager is running.
         """
         initd = '/etc/init.d'
-        print "Checking SUSE Manager running..."
+        print("Checking SUSE Manager running...")
 
         # Get tomcat
         tomcat = None
@@ -60,12 +42,7 @@ class BaseGate:
                 tomcat = initd + "/" + cmd
                 break
 
-        # Get HTTPd
-        apache_httpd = initd + (os.path.exists(initd + '/httpd') and '/httpd' or '/apache2')        
-        #print "Apache: " + os.popen(apache_httpd + " status").read()
-
         return os.popen(tomcat + " status 2>&1").read().strip().find('dead') == -1
-
 
     def get_scn(self, name):
         """
@@ -73,10 +50,9 @@ class BaseGate:
         """
         scenario = os.path.sep.join((os.path.abspath(__file__).split(os.path.sep)[:-1] + ['scenarios', name + ".scn"]))
         if not os.path.exists(scenario):
-            raise IOError("Scenario \"%s\" is not accessible." % scenario)
+            raise IOError("Scenario '{}' is not accessible.".format(scenario))
 
         return open(scenario, 'r')
-
 
     def get_scenario_template(self, target='sqlplus', login=None):
         """
@@ -120,60 +96,54 @@ class BaseGate:
             scenario.append("EOF")
         
         if self.debug:
-            print "\n" + ("-" * 40) + "8<" + ("-" * 40)
-            print '\n'.join(scenario)
-            print ("-" * 40) + "8<" + ("-" * 40)
+            print("\n" + ("-" * 40) + "8<" + ("-" * 40))
+            print('\n'.join(scenario))
+            print(("-" * 40) + "8<" + ("-" * 40))
 
         return '\n'.join(scenario)
 
-    
     def call_scenario(self, scenario, target='sqlplus', login=None, **variables):
         """
         Call scenario in SQL*Plus.
         Returns stdout and stderr.
         """
-        template = self.get_scenario_template(target=target, login=login).replace('@scenario', self.get_scn(scenario).read().replace('$', '\$'))
-
+        template = self.get_scenario_template(target=target, login=login).replace(
+            '@scenario', self.get_scn(scenario).read().replace('$', '\$'))
         if variables:
             for k_var, v_var in variables.items():
                 template = template.replace('@' + k_var, v_var)
 
-        user = None
         if target in ['sqlplus', 'rman']:
             user = 'oracle'
         elif target in ['psql']:
             user = 'postgres'
         else:
             raise GateException("Unknown target: %s" % target)
-        
-        # Dev purposes
-        #print "-- TEMPLATE --"
-        #print template
-        #print "=============="
-
         return self.syscall("sudo", template, None, "-u", user, "/bin/bash")
 
-
-    def syscall(self, command, input=None, daemon=None, *params):
+    def syscall(self, command, input=None, *params) -> typing.Tuple[str, str]:
         """
         Call an external system command.
+
+        :param command: a command to run from a system.
+        :param input: input device.
+        :param *params: tertiary parameters
+        :returns: STDOUT/STDERR tuple
         """
-        stdout, stderr = Popen([command] + list(params), 
-                               stdout=PIPE, 
-                               stdin=PIPE, 
-                               stderr=STDOUT,
+        stdout, stderr = Popen([command] + list(params), stdout=PIPE, stdin=PIPE, stderr=STDOUT,
                                env=os.environ).communicate(input=input)
         if not stderr:
             stderr = ""
         stderr += self.extract_errors(stdout)
+
         return stdout and stdout.strip() or '', stderr and stderr.strip() or ''
 
-
-    def get_gate_commands(self):
+    def get_gate_commands(self) -> typing.Dict[str, typing.Dict[str, str]]:
         """
         Gate commands inspector.
-        """
 
+        :returns: dictionary of the gate commands.
+        """
         gate_commands = getattr(self, "_gate_commands", None)
         if not gate_commands:
             self._gate_commands = {}
@@ -199,15 +169,13 @@ class BaseGate:
 
         return self._gate_commands
 
-
+    @abc.abstractmethod
     def check(self):
         """
-        Stub for checking the gate requirements.
+        Check for the gate requirements.
         """
-        raise GateException("No check implemented for this gate.")
 
-
-    def size_pretty(self, size, int_only=False, no_whitespace=False):
+    def size_pretty(self, size: str, int_only: bool = False, no_whitespace: bool = False) -> str:
         """
         Make pretty size from bytes to other metrics.
         Size: amount (int, long)
@@ -219,19 +187,20 @@ class BaseGate:
         sz_ptn = int_only and '%s' or '%.2f'
 
         if size >= 0x10000000000:
-            return (sz_ptn + '%sTB') % (wrap((size / 0x10000000000)), ws)
+            msg = (sz_ptn + '%sTB') % (wrap((size / 0x10000000000)), ws)
         elif size >= 0x40000000:
-            return (sz_ptn + '%sGB') % (wrap((size / 0x40000000)), ws)
+            msg = (sz_ptn + '%sGB') % (wrap((size / 0x40000000)), ws)
         elif size >= 0x100000:
-            return (sz_ptn + '%sMB') % (wrap((size / 0x100000)), ws)
+            msg = (sz_ptn + '%sMB') % (wrap((size / 0x100000)), ws)
         elif size >= 0x400:
-            return (sz_ptn + '%sKB') % (wrap((size / 0x400)), ws)
+            msg = (sz_ptn + '%sKB') % (wrap((size / 0x400)), ws)
         else:
-            return ((int_only and '%s' or '%.f') + '%sBytes') % (wrap(size), ws)
+            msg = ((int_only and '%s' or '%.f') + '%sBytes') % (wrap(size), ws)
+        return msg
 
-
-    def media_usage(self, path):
-        """Return media usage statistics about the given path.
+    def media_usage(self, path: str) -> typing.Dict[str, float]:
+        """
+        Return media usage statistics about the given path.
 
         Returned valus is a dictionary with keys 'total', 'used' and
         'free', which are the amount of total, used and free space, in bytes.
@@ -241,32 +210,31 @@ class BaseGate:
         total = st.f_blocks * st.f_frsize
         used = (st.f_blocks - st.f_bfree) * st.f_frsize
 
-        return {'free' : free, 'total' : total, 'used' : used}
+        return {'free': free, 'total': total, 'used': used}
 
-
-    def check_sudo(self, uid):
+    def check_sudo(self, uid) -> None:
         """
         Check if UID has sudo permission.
+
+        :raises GateException if access denied.
+        :returns: None
         """
-        sudo = os.popen("which sudo").read().strip()
-        stdout, stderr = self.syscall(sudo, "", None, "-nu", uid, "-S", "true", "/bin/bash")
-        if stdout + stderr:
-            raise GateException("Access denied to UID \"%s\" via sudo." % uid);
+        stdout, stderr = self.syscall(os.popen("which sudo").read().strip(), "", None,
+                                      "-nu", uid, "-S", "true", "/bin/bash")
+        if stdout or stderr:
+            raise GateException("Access denied to UID '{}' via sudo.".format(uid))
 
-
+    @abc.abstractmethod
     def startup(self):
         """
-        Placeholder for the gate-specific hooks before starting any operations.
+        Gate-specific hooks before starting any operations.
         """
-        print "Starting gate state: Not used."
 
-
+    @abc.abstractmethod
     def finish(self):
         """
-        Placeholder for the gate-specific hooks after finishing all operations.
+        Gate-specific hooks after finishing all operations.
         """
-        print "Finishing gate state: Not used."
-
 
     def extract_errors(self, stdout):
         """
@@ -280,11 +248,10 @@ class BaseGate:
         out = []
         for line in filter(None, str(stdout).replace("\\n", "\n").split("\n")):
             if line.lower().startswith("ora-") or line.lower().startswith("rman-"):
-                if not line.find("===") > -1: # Skip ugly Oracle error emphasis
+                if not line.find("===") > -1:
                     out += textwrap.wrap(line.strip())
 
         return '\n'.join(out)
-
 
     def to_stderr(self, stderr):
         """
@@ -296,8 +263,9 @@ class BaseGate:
         out = []
         for line in filter(None, str(stderr).replace("\\n", "\n").split("\n")):
             out.append("  " + line.strip())
-        print >> sys.stderr, "\nError:\n" + ("-" * 80)
-        print >> sys.stderr, "\n".join(out)
-        print >> sys.stderr, "-" * 80
+
+        eprint("\nError:\n" + ("-" * 80))
+        eprint("\n".join(out))
+        eprint("-" * 80)
 
         sys.exit(1)
