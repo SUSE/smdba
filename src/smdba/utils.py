@@ -25,6 +25,7 @@
 # 
 
 import os
+import sys
 import grp
 import pwd
 
@@ -41,7 +42,6 @@ class TablePrint:
         self.table = table
         self.widths = []
 
-
     def _check(self):
         """
         Check if table is consistent grid.
@@ -52,12 +52,11 @@ class TablePrint:
 
         header = None
         for row in self.table:
-            if header == None:
+            if header is None:
                 header = len(row)
                 continue
             if len(row) != header:
                 raise Exception("Table has different row widths.")
-
 
     def _get_widths(self):
         """
@@ -70,7 +69,6 @@ class TablePrint:
                 cell_len = len(str(row[idx]))
                 if cell_len > self.widths[idx]:
                     self.widths[idx] = cell_len
-
 
     def _format(self):
         """
@@ -91,14 +89,13 @@ class TablePrint:
 
         return '\n'.join(out)
 
-
     def __str__(self):
         self._check()
         self._get_widths()
         return self._format()
 
 
-def create_dirs(path, owner, mode=0700):
+def create_dirs(path, owner, mode=0o700):
     """
     Create path and change owner of it accordingly.
     Default mode is 0700
@@ -133,12 +130,11 @@ def get_path_owner(path):
     return owner
 
 
-
 def unquote(self, el):
     """
     Unquote an element.
     """
-    if el == None:
+    if el is None:
         return None
 
     el = el.strip()
@@ -148,15 +144,12 @@ def unquote(self, el):
     return (el[0] == el[-1] and el[0] in '\'"') and self._dequote(el[1:][:-1]) or el
 
 
+def eprint(*args, **kwargs):
+    """
+    Print to the STDERR.
 
-# Test
-if __name__ == '__main__':
-    table = [
-        ('Label', 'Int', 'Number', 'Percentage'),
-        ('foo', 6, 94564, '0.5'),
-        ('bar', 6, 945646, '3.4'),
-        ('something else here', 8, 345644, '0.5'),
-        ('and so on', 7, 84542, '1.9'),
-        ]
-
-    print TablePrint(table)
+    :param args: print arguments
+    :param kwargs: keywords
+    :return: None
+    """
+    print(*args, file=sys.stderr, **kwargs)
