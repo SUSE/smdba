@@ -1,28 +1,7 @@
-# General utils
-#
-# Author: Bo Maryniuk <bo@suse.de>
-#
-# The MIT License (MIT)
-# Copyright (C) 2012 SUSE Linux Products GmbH
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to
-# deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# sell copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions: 
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software. 
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE. 
-# 
+# coding: utf-8
+"""
+General utils
+"""
 
 import os
 import sys
@@ -47,7 +26,7 @@ class TablePrint:
         Check if table is consistent grid.
         Header is a leader here.
         """
-        if not len(self.table):
+        if not self.table:
             raise Exception("Table is empty!")
 
         header = None
@@ -63,10 +42,10 @@ class TablePrint:
         Find extra-widths by max width of any value.
         """
 
-        self.widths = [0 for x in self.table[0]]
+        self.widths = [0 for _ in self.table[0]]
         for row in self.table:
-            for idx in range(len(row)):
-                cell_len = len(str(row[idx]))
+            for idx, cell in enumerate(row):
+                cell_len = len(str(cell))
                 if cell_len > self.widths[idx]:
                     self.widths[idx] = cell_len
 
@@ -78,14 +57,14 @@ class TablePrint:
         ftable = []
         for row in self.table:
             frow = []
-            for idx in range(len(row)):
-                frow.append(str(row[idx]) + (" " * (self.widths[idx] - len(str(row[idx])))))
+            for idx, cell in enumerate(row):
+                frow.append(str(cell) + (" " * (self.widths[idx] - len(str(cell)))))
             ftable.append(frow)
 
-        for idx in range(len(ftable)):
-            out.append(' | '.join(ftable[idx]))
-            if idx == 0:
-                out.append('-+-'.join(["-" * len(item) for item in ftable[idx]]))
+        for idx, row in enumerate(ftable):
+            out.append(' | '.join(row))
+            if not idx:
+                out.append('-+-'.join(["-" * len(item) for item in row]))
 
         return '\n'.join(out)
 
@@ -114,6 +93,9 @@ def get_path_owner(path):
     Returns the owner and group IDs of a directory.
     """
     class Owner:
+        """
+        Owner class
+        """
         def __init__(self):
             self.uid = -1
             self.gid = -1
@@ -130,18 +112,20 @@ def get_path_owner(path):
     return owner
 
 
-def unquote(self, el):
+# pylint: disable=R1706,W0212,R0911
+def unquote(self, elm):
     """
     Unquote an element.
     """
-    if el is None:
+    if elm is None:
         return None
 
-    el = el.strip()
-    if not el or len(el) < 2:
-        return el
+    elm = elm.strip()
+    if not elm or len(elm) < 2:
+        return elm
 
-    return (el[0] == el[-1] and el[0] in '\'"') and self._dequote(el[1:][:-1]) or el
+    return (elm[0] == elm[-1] and elm[0] in '\'"') and self._dequote(elm[1:][:-1]) or elm
+# pylint: enable=R1706,W0212,R0911
 
 
 def eprint(*args, **kwargs):
