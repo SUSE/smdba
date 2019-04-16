@@ -48,18 +48,18 @@ class Roller(threading.Thread):
         :param message: Message for the roller.
         :return: None
         """
-        self.__message = message and message or "  "
+        self.__message = message if message else "  "
         self.__running = False
         self.__offset = 0
 
 
-if __name__ == '__main__':
-    print("Doing thing:\t", end="")
-    sys.stdout.flush()
-
-    roller = Roller()
-    roller.start()
-    time.sleep(5)
-    roller.stop("finished")
-    time.sleep(1)
-    print("OK")
+# if __name__ == '__main__':
+#     print("Doing thing:\t", end="")
+#     sys.stdout.flush()
+#
+#     roller = Roller()
+#     roller.start()
+#     time.sleep(5)
+#     roller.stop("finished")
+#     time.sleep(1)
+#     print("OK")
