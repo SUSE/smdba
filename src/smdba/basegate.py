@@ -11,6 +11,8 @@ import typing
 from subprocess import Popen, PIPE, STDOUT
 from smdba.utils import eprint
 
+# pylint: disable=W0622
+
 
 class GateException(Exception):
     """
@@ -24,6 +26,9 @@ class BaseGate(metaclass=abc.ABCMeta):
     """
 
     debug = False
+
+    def __init__(self):
+        self._gate_commands = {}
 
     @staticmethod
     def is_sm_running() -> bool:
@@ -44,7 +49,8 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return os.popen(tomcat + " status 2>&1").read().strip().find('dead') == -1
 
-    def get_scn(self, name):
+    @staticmethod
+    def get_scn(name):
         """
         Get scenario by name.
         """
@@ -58,11 +64,10 @@ class BaseGate(metaclass=abc.ABCMeta):
         """
         Generate a template for the Oracle SQL*Plus scenario.
         """
-        e = os.environ.get
+        env = os.environ.get
         scenario = []
-        login = login and login or '/nolog'
+        login = login if login else '/nolog'
 
-        executable = None
         if target == 'sqlplus':
             executable = "/bin/%s -S %s" % (target, login)
         elif target == 'rman':
@@ -73,15 +78,15 @@ class BaseGate(metaclass=abc.ABCMeta):
             raise Exception("Unknown scenario target: %s" % target)
 
         if target in ['sqlplus', 'rman']:
-            if e('PATH') and e('ORACLE_BASE') and e('ORACLE_SID') and e('ORACLE_HOME'):
-                scenario.append("export ORACLE_BASE=" + e('ORACLE_BASE'))
-                scenario.append("export ORACLE_SID=" + e('ORACLE_SID'))
-                scenario.append("export ORACLE_HOME=" + e('ORACLE_HOME'))
-                scenario.append("export PATH=" + e('PATH'))
+            if env('PATH') and env('ORACLE_BASE') and env('ORACLE_SID') and env('ORACLE_HOME'):
+                scenario.append("export ORACLE_BASE=" + env('ORACLE_BASE'))
+                scenario.append("export ORACLE_SID=" + env('ORACLE_SID'))
+                scenario.append("export ORACLE_HOME=" + env('ORACLE_HOME'))
+                scenario.append("export PATH=" + env('PATH'))
             else:
                 raise Exception("Underlying error: environment cannot be constructed.")
 
-            scenario.append("cat - << EOF | " + e('ORACLE_HOME') + executable)
+            scenario.append("cat - << EOF | " + env('ORACLE_HOME') + executable)
             if target == 'sqlplus' and login.lower() == '/nolog':
                 scenario.append("CONNECT / AS SYSDBA;")
             elif target == 'rman':
@@ -94,7 +99,7 @@ class BaseGate(metaclass=abc.ABCMeta):
             scenario.append(("cat - << EOF | " + executable + " -t --pset footer=off " + self.config.get('db_name', '')).strip())
             scenario.append("@scenario")
             scenario.append("EOF")
-        
+
         if self.debug:
             print("\n" + ("-" * 40) + "8<" + ("-" * 40))
             print('\n'.join(scenario))
@@ -108,7 +113,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         Returns stdout and stderr.
         """
         template = self.get_scenario_template(target=target, login=login).replace(
-            '@scenario', self.get_scn(scenario).read().replace('$', '\$'))
+            '@scenario', self.get_scn(scenario).read().replace('$', r'\$'))
         if variables:
             for k_var, v_var in variables.items():
                 template = template.replace('@' + k_var, v_var)
@@ -121,7 +126,7 @@ class BaseGate(metaclass=abc.ABCMeta):
             raise GateException("Unknown target: %s" % target)
         return self.syscall("sudo", template, None, "-u", user, "/bin/bash")
 
-    def syscall(self, command, input=None, *params) -> typing.Tuple[str, str]:
+    def syscall(self, command, *params, input=None) -> typing.Tuple[str, str]:
         """
         Call an external system command.
 
@@ -174,41 +179,42 @@ class BaseGate(metaclass=abc.ABCMeta):
         """
         Check for the gate requirements.
         """
-
-    def size_pretty(self, size: str, int_only: bool = False, no_whitespace: bool = False) -> str:
+    @staticmethod
+    def size_pretty(size: str, int_only: bool = False, no_whitespace: bool = False) -> str:
         """
         Make pretty size from bytes to other metrics.
         Size: amount (int, long)
         """
 
         size = float(size)
-        ws = not no_whitespace and ' ' or ''
-        wrap = not int_only and (lambda dummy:dummy) or int
-        sz_ptn = int_only and '%s' or '%.2f'
+        wsp = "" if no_whitespace else " "
+        wrap = lambda dummy: dummy if not int_only else int
+        sz_ptn = '%s' if int_only else '%.2f'
 
         if size >= 0x10000000000:
-            msg = (sz_ptn + '%sTB') % (wrap((size / 0x10000000000)), ws)
+            msg = (sz_ptn + '%sTB') % (wrap((size / 0x10000000000)), wsp)
         elif size >= 0x40000000:
-            msg = (sz_ptn + '%sGB') % (wrap((size / 0x40000000)), ws)
+            msg = (sz_ptn + '%sGB') % (wrap((size / 0x40000000)), wsp)
         elif size >= 0x100000:
-            msg = (sz_ptn + '%sMB') % (wrap((size / 0x100000)), ws)
+            msg = (sz_ptn + '%sMB') % (wrap((size / 0x100000)), wsp)
         elif size >= 0x400:
-            msg = (sz_ptn + '%sKB') % (wrap((size / 0x400)), ws)
+            msg = (sz_ptn + '%sKB') % (wrap((size / 0x400)), wsp)
         else:
-            msg = ((int_only and '%s' or '%.f') + '%sBytes') % (wrap(size), ws)
+            msg = ((int_only and '%s' or '%.f') + '%sBytes') % (wrap(size), wsp)
         return msg
 
-    def media_usage(self, path: str) -> typing.Dict[str, float]:
+    @staticmethod
+    def media_usage(path: str) -> typing.Dict[str, float]:
         """
         Return media usage statistics about the given path.
 
         Returned valus is a dictionary with keys 'total', 'used' and
         'free', which are the amount of total, used and free space, in bytes.
         """
-        st = os.statvfs(path)
-        free = st.f_bavail * st.f_frsize
-        total = st.f_blocks * st.f_frsize
-        used = (st.f_blocks - st.f_bfree) * st.f_frsize
+        stvf = os.statvfs(path)
+        free = stvf.f_bavail * stvf.f_frsize
+        total = stvf.f_blocks * stvf.f_frsize
+        used = (stvf.f_blocks - stvf.f_bfree) * stvf.f_frsize
 
         return {'free': free, 'total': total, 'used': used}
 
@@ -236,7 +242,8 @@ class BaseGate(metaclass=abc.ABCMeta):
         Gate-specific hooks after finishing all operations.
         """
 
-    def extract_errors(self, stdout):
+    @staticmethod
+    def extract_errors(stdout):
         """
         Extract errors from the RMAN and SQLPlus.
         Based on http://docs.oracle.com/cd/B28359_01/backup.111/b28270/rcmtroub.htm
@@ -253,7 +260,8 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return '\n'.join(out)
 
-    def to_stderr(self, stderr):
+    @staticmethod
+    def to_stderr(stderr):
         """
         Format an error output to STDERR and terminate everything at once.
         """
