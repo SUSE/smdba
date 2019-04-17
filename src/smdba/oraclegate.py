@@ -1079,7 +1079,8 @@ class OracleGate(BaseGate):
 
         return dbid
 
-    def has_ora_error(self, raw):
+    @staticmethod
+    def has_ora_error(raw):
         """
         Just look if output was not crashed. Because Oracle developers often
         cannot decide to where to send an error: to STDERR or STDOUT. :-)
