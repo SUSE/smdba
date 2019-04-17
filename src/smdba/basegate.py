@@ -42,7 +42,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         print("Checking SUSE Manager running...")
 
         # Get tomcat
-        tomcat = None
+        tomcat = ""
         for cmd in os.listdir(initd):
             if cmd.startswith('tomcat'):
                 tomcat = initd + "/" + cmd
