@@ -112,12 +112,12 @@ class PgTune:
         :param value: a float
         :returns binary round value
         """
-        m = 1
+        mbt = 1
         while value > 0x10:
             value = int(value / 2)
-            m *= 2
+            mbt *= 2
 
-        return m * value
+        return mbt * value
 
     @staticmethod
     def to_mb(value: int) -> str:
@@ -223,8 +223,8 @@ class PgSQLGate(BaseGate):
             if line.startswith('#'):
                 continue
             try:
-                k, v = line.split("=", 1)
-                self.config['sysconfig_' + k] = v
+                key, val = line.split("=", 1)
+                self.config['sysconfig_' + key] = val
             except Exception as ex:
                 eprint("Cannot parse line", line, "from sysconfig.")
                 eprint(ex)
@@ -265,8 +265,8 @@ class PgSQLGate(BaseGate):
         if stdout:
             for line in stdout.strip().split("\n")[2:]:
                 try:
-                    k, v = map(lambda line: line.strip(), line.split('|')[:2])
-                    self.config['pcnf_' + k] = v
+                    key, val = map(lambda line: line.strip(), line.split('|')[:2])
+                    self.config['pcnf_' + key] = val
                 except Exception:
                     print("Cannot parse line:", line)
         else:
@@ -280,15 +280,15 @@ class PgSQLGate(BaseGate):
 
         :returns int of mbs
         """
-        return int(round(v / 1024. / 1024.))
+        return int(round(value / 1024. / 1024.))
 
     def _cleanup_pids(self):
         """
         Cleanup PostgreSQL garbage in /tmp
         """
-        for f in os.listdir('/tmp'):
-            if f.startswith('.s.PGSQL.'):
-                os.unlink('/tmp/' + f)
+        for fname in os.listdir('/tmp'):
+            if fname.startswith('.s.PGSQL.'):
+                os.unlink('/tmp/' + fname)
 
         # Remove postgresql.pid (versions 9.x) if postmaster was just killed
         if os.path.exists(self._pid_file):
@@ -308,8 +308,8 @@ class PgSQLGate(BaseGate):
             if not line or line.startswith('#'):
                 continue
             try:
-                k, v = [el.strip() for el in line.split('#')[0].strip().split('=', 1)]
-                conf[k] = v
+                key, val = [el.strip() for el in line.split('#')[0].strip().split('=', 1)]
+                conf[key] = val
             except Exception:
                 raise GateException("Cannot parse line '{0}' in '{1}'.".format(line, conf_path))
 
@@ -570,10 +570,10 @@ class PgSQLGate(BaseGate):
         fpath = os.listdir(path)
         if 'backup_label' in fpath: # XXX: Add search by label too for multiple backups?
             return path
-        for f in fpath:
-            f = path + "/" + f
-            if os.path.isdir(f):
-                found = self._rst_get_backup_root(f)
+        for fname in fpath:
+            fname = path + "/" + fname
+            if os.path.isdir(fname):
+                found = self._rst_get_backup_root(fname)
                 if found:
                     break
 
@@ -872,8 +872,8 @@ class PgSQLGate(BaseGate):
 
         backup_last_transaction = None
         if backup_dst:
-            for fh in os.listdir(backup_dst):
-                mtime = os.path.getmtime(backup_dst + "/" + fh)
+            for fname in os.listdir(backup_dst):
+                mtime = os.path.getmtime(backup_dst + "/" + fname)
                 if mtime > backup_last_transaction:
                     backup_last_transaction = mtime
 
