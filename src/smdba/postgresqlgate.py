@@ -396,7 +396,7 @@ class PgSQLGate(BaseGate):
             t_total = 0
             longest = 0
             for line in stdout.strip().split("\n")[2:]:
-                line = filter(None, map(lambda el:el.strip(), line.split('|')))
+                line = list(filter(None, map(lambda el:el.strip(), line.split('|'))))
                 if len(line) == 3:
                     t_name, t_size_pretty, t_size = line[0], line[1], int(line[2])
                     t_ref[t_name] = t_size_pretty
@@ -451,7 +451,7 @@ class PgSQLGate(BaseGate):
             line = line.strip()
             if not line.startswith(partition):
                 continue
-            line = filter(None, line.split(" "))
+            line = list(filter(None, line.split(" ")))
             info.fs_dev = line[0]
             info.fs_type = line[1]
             info.size = int(line[2]) * 1024  # Bytes
@@ -471,7 +471,7 @@ class PgSQLGate(BaseGate):
         for line in stdout.split("\n"):
             if "|" not in line or "pg_database_size" in line:  # Different versions of postgresql
                 continue
-            line = filter(None, line.strip().replace('|', '').split(" "))
+            line = list(filter(None, line.strip().replace('|', '').split(" ")))
             if len(line) != 2:
                 continue
             d_size = int(line[0])
@@ -707,8 +707,8 @@ class PgSQLGate(BaseGate):
             raise GateException("No relative paths please.")
 
         # Already enabled?
-        arch_cmd = filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] +
-                                                    "/postgresql.conf").get("archive_command", "''")).split(" "))
+        arch_cmd = list(filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] +
+                                                         "/postgresql.conf").get("archive_command", "''")).split(" ")))
         if '--destination' not in arch_cmd and args.get('enable') != 'on':
             raise GateException('Backups are not enabled. Please enable them first. See help for more information.')
 
