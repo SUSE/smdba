@@ -287,7 +287,7 @@ class PgSQLGate(BaseGate):
             try:
                 k, v = [el.strip() for el in line.split('#')[0].strip().split('=', 1)]
                 conf[k] = v
-            except Exception, ex:
+            except Exception as ex:
                 raise GateException("Cannot parse line '{0}' in '{1}'.".format(line, conf_path))
 
         return conf
@@ -378,7 +378,7 @@ class PgSQLGate(BaseGate):
         """
         Show database status.
         """
-        print 'Database is', self._get_db_status() and 'online' or 'offline'
+        print('Database is', self._get_db_status() and 'online' or 'offline')
 
     def do_space_tables(self, **args):  # pylint: disable=W0613
         """
@@ -621,7 +621,7 @@ class PgSQLGate(BaseGate):
         roller.stop("finished")
         time.sleep(1)
 
-        print("Restore cluster:\t ", end=)
+        print("Restore cluster:\t ", end="")
         backup_root = self._rst_get_backup_root(temp_dir)
         mv_command = '/bin/mv %s %s' % (backup_root, os.path.dirname(self.config['pcnf_pg_data']) + "/data")
         os.system(mv_command)
