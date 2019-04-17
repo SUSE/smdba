@@ -332,9 +332,11 @@ class PgSQLGate(BaseGate):
         if data or table:
             cfg = open(conf_path, 'w')
             if data and not table:
-                [cfg.write('%s = %s\n' % items) for items in data.items()]
+                for items in data.items():
+                    cfg.write('%s = %s\n' % items)
             elif table and not data:
-                [cfg.write('\t'.join(items) + "\n") for items in table]
+                for items in table:
+                    cfg.write('\t'.join(items) + "\n")
             cfg.close()
         else:
             raise IOError("Cannot write two different types of config into the same file!")
