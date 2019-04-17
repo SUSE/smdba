@@ -120,7 +120,7 @@ class PgTune:
         return m * value
 
     @staticmethod
-    def to_mb(value):
+    def to_mb(value: int) -> str:
         """
         Convert to megabytes human-readable string.
 
