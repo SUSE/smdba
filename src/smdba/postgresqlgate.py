@@ -36,7 +36,8 @@ class PgBackup:
         self.pg_data = pg_data or PgBackup.DEFAULT_PG_DATA
         self.pg_xlog = os.path.join(self.pg_data, "pg_xlog")
 
-    def _get_latest_restart_filename(self, path):
+    @staticmethod
+    def _get_latest_restart_filename(path):
         checkpoints = []
         history = []
         restart_filename = None
