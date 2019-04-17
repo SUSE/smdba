@@ -82,7 +82,7 @@ class OracleGate(BaseGate):
 
         dbsid = self.config.get("db_name")
         for tabline in filter(None, [line.strip() for line in open(self.ORATAB).readlines()]):
-            sid, home, default_start = tabline.split(":")
+            sid, home, _ = tabline.split(":")
             if sid == dbsid:
                 self.ora_home = home
                 break
@@ -107,7 +107,7 @@ class OracleGate(BaseGate):
     #
     # Exposed operations below
     #
-    def do_backup_list(self, *args, **params):
+    def do_backup_list(self, *args, **params):  # pylint: disable=W0613
         """
         List of available backups.
         """
@@ -142,10 +142,8 @@ class OracleGate(BaseGate):
                                 info.tag = status_line[4]
 
                     # Get the list of files
-                    cutoff = True
                     for line in [l.strip() for l in files_chnk.split("\n")]:
                         if line.startswith('-'):
-                            cutoff = None
                             continue
                         else:
                             line = filter(None, line.split(" "))
@@ -174,7 +172,7 @@ class OracleGate(BaseGate):
                         print("\tFile:", dbf.file)
                     print()
 
-    def do_backup_purge(self, *args, **params):
+    def do_backup_purge(self, *args, **params):  # pylint: disable=W0613
         """
         Purge all backups. Useful after successfull reliable recover from the disaster.
         """
@@ -198,7 +196,7 @@ class OracleGate(BaseGate):
 
         roller = Roller()
         roller.start()
-        stdout, stderr = self.call_scenario('rman-backup-purge', target='rman')
+        _, stderr = self.call_scenario('rman-backup-purge', target='rman')
         if stderr:
             roller.stop("failed")
             time.sleep(1)
@@ -227,7 +225,7 @@ class OracleGate(BaseGate):
             roller.stop("finished")
             time.sleep(1)
 
-    def do_backup_hot(self, *args, **params):
+    def do_backup_hot(self, *args, **params):  # pylint: disable=W0613
         """
         Perform hot backup on running database.
         """
@@ -305,7 +303,7 @@ class OracleGate(BaseGate):
             eprint()
         print("\nFinished.")
 
-    def do_backup_check(self, *args, **params):
+    def do_backup_check(self, *args, **params):  # pylint: disable=W0613
         """
         Check the consistency of the backup.
         @help
@@ -429,7 +427,7 @@ class OracleGate(BaseGate):
             self.do_db_start()
             self.do_listener_status()
 
-    def do_stats_refresh(self, *args, **params):
+    def do_stats_refresh(self, *args, **params):  # pylint: disable=W0613
         """
         Gather statistics on SUSE Manager database objects.
         """
@@ -450,7 +448,7 @@ class OracleGate(BaseGate):
         time.sleep(1)
         self.to_stderr(stderr)
 
-    def do_space_overview(self, *args, **params):
+    def do_space_overview(self, *args, **params):  # pylint: disable=W0613
         """
         Show database space report.
         """
@@ -468,13 +466,13 @@ class OracleGate(BaseGate):
             table.append((name, free, used, size, str(int(float(used) / float(size) * 100)),))
         print("\n", TablePrint(table), "\n")
 
-    def do_stats_overview(self, *args, **params):
+    def do_stats_overview(self, *args, **params):  # pylint: disable=W0613
         """
         Show tables with stale or empty statistics.
         """
         self.vw_check_database_ready("Database must be healthy and running in order to get stats overview!")
         print("Preparing data:\t\t", end="")
-        
+
         roller = Roller()
         roller.start()
 
@@ -526,7 +524,7 @@ class OracleGate(BaseGate):
             eprint("Error dump:")
             eprint(stderr)
 
-    def do_space_reclaim(self, *args, **params):
+    def do_space_reclaim(self, *args, **params):  # pylint: disable=W0613
         """
         Free disk space from unused object in tables and indexes.
         """
@@ -648,7 +646,7 @@ class OracleGate(BaseGate):
 
             return '\n'.join(query)
 
-    def do_listener_start(self, *args, **params):
+    def do_listener_start(self, *args, **params):  # pylint: disable=W0613
         """
         Start the SUSE Manager database listener.
         """
@@ -678,7 +676,7 @@ class OracleGate(BaseGate):
         if stderr and not 'quiet' in args:
             self.to_stderr(stderr)
 
-    def do_listener_stop(self, *args, **params):
+    def do_listener_stop(self, *args, **params):  # pylint: disable=W0613
         """
         Stop the SUSE Manager database listener.
         @help
@@ -711,7 +709,7 @@ class OracleGate(BaseGate):
         if stderr and not 'quiet' in args:
             self.to_stderr(stderr)
 
-    def do_listener_status(self, *args, **params):
+    def do_listener_status(self, *args, **params):  # pylint: disable=W0613
         """
         Show database status.
         """
@@ -733,7 +731,7 @@ class OracleGate(BaseGate):
         if not dbstatus.available:
             eprint("Critical: No available instances found!")
 
-    def do_listener_restart(self, *args, **params):
+    def do_listener_restart(self, *args, **params):  # pylint: disable=W0613
         """
         Restart SUSE Manager database listener.
         """
@@ -748,7 +746,7 @@ class OracleGate(BaseGate):
 
         print("done")
 
-    def do_db_start(self, *args, **params):
+    def do_db_start(self, *args, **params):  # pylint: disable=W0613
         """
         Start SUSE Manager database.
         """
@@ -792,7 +790,7 @@ class OracleGate(BaseGate):
             eprint("Error dump:")
             eprint(stderr)
 
-    def do_db_stop(self, *args, **params):
+    def do_db_stop(self, *args, **params):  # pylint: disable=W0613
         """
         Stop SUSE Manager database.
         """
@@ -836,7 +834,7 @@ class OracleGate(BaseGate):
 
         self.to_stderr(stderr)
 
-    def do_db_status(self, *args, **params):
+    def do_db_status(self, *args, **params):  # pylint: disable=W0613
         """
         Display SUSE Manager database runtime status.
         """
@@ -849,7 +847,7 @@ class OracleGate(BaseGate):
         else:
             print("offline")
 
-    def do_space_tables(self, *args, **params):
+    def do_space_tables(self, *args, **params):  # pylint: disable=W0613
         """
         Show space report for each table.
         """
@@ -879,7 +877,7 @@ class OracleGate(BaseGate):
             eprint(stderr)
             raise Exception("Unhandled underlying error.")
 
-    def do_db_check(self, *args, **params):
+    def do_db_check(self, *args, **params):  # pylint: disable=W0613
         """
         Check full connection to the database.
         """
@@ -948,8 +946,7 @@ class OracleGate(BaseGate):
 
         return True
 
-
-    def do_system_check(self, *args, **params):
+    def do_system_check(self, *args, **params):  # pylint: disable=W0613
         """
         Common backend healthcheck.
         @help
@@ -1026,7 +1023,7 @@ class OracleGate(BaseGate):
         """
         Get archive log mode status.
         """
-        stdout, stderr = self.call_scenario('ora-archivelog-status')
+        stdout, _ = self.call_scenario('ora-archivelog-status')
         if stdout:
             for line in stdout.split("\n"):
                 line = line.strip()
@@ -1034,7 +1031,6 @@ class OracleGate(BaseGate):
                     return False
 
         return True
-
 
     def get_dbid(self, path=None, known_db_status=False):
         """
@@ -1051,7 +1047,7 @@ class OracleGate(BaseGate):
         # Add full filename
         path = self.HELPER_CONF % path
 
-        stdout, stderr = self.call_scenario('ora-dbid')
+        stdout, _ = self.call_scenario('ora-dbid')
         dbid = None
         if stdout:
             try:
@@ -1070,7 +1066,7 @@ class OracleGate(BaseGate):
                 line = line.strip()
                 if not line or line.startswith('#') or (line.find('=') == -1):
                     continue
-                dbidkey, dbid = map(lambda el:el.strip(), line.split('=', 1))
+                _, dbid = map(lambda el: el.strip(), line.split('=', 1))
                 if dbid:
                     try:
                         dbid = int(dbid)
@@ -1239,7 +1235,7 @@ class OracleGate(BaseGate):
         """
         Get current recovery file destination size.
         """
-        stdout, stderr = self.call_scenario('ora-archive-info')
+        stdout, _ = self.call_scenario('ora-archive-info')
         stdout = stdout and stdout.lower()
         curr_fds = ""
         if stdout and stdout.find("db_recovery_file_dest_size") > -1:
@@ -1253,7 +1249,7 @@ class OracleGate(BaseGate):
         """
         Get current recovery area directory.
         """
-        stdout, stderr = self.call_scenario('ora-archive-fra-dir')
+        stdout, _ = self.call_scenario('ora-archive-fra-dir')
         return (stdout or '/opt/apps/oracle/flash_recovery_area').strip()
 
     def autoresize_available_archive(self, target_fds):
