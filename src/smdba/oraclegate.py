@@ -592,7 +592,7 @@ class OracleGate(BaseGate):
                 tree[tsn] = tsns
 
             total = 0
-            for tsn in tree.keys():
+            for tsn in tree:
                 print("\nTablespace:", tsn)
                 for obj in tree[tsn].keys():
                     print("\n\t" +  messages.get(obj, "Object: " + obj))
@@ -612,8 +612,8 @@ class OracleGate(BaseGate):
 
         # Reclaim space
         if tree:
-            for tsn in tree.keys():
-                for obj in tree[tsn].keys():
+            for tsn in tree:
+                for obj in tree[tsn]:
                     if tree[tsn][obj].get('AUTO', None):
                         print("\nReclaiming space on %s:" % messages[obj].lower())
                         for segment, size in tree[tsn][obj]['AUTO']:
