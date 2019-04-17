@@ -17,7 +17,7 @@ from smdba.roller import Roller
 from smdba.utils import TablePrint, get_path_owner
 
 
-class PgBackup(object):
+class PgBackup:
     """
     PostgreSQL backup utilities wrapper.
     """
@@ -73,7 +73,7 @@ class PgBackup(object):
             os.system("%s %s %s" % (PgBackup.PG_ARCHIVE_CLEANUP, self.target_path, restart_filename))
 
 
-class PgTune(object):
+class PgTune:
     """
     PostgreSQL tuning.
     """
@@ -433,7 +433,10 @@ class PgSQLGate(BaseGate):
         partition = self._get_partition(self.config['pcnf_data_directory'])
 
         # Build info
-        class Info(object):
+        class Info:
+            """
+            Info structure
+            """
             fs_dev = None
             fs_type = None
             size = None
