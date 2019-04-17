@@ -67,7 +67,6 @@ class OracleGate(BaseGate):
     LSNR_CTL = "%s/bin/lsnrctl"
     HELPER_CONF = "%s/smdba-helper.conf"
 
-
     def __init__(self, config):
         """
         Constructor.
@@ -204,7 +203,7 @@ class OracleGate(BaseGate):
             roller.stop("failed")
             time.sleep(1)
             self.to_stderr(stderr)
-        
+
         roller.stop("finished")
         time.sleep(1)
 
@@ -408,18 +407,18 @@ class OracleGate(BaseGate):
         else:
             roller.stop("success")
             time.sleep(1)
-        
+
         print("Restoring from backup:\t", end="")
         roller = Roller()
         roller.start()
 
         stdout, stderr = self.call_scenario(scenario[strategy], target='rman', dbid=str(dbid))
-        
+
         if stderr:
             roller.stop("failed")
             time.sleep(1)
             self.to_stderr(stderr)
-            
+
         if stdout:
             roller.stop("finished")
             time.sleep(1)
@@ -458,13 +457,13 @@ class OracleGate(BaseGate):
         self.vw_check_database_ready("Database must be healthy and running in order to get space overview!")
         stdout, stderr = self.call_scenario('report')
         self.to_stderr(stderr)
-        
+
         ora_error = self.has_ora_error(stdout)
         if ora_error:
             raise GateException("Please visit http://%s.ora-code.com/ page to know more details." % ora_error.lower())
 
-        table = [("Tablespace", "Avail (Mb)", "Used (Mb)", "Size (Mb)", "Use %",),]
-        for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
+        table = [("Tablespace", "Avail (Mb)", "Used (Mb)", "Size (Mb)", "Use %",), ]
+        for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ")
                                        for line in stdout.strip().split("\n")[2:]]:
             table.append((name, free, used, size, str(int(float(used) / float(size) * 100)),))
         print("\n", TablePrint(table), "\n")
@@ -699,7 +698,7 @@ class OracleGate(BaseGate):
         success = False
         stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle",
                                       "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "stop")
-        
+
         if stdout:
             for line in stdout.split("\n"):
                 if line.lower().find("completed successfully") > -1:
@@ -724,7 +723,7 @@ class OracleGate(BaseGate):
         print((dbstatus.ready and "running" or "down"))
         print("Uptime:\t\t", dbstatus.uptime and dbstatus.uptime or "")
         print("Instances:\t", dbstatus.available)
-        
+
         if dbstatus.stderr:
             eprint("Error dump:")
             eprint(dbstatus.stderr)
@@ -779,7 +778,7 @@ class OracleGate(BaseGate):
         time.sleep(1)
 
         self.to_stderr(stderr)
-    
+
         if stdout and stdout.find("Database opened") > -1 and stdout.find("Database mounted") > -1:
             roller.stop('done')
             time.sleep(1)
@@ -938,7 +937,6 @@ class OracleGate(BaseGate):
 
         return status
 
-
     def check(self):
         """
         Check system requirements for this gate.
@@ -999,7 +997,6 @@ class OracleGate(BaseGate):
 
         print("\nFinished\n")
 
-
     def set_archivelog_mode(self, status=True):
         """
         Set archive log mode status.
@@ -1024,7 +1021,6 @@ class OracleGate(BaseGate):
             roller.stop(failed)
 
         time.sleep(1)
-
 
     def get_archivelog_mode(self):
         """
@@ -1051,7 +1047,7 @@ class OracleGate(BaseGate):
 
         if not os.path.exists(path):
             os.makedirs(path)
-        
+
         # Add full filename
         path = self.HELPER_CONF % path
 
@@ -1117,7 +1113,7 @@ class OracleGate(BaseGate):
         Try to autoresolve backup inconsistencies.
         """
         self.call_scenario('rman-backup-autoresolve', target='rman')
-                
+
     def check_backup_info(self):
         """
         Check if backup is consistent.
@@ -1150,7 +1146,7 @@ class OracleGate(BaseGate):
             eprint("Archive log information check failure:")
             eprint(stderr)
             raise GateException("Unable to check the archive logs backup.")
-        
+
         for chunk in stdout.split("RMAN>"):
             chunk = chunk.strip()
             if not chunk:
