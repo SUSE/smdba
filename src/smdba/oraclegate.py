@@ -631,18 +631,18 @@ class OracleGate(BaseGate):
         print("Reclaiming space finished")
 
     def __get_reclaim_space_statement(self, segment, obj):
-            query = []
-            if obj != 'INDEX':
-                query.append("alter %s %s.%s enable row movement;" %
-                             (obj, self.config.get('db_user', '').upper(), segment))
-            query.append("alter %s %s.%s shrink space compact;" %
+        query = []
+        if obj != 'INDEX':
+            query.append("alter %s %s.%s enable row movement;" %
                          (obj, self.config.get('db_user', '').upper(), segment))
-            query.append("alter %s %s.%s deallocate unused space;" %
-                         (obj, self.config.get('db_user', '').upper(), segment))
-            query.append("alter %s %s.%s coalesce;" %
-                         (obj, self.config.get('db_user', '').upper(), segment))
+        query.append("alter %s %s.%s shrink space compact;" %
+                     (obj, self.config.get('db_user', '').upper(), segment))
+        query.append("alter %s %s.%s deallocate unused space;" %
+                     (obj, self.config.get('db_user', '').upper(), segment))
+        query.append("alter %s %s.%s coalesce;" %
+                     (obj, self.config.get('db_user', '').upper(), segment))
 
-            return '\n'.join(query)
+        return '\n'.join(query)
 
     def do_listener_start(self, *args, **params):  # pylint: disable=W0613
         """
