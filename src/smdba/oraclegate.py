@@ -586,7 +586,7 @@ class OracleGate(BaseGate):
                 stypes = tsns.get(stype, {})
                 ssms = stypes.get(ssm, [])
                 ssms.append((sname, int(rspace),))
-                wseg = len(sname) > wseg and len(sname) or wseg
+                wseg = len(sname) if len(sname) > wseg else wseg
                 stypes[ssm] = ssms
                 tsns[stype] = stypes
                 tree[tsn] = tsns

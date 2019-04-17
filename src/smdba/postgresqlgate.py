@@ -433,7 +433,7 @@ class PgSQLGate(BaseGate):
                     t_total += t_size
                     t_index.append(t_name)
 
-                    longest = len(t_name) > longest and len(t_name) or longest
+                    longest = len(t_name) if len(t_name) > longest else longest
 
             t_index.sort()
 
