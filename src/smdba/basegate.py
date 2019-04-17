@@ -28,6 +28,7 @@ class BaseGate(metaclass=abc.ABCMeta):
     debug = False
 
     def __init__(self):
+        self.config = {}
         self._gate_commands = {}
 
     @staticmethod
