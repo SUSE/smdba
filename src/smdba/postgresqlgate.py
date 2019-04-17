@@ -92,6 +92,8 @@ class PgTune:
     def get_total_memory() -> int:
         """
         Get machine total memory.
+
+        :returns total memory
         """
         try:
             return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
@@ -103,6 +105,9 @@ class PgTune:
         """
         Binary rounding.
         Keep 4 significant bits, truncate the rest.
+
+        :param value: a float
+        :returns binary round value
         """
         m = 1
         while value > 0x10:
@@ -113,6 +118,12 @@ class PgTune:
 
     @staticmethod
     def to_mb(value):
+        """
+        Convert to megabytes human-readable string.
+
+        :param value: bytes
+        :return:
+        """
         return str(value / 0x400) + 'MB'
 
     def estimate(self):
