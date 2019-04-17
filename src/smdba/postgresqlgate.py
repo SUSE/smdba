@@ -999,7 +999,7 @@ class PgSQLGate(BaseGate):
 
         replication_cfg = ['local', 'replication', 'postgres', 'peer']
 
-        if not replication_cfg in pg_hba_conf:
+        if replication_cfg not in pg_hba_conf:
             pg_hba_conf.append(replication_cfg)
             hba_changed = True
 
