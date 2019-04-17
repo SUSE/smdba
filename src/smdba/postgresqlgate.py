@@ -1035,7 +1035,7 @@ class PgSQLGate(BaseGate):
         pass
 
 
-def getGate(config):
+def get_gate(config):
     """
     Get gate to the database engine.
     """

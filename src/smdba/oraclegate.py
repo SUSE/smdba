@@ -1289,7 +1289,7 @@ class OracleGate(BaseGate):
         """
 
 
-def getGate(config):
+def get_gate(config):
     """
     Get gate to the database engine.
     """

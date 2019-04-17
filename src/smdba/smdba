@@ -51,7 +51,7 @@ class Console:
         try:
             gate_name = "smdba." + self.config.get(self.DB_BACKEND, "unknown") + "gate"
             __import__(gate_name)
-            self.gate = sys.modules[gate_name].getGate(self.config)
+            self.gate = sys.modules[gate_name].get_gate(self.config)
             self.gate.check()
         except GateException as ex:
             msg = "Gate error: {}".format(str(ex))
