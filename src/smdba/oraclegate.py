@@ -963,8 +963,9 @@ class OracleGate(BaseGate):
         if stdout:
             print("Autoextensible:\tOff")
             scenario = []
-            [scenario.append("alter database datafile '%s' autoextend on;" % fname) for fname in stdout.strip().split("\n")]
-            self.syscall("sudo", self.get_scenario_template().replace('@scenario', '\n'.join(scenario)), 
+            for fname in stdout.strip().split("\n"):
+                scenario.append("alter database datafile '{}' autoextend on;".format(fname))
+            self.syscall("sudo", self.get_scenario_template().replace('@scenario', '\n'.join(scenario)),
                          None, "-u", "oracle", "/bin/bash")
             print("%s table%s has been autoextended" % (len(scenario), len(scenario) > 1 and 's' or ''))
         else:
