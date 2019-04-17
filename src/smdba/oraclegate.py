@@ -648,13 +648,13 @@ class OracleGate(BaseGate):
         """
         Start the SUSE Manager database listener.
         """
-        if not 'quiet' in args:
+        if 'quiet' not in args:
             print("Starting database listener...\t", end="")
             sys.stdout.flush()
 
         dbstatus = self.get_status()
         if dbstatus.ready:
-            if not 'quiet' in args:
+            if 'quiet' not in args:
                 print("Failed")
                 eprint("Error: listener already running.")
             return
@@ -668,10 +668,10 @@ class OracleGate(BaseGate):
                     ready = True
                     break
 
-            if not 'quiet' in args:
+            if 'quiet' not in args:
                 print((ready and "done" or "failed"))
 
-        if stderr and not 'quiet' in args:
+        if stderr and 'quiet' not in args:
             self.to_stderr(stderr)
 
     def do_listener_stop(self, *args, **params):  # pylint: disable=W0613
@@ -680,13 +680,13 @@ class OracleGate(BaseGate):
         @help
         quiet\tSuppress any output.
         """
-        if not 'quiet' in args:
+        if 'quiet' not in args:
             print("Stopping database listener...\t", end="")
             sys.stdout.flush()
 
         dbstatus = self.get_status()
         if not dbstatus.ready:
-            if not 'quiet' in args:
+            if 'quiet' not in args:
                 print("Failed")
                 eprint("Error: listener is not running.")
                 return
@@ -701,10 +701,10 @@ class OracleGate(BaseGate):
                     success = True
                     break
 
-            if not 'quiet' in args:
+            if 'quiet' not in args:
                 print((success and "done" or "failed"))
 
-        if stderr and not 'quiet' in args:
+        if stderr and 'quiet' not in args:
             self.to_stderr(stderr)
 
     def do_listener_status(self, *args, **params):  # pylint: disable=W0613
