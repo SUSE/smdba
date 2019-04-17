@@ -534,7 +534,7 @@ class PgSQLGate(BaseGate):
         """
         Get tablespace size in bytes.
         """
-        return long(os.popen('/usr/bin/du -bc %s' % path).readlines()[-1].strip().replace('\t', ' ').split(' ')[0])
+        return int(os.popen('/usr/bin/du -bc %s' % path).readlines()[-1].strip().replace('\t', ' ').split(' ')[0])
 
     def _rst_get_backup_root(self, path):
         """
@@ -874,7 +874,7 @@ class PgSQLGate(BaseGate):
         """
         Get a size of the partition, where path belongs to.
         """
-        return long((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
+        return int((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
 
     def do_system_check(self, *args, **params):
         """
