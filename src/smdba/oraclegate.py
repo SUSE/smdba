@@ -184,7 +184,7 @@ class OracleGate(BaseGate):
         roller.start()
 
         info = self.get_backup_info()
-        if not len(info):
+        if not info:
             roller.stop("failed")
             time.sleep(1)
             eprint("No backup snapshots available.")
@@ -312,7 +312,7 @@ class OracleGate(BaseGate):
         self.vw_check_database_ready("Database must be healthy and running in order to check assigned backups of it!")
 
         info = self.get_backup_info()
-        if len(info):
+        if info:
             print("Last known backup:", info[0].completion)
         else:
             raise GateException("No backups has been found!")
