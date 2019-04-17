@@ -95,7 +95,7 @@ class Console:
                     # Handling odd change in Spacewalk 1.7 where "db_name" could be URI
                     self.config[key] = ((key == "db_name") and value.startswith("//")) and value.split("/")[-1] or value
             except Exception as exc:
-                print("Warning: Config failure: {}".format(exc))
+                pass
 
     @staticmethod
     def usage_header() -> None:
