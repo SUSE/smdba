@@ -3,7 +3,7 @@
 PostgreSQL gate
 """
 # These lints cannot be touched unless tests are made!
-# pylint: disable=R0915,R0912,W0511
+# pylint: disable=R0915,R0912,W0511,W0123,R0914,C0321
 
 import sys
 import os
