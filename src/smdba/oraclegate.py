@@ -569,11 +569,11 @@ class OracleGate(BaseGate):
             return
 
         messages = {
-            'TABLE' : 'Tables',
-            'INDEX' : 'Indexes',
-            'AUTO' : 'Recommended segments',
-            'MANUAL' : 'Non-shrinkable tablespace',
-            }
+            'TABLE': 'Tables',
+            'INDEX': 'Indexes',
+            'AUTO': 'Recommended segments',
+            'MANUAL': 'Non-shrinkable tablespace',
+        }
 
         tree = {}
         wseg = 0
