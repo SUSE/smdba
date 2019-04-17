@@ -187,21 +187,21 @@ class BaseGate(metaclass=abc.ABCMeta):
         Size: amount (int, long)
         """
 
-        size = float(size)
+        _size = float(size)
         wsp = "" if no_whitespace else " "
         wrap = lambda dummy: dummy if not int_only else int
         sz_ptn = '%s' if int_only else '%.2f'
 
-        if size >= 0x10000000000:
-            msg = (sz_ptn + '%sTB') % (wrap((size / 0x10000000000)), wsp)
-        elif size >= 0x40000000:
-            msg = (sz_ptn + '%sGB') % (wrap((size / 0x40000000)), wsp)
-        elif size >= 0x100000:
-            msg = (sz_ptn + '%sMB') % (wrap((size / 0x100000)), wsp)
-        elif size >= 0x400:
-            msg = (sz_ptn + '%sKB') % (wrap((size / 0x400)), wsp)
+        if _size >= 0x10000000000:
+            msg = (sz_ptn + '%sTB') % (wrap((_size / 0x10000000000)), wsp)
+        elif _size >= 0x40000000:
+            msg = (sz_ptn + '%sGB') % (wrap((_size / 0x40000000)), wsp)
+        elif _size >= 0x100000:
+            msg = (sz_ptn + '%sMB') % (wrap((_size / 0x100000)), wsp)
+        elif _size >= 0x400:
+            msg = (sz_ptn + '%sKB') % (wrap((_size / 0x400)), wsp)
         else:
-            msg = ((int_only and '%s' or '%.f') + '%sBytes') % (wrap(size), wsp)
+            msg = ((int_only and '%s' or '%.f') + '%sBytes') % (wrap(_size), wsp)
         return msg
 
     @staticmethod
