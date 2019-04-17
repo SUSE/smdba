@@ -897,8 +897,9 @@ class OracleGate(BaseGate):
         Get Oracle listener status.
         """
         status = DBStatus()
-        status.stdout, status.stderr = self.syscall("sudo", None, None, "-u", "oracle", "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "status")
-    
+        status.stdout, status.stderr = self.syscall("sudo", None, None, "-u", "oracle",
+                                                    "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "status")
+
         if status.stdout:
             for line in status.stdout.split("\n"):
                 if line.lower().startswith("uptime"):
@@ -915,7 +916,6 @@ class OracleGate(BaseGate):
 
         return status
 
-
     def get_db_status(self, login=None):
         """
         Get Oracle database status.
@@ -923,8 +923,9 @@ class OracleGate(BaseGate):
         status = DBStatus()
         mnum = 'm' + str(random.randint(0xff, 0xfff))
         scenario = "select '%s' as MAGICPING from dual;" % mnum # :-)
-        status.stdout, status.stderr = self.syscall("sudo", self.get_scenario_template(login=login).replace('@scenario', scenario), 
-                                                    None, "-u", "oracle", "/bin/bash")
+        status.stdout, status.stderr = self.syscall(
+            "sudo", self.get_scenario_template(login=login).replace('@scenario', scenario),
+            None, "-u", "oracle", "/bin/bash")
         status.ready = False
         for line in [line.strip() for line in status.stdout.lower().split("\n")]:
             if line == mnum:
