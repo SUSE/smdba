@@ -891,7 +891,7 @@ class PgSQLGate(BaseGate):
                 line = line.strip()
                 if not line.startswith(partition):
                     continue
-                space_usage = (filter(None, line.split(' '))[5] + '').replace('%', '')
+                space_usage = (list(filter(None, line.split(' ')))[5] + '').replace('%', '')
 
         if '--silent' not in opts:
             print("Backup status:\t\t", (backup_on and 'ON' or 'OFF'))
@@ -906,7 +906,7 @@ class PgSQLGate(BaseGate):
         """
         Get a size of the partition, where path belongs to.
         """
-        return int((filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' '))[4] + '').strip())
+        return int((list(filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' ')))[4] + '').strip())
 
     def do_system_check(self, *args, **params):
         """
@@ -995,7 +995,7 @@ class PgSQLGate(BaseGate):
         for line in open(pg_hba_cnf_path).readlines():
             line = line.strip()
             if not line or line.startswith('#'): continue
-            pg_hba_conf.append(filter(None, line.replace("\t", " ").split(' ')))
+            pg_hba_conf.append(list(filter(None, line.replace("\t", " ").split(' '))))
 
         replication_cfg = ['local', 'replication', 'postgres', 'peer']
 
