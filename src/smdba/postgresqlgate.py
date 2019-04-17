@@ -193,11 +193,14 @@ class PgSQLGate(BaseGate):
         msg = None
         minversion = [9, 6]
         pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
+
         if int(pg_version[0]) < minversion[0] or (int(pg_version[0]) == minversion[0] and int(pg_version[1]) < minversion[1]):
             raise GateException("Core component is too old version.")
-        elif not os.path.exists("/etc/sysconfig/postgresql"):
+
+        if not os.path.exists("/etc/sysconfig/postgresql"):
             raise GateException("Custom database component? Please strictly use SUSE components only!")
-        elif not os.path.exists("/usr/bin/psql"):
+
+        if not os.path.exists("/usr/bin/psql"):
             msg = 'operations'
         elif not os.path.exists("/usr/bin/postmaster"):
             msg = 'database'
@@ -545,19 +548,13 @@ class PgSQLGate(BaseGate):
             _, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', operation),
                                      None, "-u", "postgres", "/bin/bash")
             if stderr:
-                #roller.stop('failed')
-                #time.sleep(1)
                 eprint("failed")
                 sys.stdout.flush()
                 eprint(stderr)
                 raise GateException("Unhandled underlying error occurred, see above.")
 
-            else:
-                #roller.stop('done')
-                #time.sleep(1)
-                print("done")
-                sys.stdout.flush()
-                #print stdout
+            print("done")
+            sys.stdout.flush()
 
     @staticmethod
     def _get_tablespace_size(path):
@@ -854,10 +851,13 @@ class PgSQLGate(BaseGate):
         """
         if not args.get('source'):
             raise GateException("Source file was not specified!")
-        elif not os.path.exists(args.get('source')):
+
+        if not os.path.exists(args.get('source')):
             raise GateException("File \"%s\" does not exists." % args.get('source'))
-        elif os.path.exists(args.get('backup-dir')):
+
+        if os.path.exists(args.get('backup-dir')):
             raise GateException("Destination file \"%s\"already exists." % args.get('backup-dir'))
+
         shutil.copy2(args.get('source'), args.get('backup-dir'))
 
     def do_backup_status(self, *opts, **args):  # pylint: disable=W0613

@@ -758,8 +758,7 @@ class OracleGate(BaseGate):
             roller.stop('failed')
             time.sleep(1)
             raise GateException("Error: listener is already running")
-        else:
-            self.do_listener_start('quiet')
+        self.do_listener_start('quiet')
 
         roller.stop('done')
         time.sleep(1)
@@ -940,7 +939,8 @@ class OracleGate(BaseGate):
         """
         if not os.path.exists(self.ora_home + "/bin/sqlplus"):
             raise GateException("Cannot find operation sub-component, required for the gate.")
-        elif not os.path.exists(self.ora_home + "/bin/rman"):
+
+        if not os.path.exists(self.ora_home + "/bin/rman"):
             raise GateException("Cannot find backup sub-component, required for the gate.")
 
         return True
