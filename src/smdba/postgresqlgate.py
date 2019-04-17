@@ -95,10 +95,13 @@ class PgTune:
 
         :returns total memory
         """
+        total_memory = 0
         try:
-            return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
+            total_memory = os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
         except Exception:
-            return None
+            pass
+
+        return total_memory
 
     @staticmethod
     def bin_rnd(value: float) -> int:
