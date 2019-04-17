@@ -265,8 +265,8 @@ class OracleGate(BaseGate):
                     arclogs.append(line.split("name=")[-1].split(" ")[0])
 
             print("Data files archived:")
-            for f in files:
-                print("\t" + f)
+            for fname in files:
+                print("\t" + fname)
             print()
 
             print("Archive logs:")
@@ -279,29 +279,29 @@ class OracleGate(BaseGate):
         self._backup_rotate()
 
         # Finalize
-        hb, fb, ha, fa = self.check_backup_info()
+        hbk, fbk, harch, farch = self.check_backup_info()
         print("Backup summary as follows:")
-        if len(hb):
+        if hbk:
             print("\tBackups:")
-            for bkp in hb:
+            for bkp in hbk:
                 print("\t\t", bkp.handle)
             print()
 
-        if len(ha):
+        if harch:
             print("\tArchive logs:")
-            for bkp in ha:
+            for bkp in harch:
                 print("\t\t", bkp.handle)
             print()
-        
-        if len(fb):
+
+        if fbk:
             eprint("WARNING! Broken backups has been detected:")
-            for bkp in fb:
+            for bkp in fbk:
                 eprint("\t\t", bkp.handle)
             eprint()
 
-        if len(fa):
+        if farch:
             eprint("WARNING! Broken archive logs has been detected:")
-            for bkp in fa:
+            for bkp in farch:
                 eprint("\t\t", bkp.handle)
             eprint()
         print("\nFinished.")
@@ -1065,10 +1065,10 @@ class OracleGate(BaseGate):
                 if known_db_status:
                     raise GateException("The data in the database is not reachable!")
         if dbid:
-            fg = open(path, 'w')
-            fg.write("# Database ID of \"%s\", please don't lose it ever.\n") 
-            fg.write(os.environ['ORACLE_SID'] + ".dbid=%s\n" % dbid)
-            fg.close()
+            fgh = open(path, 'w')
+            fgh.write("# Database ID of \"%s\", please don't lose it ever.\n")
+            fgh.write(os.environ['ORACLE_SID'] + ".dbid=%s\n" % dbid)
+            fgh.close()
         elif os.path.exists(path):
             for line in open(path).readlines():
                 line = line.strip()
