@@ -211,7 +211,7 @@ def format_error(title, msg):
         msg = str(msg)
         eprint(title + ":\n", end="")
         for line in msg.split("\n"):
-            eprint(sys.stderr, "\t" + line.strip())
+            eprint("\t" + line.strip())
         eprint()
 
 
