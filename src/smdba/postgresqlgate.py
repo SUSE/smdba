@@ -287,7 +287,7 @@ class PgSQLGate(BaseGate):
             try:
                 k, v = [el.strip() for el in line.split('#')[0].strip().split('=', 1)]
                 conf[k] = v
-            except Exception as ex:
+            except Exception:
                 raise GateException("Cannot parse line '{0}' in '{1}'.".format(line, conf_path))
 
         return conf
