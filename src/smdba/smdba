@@ -149,7 +149,7 @@ class Console:
         """
         return command.startswith("do_") and command[3:].replace("_", "-") or ("do_" + command.replace("-", "_"))
 
-    def execute(self, command: str) -> None:
+    def execute(self, command: list) -> None:
         """
         Execute one command.
 
