@@ -1012,8 +1012,6 @@ class PgSQLGate(BaseGate):
         """
         Hooks after the PostgreSQL gate operations finished.
         """
-        pass
-
 
 def get_gate(config):
     """
