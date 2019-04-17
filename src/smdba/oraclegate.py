@@ -1050,7 +1050,7 @@ class OracleGate(BaseGate):
         if stdout:
             try:
                 dbid = int(stdout.split("\n")[-1])
-            except:
+            except Exception:
                 # Failed to get dbid anyway, let's just stay silent for now.
                 if known_db_status:
                     raise GateException("The data in the database is not reachable!")
@@ -1068,7 +1068,7 @@ class OracleGate(BaseGate):
                 if dbid:
                     try:
                         dbid = int(dbid)
-                    except:
+                    except Exception:
                         # Failed get dbid again.
                         pass
 
