@@ -1085,24 +1085,25 @@ class OracleGate(BaseGate):
         Just look if output was not crashed. Because Oracle developers often
         cannot decide to where to send an error: to STDERR or STDOUT. :-)
         """
+        ret = None
         if raw is None:
             raw = ''
-            
-        raw = raw.strip()
-        if not raw:
-            return None
 
-        for line in raw.split('\n'):
-            ftkn = filter(None, line.split(" "))[0]
-            if ftkn.startswith('ORA-') and ftkn.endswith(':'):
-                err = None
-                try:
-                    err = int(ftkn[4:-1])
-                except Exception:
-                    # No need to report this at all.
-                    pass
-                if err:
-                    return ftkn[:-1]
+        raw = raw.strip()
+        if raw:
+            for line in raw.split('\n'):
+                ftkn = next(filter(None, line.split(" ")))
+                if ftkn.startswith('ORA-') and ftkn.endswith(':'):
+                    err = None
+                    try:
+                        err = int(ftkn[4:-1])
+                    except Exception:
+                        # No need to report this at all.
+                        pass
+                    if err:
+                        ret = ftkn[:-1]
+                        break
+        return ret
 
     def autoresolve_backup(self):
         """
