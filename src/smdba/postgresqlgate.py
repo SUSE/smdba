@@ -104,7 +104,7 @@ class PgTune:
         return total_memory
 
     @staticmethod
-    def bin_rnd(value: float) -> int:
+    def bin_rnd(value: int) -> int:
         """
         Binary rounding.
         Keep 4 significant bits, truncate the rest.
