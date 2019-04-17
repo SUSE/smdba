@@ -2,6 +2,7 @@
 """
 Oracle administration gate.
 """
+# pylint: disable=W0201,R0904,R0914,R1702,R0915
 
 import os
 import sys
