@@ -535,7 +535,7 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario('shrink-segments-advisor')
+        self.call_scenario('shrink-segments-advisor')
         stderr = None
 
         if stderr:
