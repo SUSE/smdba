@@ -136,7 +136,7 @@ class PgTune:
         # No more than 1GB
         self.config['maintenance_work_mem'] = self.to_mb(self.br((mem / 0x10) > megabytes and megabytes or mem / 0x10))
 
-        pg_version = [int(v_el) for v_el in os.popen("psql --version | sed -e 's/.*\s//g'").read().split('.')]
+        pg_version = [int(v_el) for v_el in os.popen(r"psql --version | sed -e 's/.*\s//g'").read().split('.')]
         if pg_version < [9, 6, 0]:
             self.config['checkpoint_segments'] = 8
         else:
