@@ -295,7 +295,8 @@ class PgSQLGate(BaseGate):
             eprint('Info: Found stale PID file, removing')
             os.unlink(self._pid_file)
 
-    def _get_conf(self, conf_path):
+    @staticmethod
+    def _get_conf(conf_path):
         """
         Get a PostgreSQL config file into a dictionary.
         """
@@ -315,7 +316,8 @@ class PgSQLGate(BaseGate):
 
         return conf
 
-    def _write_conf(self, conf_path, *table, **data):
+    @staticmethod
+    def _write_conf(conf_path, *table, **data):
         """
         Write conf data to the file.
         """
@@ -437,7 +439,8 @@ class PgSQLGate(BaseGate):
             table.append(('Total', ('%.2f' % round(t_total / 1024. / 1024)) + 'M',))
             print("\n", TablePrint(table), "\n")
 
-    def _get_partition(self, fdir):
+    @staticmethod
+    def _get_partition(fdir):
         """
         Get partition of the directory.
         """
@@ -554,7 +557,8 @@ class PgSQLGate(BaseGate):
                 sys.stdout.flush()
                 #print stdout
 
-    def _get_tablespace_size(self, path):
+    @staticmethod
+    def _get_tablespace_size(path):
         """
         Get tablespace size in bytes.
         """
@@ -841,7 +845,8 @@ class PgSQLGate(BaseGate):
         if stdout and stdout.strip() == 't':
             print("INFO: New configuration has been applied.")
 
-    def _perform_archive_operation(self, **args):
+    @staticmethod
+    def _perform_archive_operation(**args):
         """
         Performs an archive operation.
         """
@@ -894,7 +899,8 @@ class PgSQLGate(BaseGate):
 
         return backup_dst, backup_on
 
-    def _get_partition_size(self, path):
+    @staticmethod
+    def _get_partition_size(path):
         """
         Get a size of the partition, where path belongs to.
         """
@@ -905,7 +911,7 @@ class PgSQLGate(BaseGate):
         Common backend healthcheck.
         @help
         autotuning\t\tperform initial autotuning of the database
-	--max_connections=<num>\tdefine maximal number of database connections (default: 400)
+    --max_connections=<num>\tdefine maximal number of database connections (default: 400)
         """
         # Check enough space
 
