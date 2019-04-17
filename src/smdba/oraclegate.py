@@ -554,22 +554,19 @@ class OracleGate(BaseGate):
         # get the recomendations
         stdout, stderr = self.call_scenario('recomendations')
 
-        if not stdout and not stderr:
-            roller.stop("finished")
-            time.sleep(1)
-            print("\nNo space reclamation possible at this time.\n")
-            return
-
-        elif stdout:
+        if stdout:
             roller.stop("done")
             time.sleep(1)
-
-        else:
+        elif stderr:
             roller.stop("failed")
             time.sleep(1)
             eprint("Error dump:")
             eprint(stderr)
-
+        else:
+            roller.stop("finished")
+            time.sleep(1)
+            print("\nNo space reclamation possible at this time.\n")
+            return
 
         messages = {
             'TABLE' : 'Tables',
