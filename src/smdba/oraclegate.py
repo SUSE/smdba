@@ -371,8 +371,9 @@ class OracleGate(BaseGate):
         if params.get("strategy") in ['full', 'partial']:
             strategy = params.get("strategy")
         elif params.get("strategy") is not None:
-            raise GateException("Unknown value %s for option 'strategy'. Please read 'help' first." % params.get("strategy"))
-        
+            raise GateException("Unknown value {} for option 'strategy'. "
+                                "Please read 'help' first.".format(params.get("strategy")))
+
         if not strategy:
             strategy = "full"
             db_path = os.environ['ORACLE_BASE'] + "/oradata/" + os.environ['ORACLE_SID']
