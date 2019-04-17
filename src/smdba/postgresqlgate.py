@@ -88,7 +88,8 @@ class PgTune:
         self.max_connections = max_connections
         self.config = {}
 
-    def get_total_memory(self):
+    @staticmethod
+    def get_total_memory() -> int:
         """
         Get machine total memory.
         """
@@ -97,7 +98,8 @@ class PgTune:
         except Exception:
             return None
 
-    def br(self, value):
+    @staticmethod
+    def bin_rnd(value: float) -> int:
         """
         Binary rounding.
         Keep 4 significant bits, truncate the rest.
