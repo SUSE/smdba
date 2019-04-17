@@ -135,8 +135,8 @@ class OracleGate(BaseGate):
                         if line.lower().startswith('piece name'):
                             info.backup = line.split(" ")[-1]
                         if line.lower().find('status') > -1:
-                            status_line = filter(None, line.replace(':', '').split("Status")[-1].split(" "))
-                            if len(list(status_line)) ==  5:
+                            status_line = list(filter(None, line.replace(':', '').split("Status")[-1].split(" ")))
+                            if len(list(status_line)) == 5:
                                 info.status = status_line[0]
                                 info.compression = status_line[2]
                                 info.tag = status_line[4]
@@ -146,7 +146,7 @@ class OracleGate(BaseGate):
                         if line.startswith('-'):
                             continue
                         else:
-                            line = filter(None, line.split(" "))
+                            line = list(filter(None, line.split(" ")))
                             if len(list(line)) > 4:
                                 if line[0] == 'File':
                                     continue
@@ -1209,7 +1209,7 @@ class OracleGate(BaseGate):
                 if not line:
                     capture = False
                     continue
-                tkn = filter(None, line.replace("\t", " ").split(" "))
+                tkn = list(filter(None, line.replace("\t", " ").split(" ")))
                 info[tkn[5]] = BackupInfo(tkn[0], tkn[5], tkn[-1])
                 idx.append(tkn[5])
 
