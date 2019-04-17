@@ -540,8 +540,8 @@ class PgSQLGate(BaseGate):
             #roller = Roller()
             #roller.start()
 
-            stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', operation),
-                                          None, "-u", "postgres", "/bin/bash")
+            _, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', operation),
+                                     None, "-u", "postgres", "/bin/bash")
             if stderr:
                 #roller.stop('failed')
                 #time.sleep(1)
