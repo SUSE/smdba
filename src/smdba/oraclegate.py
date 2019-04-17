@@ -822,7 +822,7 @@ class OracleGate(BaseGate):
             time.sleep(1)
             raise GateException("Error: database core is already offline.")
 
-        stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle", self.ora_home + "/bin/dbshut")
+        _, stderr = self.syscall("sudo", None, None, "-u", "oracle", self.ora_home + "/bin/dbshut")
         if stderr:
             roller.stop("failed")
             time.sleep(1)
@@ -1001,13 +1001,12 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = None, None
         success, failed = "done", "failed"
         if status:
             destination = os.environ['ORACLE_BASE'] + "/oradata/" + os.environ['ORACLE_SID'] + "/archive"
-            stdout, stderr = self.call_scenario('ora-archivelog-on', destination=destination)
+            self.call_scenario('ora-archivelog-on', destination=destination)
         else:
-            stdout, stderr = self.call_scenario('ora-archivelog-off')
+            self.call_scenario('ora-archivelog-off')
             success, failed = "failed", "done"
 
         if self.get_archivelog_mode():
