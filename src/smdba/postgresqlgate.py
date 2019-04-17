@@ -202,7 +202,7 @@ class PgSQLGate(BaseGate):
         """
         Read the system config for the postgresql.
         """
-        for line in filter(None, map(lambda line:line.strip(), open('/etc/sysconfig/postgresql').readlines())):
+        for line in filter(None, map(lambda line: line.strip(), open('/etc/sysconfig/postgresql').readlines())):
             if line.startswith('#'):
                 continue
             try:
@@ -399,7 +399,7 @@ class PgSQLGate(BaseGate):
             t_total = 0
             longest = 0
             for line in stdout.strip().split("\n")[2:]:
-                line = list(filter(None, map(lambda el:el.strip(), line.split('|'))))
+                line = list(filter(None, map(lambda el: el.strip(), line.split('|'))))
                 if len(line) == 3:
                     t_name, t_size_pretty, t_size = line[0], line[1], int(line[2])
                     t_ref[t_name] = t_size_pretty
@@ -852,7 +852,7 @@ class PgSQLGate(BaseGate):
 
         backup_last_transaction = None
         if backup_dst:
-            for fh in os.listdir(backup_dst ):
+            for fh in os.listdir(backup_dst):
                 mtime = os.path.getmtime(backup_dst + "/" + fh)
                 if mtime > backup_last_transaction:
                     backup_last_transaction = mtime
