@@ -317,7 +317,7 @@ class PgSQLGate(BaseGate):
         return backup
 
     # Commands
-    def do_db_start(self, **args):
+    def do_db_start(self, **args):  # pylint: disable=W0613
         """
         Start the SUSE Manager Database.
         """
@@ -345,7 +345,7 @@ class PgSQLGate(BaseGate):
         os.chdir(cwd)
         time.sleep(1)
 
-    def do_db_stop(self, **args):
+    def do_db_stop(self, **args):  # pylint: disable=W0613
         """
         Stop the SUSE Manager Database.
         """
@@ -374,13 +374,13 @@ class PgSQLGate(BaseGate):
         # Cleanup
         self._cleanup_pids()
 
-    def do_db_status(self, **args):
+    def do_db_status(self, **args):  # pylint: disable=W0613
         """
         Show database status.
         """
         print 'Database is', self._get_db_status() and 'online' or 'offline'
 
-    def do_space_tables(self, **args):
+    def do_space_tables(self, **args):  # pylint: disable=W0613
         """
         Show space report for each table.
         """
@@ -420,7 +420,7 @@ class PgSQLGate(BaseGate):
         """
         return os.popen("df -lP %s | tail -1 | cut -d' ' -f 1" % fdir).read().strip()
 
-    def do_space_overview(self, **args):
+    def do_space_overview(self, **args):  # pylint: disable=W0613
         """
         Show database space report.
         """
@@ -483,7 +483,7 @@ class PgSQLGate(BaseGate):
 
         print >> sys.stdout, "\n", TablePrint(overview), "\n"
 
-    def do_space_reclaim(self, **args):
+    def do_space_reclaim(self, **args):  # pylint: disable=W0613
         """
         Free disk space from unused object in tables and indexes.
         """
@@ -642,7 +642,7 @@ class PgSQLGate(BaseGate):
         print >> sys.stdout, "finished"
         sys.stdout.flush()
 
-    def do_backup_restore(self, *opts, **args):
+    def do_backup_restore(self, *opts, **args):  # pylint: disable=W0613
         """
         Restore the SUSE Manager Database from backup.
         """
@@ -689,7 +689,7 @@ class PgSQLGate(BaseGate):
         os.chdir(location_begin)
 
 
-    def do_backup_hot(self, *opts, **args):
+    def do_backup_hot(self, *opts, **args):  # pylint: disable=W0613
         """
         Enable continuous archiving backup
         @help
@@ -830,7 +830,7 @@ class PgSQLGate(BaseGate):
             raise GateException("Destination file \"%s\"already exists." % args.get('backup-dir'))
         shutil.copy2(args.get('source'), args.get('backup-dir'))
 
-    def do_backup_status(self, *opts, **args):
+    def do_backup_status(self, *opts, **args):  # pylint: disable=W0613
         """
         Show backup status.
         """
