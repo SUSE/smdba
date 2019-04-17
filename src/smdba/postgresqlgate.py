@@ -277,6 +277,8 @@ class PgSQLGate(BaseGate):
     def _bt_to_mb(value: int) -> int:
         """
         Bytes to megabytes.
+
+        :returns int of mbs
         """
         return int(round(v / 1024. / 1024.))
 
