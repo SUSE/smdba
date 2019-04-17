@@ -273,7 +273,8 @@ class PgSQLGate(BaseGate):
             eprint(stderr)
             raise Exception("Underlying error: unable get backend configuration.")
 
-    def _bt_to_mb(self, v):
+    @staticmethod
+    def _bt_to_mb(value: int) -> int:
         """
         Bytes to megabytes.
         """
