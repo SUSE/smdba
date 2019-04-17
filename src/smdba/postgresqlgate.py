@@ -174,6 +174,7 @@ class PgSQLGate(BaseGate):
     NAME = "postgresql"
 
     def __init__(self, config):
+        BaseGate.__init__(self)
         self.config = config or {}
         self._get_sysconfig()
         self._get_pg_data()
