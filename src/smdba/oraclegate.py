@@ -176,7 +176,7 @@ class OracleGate(BaseGate):
         """
         Purge all backups. Useful after successfull reliable recover from the disaster.
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to purge assigned backups of it!");
+        self.vw_check_database_ready("Database must be healthy and running in order to purge assigned backups of it!")
 
         print("Checking backups:\t", end="")
 
@@ -229,7 +229,7 @@ class OracleGate(BaseGate):
         """
         Perform hot backup on running database.
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to take a backup of it!");
+        self.vw_check_database_ready("Database must be healthy and running in order to take a backup of it!")
 
         # Check DBID is around all the time (when DB is healthy!)
         self.get_dbid(known_db_status=True)
@@ -309,7 +309,7 @@ class OracleGate(BaseGate):
         @help
         autoresolve\t\tTry to automatically resolve errors and inconsistencies.\n
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to check assigned backups of it!");
+        self.vw_check_database_ready("Database must be healthy and running in order to check assigned backups of it!")
 
         info = self.get_backup_info()
         if len(info):
