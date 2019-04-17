@@ -134,23 +134,23 @@ class PgTune:
         Estimate the data.
         """
 
-        kilobytes = 0x400
-        megabytes = kilobytes * 0x400
+        kbt = 0x400
+        mbt = kbt * 0x400
 
         mem = self.get_total_memory()
         if not mem:
             raise Exception("Cannot get total memory of this system")
 
-        mem /= kilobytes
-        if mem < 0xff * kilobytes:
+        mem /= kbt
+        if mem < 0xff * kbt:
             raise Exception("This is a low memory system and is not supported!")
 
-        self.config['shared_buffers'] = self.to_mb(self.br(mem / 4))
-        self.config['effective_cache_size'] = self.to_mb(self.br(mem * 3 / 4))
-        self.config['work_mem'] = self.to_mb(self.br(mem / self.max_connections))
+        self.config['shared_buffers'] = self.to_mb(self.bin_rnd(mem / 4))
+        self.config['effective_cache_size'] = self.to_mb(self.bin_rnd(mem * 3 / 4))
+        self.config['work_mem'] = self.to_mb(self.bin_rnd(mem / self.max_connections))
 
         # No more than 1GB
-        self.config['maintenance_work_mem'] = self.to_mb(self.br((mem / 0x10) > megabytes and megabytes or mem / 0x10))
+        self.config['maintenance_work_mem'] = self.to_mb(self.bin_rnd((mem / 0x10) > mbt if mbt else mem / 0x10))
 
         pg_version = [int(v_el) for v_el in os.popen(r"psql --version | sed -e 's/.*\s//g'").read().split('.')]
         if pg_version < [9, 6, 0]:
