@@ -1154,28 +1154,28 @@ class OracleGate(BaseGate):
 
         # Check failed backups
         if bkpsout:
-            for line in map(lambda elm:elm.strip(), bkpsout.split("crosschecked")):
+            for line in map(lambda elm: elm.strip(), bkpsout.split("crosschecked")):
                 if not line.startswith("backup piece"):
                     continue
                 obj_raw = line.split("\n")[:2]
                 if len(obj_raw) == 2:
                     status = obj_raw[0].strip().split(" ")[-1].replace("'", '').lower()
-                    data = dict(filter(None, map(lambda elm:"=" in elm and tuple(elm.split("=", 1)) or None,
+                    data = dict(filter(None, map(lambda elm: "=" in elm and tuple(elm.split("=", 1)) or None,
                                                  filter(None, obj_raw[-1].split(" ")))))
                     hinfo = HandleInfo(status, handle=data['handle'], recid=data['RECID'], stamp=data['STAMP'])
                     if hinfo.availability == 'available':
                         healthy_backups.append(hinfo)
                     else:
-                        failed_backups(hinfo)
+                        failed_backups.append(hinfo)
 
         # Check failed archive logs
         if arlgout:
-            for archline in map(lambda elm:elm.strip(),
+            for archline in map(lambda elm: elm.strip(),
                                 arlgout.split("validation", 1)[-1].split("Crosschecked")[0].split("validation")):
                 obj_raw = archline.split("\n")
                 if len(obj_raw) == 2:
                     status = obj_raw[0].split(" ")[0]
-                    data = dict(filter(None, map(lambda elm:'=' in elm and tuple(elm.split('=', 1)) or None,
+                    data = dict(filter(None, map(lambda elm: '=' in elm and tuple(elm.split('=', 1)) or None,
                                                  obj_raw[1].split(" "))))
                     # Ask RMAN devs why this time it is called "name"
                     hinfo = HandleInfo(status == 'succeeded' and 'available' or 'unavailable', recid=data['RECID'],
