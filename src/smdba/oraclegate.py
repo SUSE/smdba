@@ -316,21 +316,21 @@ class OracleGate(BaseGate):
             print("Last known backup:", info[0].completion)
         else:
             raise GateException("No backups has been found!")
-        
-        hb, fb, ha, fa = self.check_backup_info()
+
+        hbk, fbk, harch, farch = self.check_backup_info()
         # Display backups info
-        if fb:
+        if fbk:
             eprint("WARNING! Failed backups has been found as follows:")
-            for bkp in fb:
+            for bkp in fbk:
                 eprint("\tName:", bkp.handle)
             eprint()
         else:
-            print(("%s available backup%s seems healthy." % (len(hb), len(hb) > 1 and 's are' or '')))
-        
+            print(("%s available backup%s seems healthy." % (len(hbk), len(hbk) > 1 and 's are' or '')))
+
         # Display ARCHIVELOG info
-        if fa:
+        if farch:
             eprint("WARNING! Failed archive logs has been found as follows:")
-            for arc in fa:
+            for arc in farch:
                 eprint("\tName:", arc.handle)
             eprint()
             if 'autoresolve' not in args:
@@ -338,10 +338,10 @@ class OracleGate(BaseGate):
                 sys.exit(1)
             else:
                 self.autoresolve_backup()
-                hb, fb, ha, fa = self.check_backup_info()
-                if fa:
+                hbk, fbk, harch, farch = self.check_backup_info()
+                if farch:
                     eprint("WARNING! Still are failed archive logs:")
-                    for arc in fa:
+                    for arc in farch:
                         eprint("\tName:", arc.handle)
                         eprint()
                     if 'ignore-errors' not in args:
@@ -350,7 +350,7 @@ class OracleGate(BaseGate):
                 else:
                     print("Hooray! No failures in backups found!")
         else:
-            print(("%s available archive log%s seems healthy." % (len(ha), len(ha) > 1 and 's are' or '' )))
+            print(("%s available archive log%s seems healthy." % (len(harch), len(harch) > 1 and 's are' or '')))
 
     def do_backup_restore(self, *args, **params):
         """
