@@ -262,9 +262,8 @@ class PgSQLGate(BaseGate):
         """
         Get entire PostgreSQL configuration.
         """
-        stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql')
-                                      .replace('@scenario', 'show all'),
-                                      None, "-u", "postgres", "/bin/bash")
+        stdout, stderr = self.syscall("sudo", "-u", "postgres", "/bin/bash",
+                                      input=self.get_scenario_template(target='psql').replace('@scenario', 'show all'))
         if stdout:
             for line in stdout.strip().split("\n")[2:]:
                 try:
@@ -494,9 +493,9 @@ class PgSQLGate(BaseGate):
             break
 
         # Get database sizes
-        stdout, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace(
-            '@scenario', 'select pg_database_size(datname), datname from pg_database;'),
-                                      None, "-u", "postgres", "/bin/bash")
+        stdout, stderr = self.syscall("sudo", "-u", "postgres", "/bin/bash",
+                                      input=self.get_scenario_template(target='psql').replace(
+                                          '@scenario', 'select pg_database_size(datname), datname from pg_database;'))
         self.to_stderr(stderr)
         overview = [('Database', 'DB Size (Mb)', 'Avail (Mb)', 'Partition Disk Size (Mb)', 'Use %',)]
         for line in stdout.split("\n"):
@@ -537,8 +536,8 @@ class PgSQLGate(BaseGate):
             print("%s...\t" % msg, end="")
             sys.stdout.flush()
 
-            _, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', operation),
-                                     None, "-u", "postgres", "/bin/bash")
+            _, stderr = self.syscall("sudo", "-u", "postgres", "/bin/bash",
+                                     input=self.get_scenario_template(target='psql').replace('@scenario', operation))
             if stderr:
                 eprint("failed")
                 sys.stdout.flush()
