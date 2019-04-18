@@ -621,7 +621,8 @@ class OracleGate(BaseGate):
                             sys.stdout.flush()
                             stdout, stderr = self.syscall("sudo", "-u", "oracle", "/bin/bash",
                                                           input=self.get_scenario_template().replace(
-                                '@scenario', self.__get_reclaim_space_statement(segment, obj)))
+                                                              '@scenario', self.__get_reclaim_space_statement(
+                                                                  segment, obj)))
                             if stderr:
                                 print("failed")
                                 eprint(stderr)
