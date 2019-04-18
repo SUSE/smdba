@@ -907,7 +907,6 @@ class PgSQLGate(BaseGate):
     --max_connections=<num>\tdefine maximal number of database connections (default: 400)
         """
         # Check enough space
-
         # Check hot backup setup and clean it up automatically
         conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
         conf = self._get_conf(conf_path)
@@ -1034,6 +1033,7 @@ class PgSQLGate(BaseGate):
         """
         Hooks after the PostgreSQL gate operations finished.
         """
+
 
 def get_gate(config):
     """
