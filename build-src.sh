@@ -4,7 +4,7 @@ VERSION=`grep "VERSION =" src/smdba/smdba | sed s'/^.*"\([[:digit:]\.]\+\)"/\1/'
 NAME="smdba"
 
 # Update
-git pull
+#git pull
 
 # Cleanup
 rm -f $NAME-*.tar.bz2
