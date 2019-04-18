@@ -126,6 +126,29 @@ class BaseGate(metaclass=abc.ABCMeta):
         else:
             raise GateException("Unknown target: %s" % target)
         return self.syscall("sudo", template, None, "-u", user, "/bin/bash")
+    @staticmethod
+    def to_bytes(value: str) -> bytes:
+        """
+        Convert string to bytes.
+
+        :param value: string
+        :returs: bytes
+        """
+        if value is not None:
+            value = value.encode("utf-8")
+        return value
+
+    @staticmethod
+    def to_str(value: bytes) -> str:
+        """
+        Convert bytes to str.
+
+        :param value: bytes
+        :returns: string
+        """
+        if value is not None:
+            value = value.decode("utf-8")
+        return value
 
     def syscall(self, command, *params, input=None) -> typing.Tuple[str, str]:
         """
