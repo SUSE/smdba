@@ -619,9 +619,9 @@ class OracleGate(BaseGate):
                         for segment, size in tree[tsn][obj]['AUTO']:
                             print("\t", segment + "...\t", end="")
                             sys.stdout.flush()
-                            stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace(
-                                '@scenario', self.__get_reclaim_space_statement(segment, obj)),
-                                                          None, "-u", "oracle", "/bin/bash")
+                            stdout, stderr = self.syscall("sudo", "-u", "oracle", "/bin/bash",
+                                                          input=self.get_scenario_template().replace(
+                                '@scenario', self.__get_reclaim_space_statement(segment, obj)))
                             if stderr:
                                 print("failed")
                                 eprint(stderr)
@@ -660,7 +660,7 @@ class OracleGate(BaseGate):
             return
 
         ready = False
-        stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle",
+        stdout, stderr = self.syscall("sudo", "-u", "oracle",
                                       "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "start")
         if stdout:
             for line in stdout.split("\n"):
@@ -692,7 +692,7 @@ class OracleGate(BaseGate):
                 return
 
         success = False
-        stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle",
+        stdout, stderr = self.syscall("sudo", "-u", "oracle",
                                       "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "stop")
 
         if stdout:
@@ -768,7 +768,7 @@ class OracleGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle", self.ora_home + "/bin/dbstart")
+        stdout, stderr = self.syscall("sudo", "-u", "oracle", self.ora_home + "/bin/dbstart")
         roller.stop('done')
         time.sleep(1)
 
@@ -821,7 +821,7 @@ class OracleGate(BaseGate):
             time.sleep(1)
             raise GateException("Error: database core is already offline.")
 
-        _, stderr = self.syscall("sudo", None, None, "-u", "oracle", self.ora_home + "/bin/dbshut")
+        _, stderr = self.syscall("sudo", "-u", "oracle", self.ora_home + "/bin/dbshut")
         if stderr:
             roller.stop("failed")
             time.sleep(1)
@@ -896,7 +896,7 @@ class OracleGate(BaseGate):
         Get Oracle listener status.
         """
         status = DBStatus()
-        status.stdout, status.stderr = self.syscall("sudo", None, None, "-u", "oracle",
+        status.stdout, status.stderr = self.syscall("sudo", "-u", "oracle",
                                                     "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "status")
 
         if status.stdout:
@@ -922,9 +922,9 @@ class OracleGate(BaseGate):
         status = DBStatus()
         mnum = 'm' + str(random.randint(0xff, 0xfff))
         scenario = "select '%s' as MAGICPING from dual;" % mnum # :-)
-        status.stdout, status.stderr = self.syscall(
-            "sudo", self.get_scenario_template(login=login).replace('@scenario', scenario),
-            None, "-u", "oracle", "/bin/bash")
+        status.stdout, status.stderr = self.syscall("sudo", "-u", "oracle", "/bin/bash",
+                                                    input=self.get_scenario_template(login=login).replace(
+                                                        '@scenario', scenario))
         status.ready = False
         for line in [line.strip() for line in status.stdout.lower().split("\n")]:
             if line == mnum:
@@ -965,8 +965,8 @@ class OracleGate(BaseGate):
             scenario = []
             for fname in stdout.strip().split("\n"):
                 scenario.append("alter database datafile '{}' autoextend on;".format(fname))
-            self.syscall("sudo", self.get_scenario_template().replace('@scenario', '\n'.join(scenario)),
-                         None, "-u", "oracle", "/bin/bash")
+            self.syscall("sudo", "-u", "oracle", "/bin/bash",
+                         input=self.get_scenario_template().replace('@scenario', '\n'.join(scenario)))
             print("%s table%s has been autoextended" % (len(scenario), len(scenario) > 1 and 's' or ''))
         else:
             print("Autoextensible:\tYes")
