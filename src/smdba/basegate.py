@@ -82,14 +82,14 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         if target in ['sqlplus', 'rman']:
             if env('PATH') and env('ORACLE_BASE') and env('ORACLE_SID') and env('ORACLE_HOME'):
-                scenario.append("export ORACLE_BASE=" + env('ORACLE_BASE'))
-                scenario.append("export ORACLE_SID=" + env('ORACLE_SID'))
-                scenario.append("export ORACLE_HOME=" + env('ORACLE_HOME'))
-                scenario.append("export PATH=" + env('PATH'))
+                scenario.append("export ORACLE_BASE=" + env('ORACLE_BASE', ''))
+                scenario.append("export ORACLE_SID=" + env('ORACLE_SID', ''))
+                scenario.append("export ORACLE_HOME=" + env('ORACLE_HOME', ''))
+                scenario.append("export PATH=" + env('PATH', ''))
             else:
                 raise Exception("Underlying error: environment cannot be constructed.")
 
-            scenario.append("cat - << EOF | " + env('ORACLE_HOME') + executable)
+            scenario.append("cat - << EOF | " + env('ORACLE_HOME', '') + executable)
             if target == 'sqlplus' and login.lower() == '/nolog':
                 scenario.append("CONNECT / AS SYSDBA;")
             elif target == 'rman':
