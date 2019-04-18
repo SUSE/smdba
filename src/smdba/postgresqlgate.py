@@ -521,17 +521,11 @@ class PgSQLGate(BaseGate):
         print("Examining database...\t", end="")
         sys.stdout.flush()
 
-        #roller = Roller()
-        #roller.start()
-
         if not self._get_db_status():
-            #roller.stop('failed')
             time.sleep(1)
-            #eprint("failed")
             raise GateException("Database must be online.")
 
         eprint("finished")
-        #roller.stop('done')
         time.sleep(1)
 
         operations = [
@@ -542,8 +536,6 @@ class PgSQLGate(BaseGate):
         for msg, operation in operations:
             print("%s...\t" % msg, end="")
             sys.stdout.flush()
-            #roller = Roller()
-            #roller.start()
 
             _, stderr = self.syscall("sudo", self.get_scenario_template(target='psql').replace('@scenario', operation),
                                      None, "-u", "postgres", "/bin/bash")
@@ -642,7 +634,6 @@ class PgSQLGate(BaseGate):
         os.chown(temp_dir, pguid, pggid)
         tar_command = '/bin/tar xf %s --directory=%s 2>/dev/null' % (destination_tar, temp_dir)
         os.system(tar_command)
-        #print tar_command
 
         roller.stop("finished")
         time.sleep(1)
@@ -651,7 +642,7 @@ class PgSQLGate(BaseGate):
         backup_root = self._rst_get_backup_root(temp_dir)
         mv_command = '/bin/mv %s %s' % (backup_root, os.path.dirname(self.config['pcnf_pg_data']) + "/data")
         os.system(mv_command)
-        #print mv_command
+
         print("finished")
         sys.stdout.flush()
 
@@ -724,10 +715,10 @@ class PgSQLGate(BaseGate):
         """
 
         # Part for the auto-backups
-        #--source\tSource path of WAL entry.\n
-        #Example:
-        #--autosource=%p --destination=/root/of/your/backups\n
-        #NOTE: All parameters above are used automatically!\n
+        # --source\tSource path of WAL entry.\n
+        # Example:
+        # --autosource=%p --destination=/root/of/your/backups\n
+        # NOTE: All parameters above are used automatically!\n
 
         if args.get('enable') == 'on' and 'backup-dir' in args.keys() and not args['backup-dir'].startswith('/'):
             raise GateException("No relative paths please.")
