@@ -125,7 +125,8 @@ class BaseGate(metaclass=abc.ABCMeta):
             user = 'postgres'
         else:
             raise GateException("Unknown target: %s" % target)
-        return self.syscall("sudo", template, None, "-u", user, "/bin/bash")
+        return self.syscall("sudo", "-u", user, "/bin/bash", input=template)
+
     @staticmethod
     def to_bytes(value: str) -> bytes:
         """
