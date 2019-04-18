@@ -1,41 +1,24 @@
-# Oracle administration gate.
-#
-# Author: Bo Maryniuk <bo@suse.de>
-#
-#
-# The MIT License (MIT)
-# Copyright (C) 2012 SUSE Linux Products GmbH
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to
-# deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# sell copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions: 
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software. 
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE. 
-# 
-
-from basegate import BaseGate
-from basegate import GateException
-from roller import Roller
-from utils import TablePrint
+# coding: utf-8
+"""
+Oracle administration gate.
+"""
+# pylint: disable=W0201,R0904,R0914,R1702,R0915
 
 import os
 import sys
 import re
 import time
-import utils
 import random
+
+from smdba.basegate import BaseGate, GateException
+from smdba.roller import Roller
+from smdba.utils import TablePrint, eprint
+
+
+class InfoNode:
+    """
+    Information structure.
+    """
 
 
 class HandleInfo:
@@ -63,7 +46,6 @@ class DBStatus:
     """
     Database status result class.
     """
-
     def __init__(self):
         """
         Init.
@@ -76,7 +58,6 @@ class DBStatus:
         self.available = 0
 
 
-
 class OracleGate(BaseGate):
     """
     Gate for Oracle database tools.
@@ -86,20 +67,22 @@ class OracleGate(BaseGate):
     LSNR_CTL = "%s/bin/lsnrctl"
     HELPER_CONF = "%s/smdba-helper.conf"
 
-
     def __init__(self, config):
         """
         Constructor.
+
+        :raises Exception: if oratab file and/or oracle home was not found.
         """
+        BaseGate.__init__(self)
         self.config = config
 
         # Get Oracle home
         if not os.path.exists(self.ORATAB):
-            raise Exception("Underlying error: file \"%s\" does not exists or cannot be read." % self.ORATAB)
+            raise Exception("Underlying error: file '{}' does not exists or cannot be read.".format(self.ORATAB))
 
         dbsid = self.config.get("db_name")
         for tabline in filter(None, [line.strip() for line in open(self.ORATAB).readlines()]):
-            sid, home, default_start = tabline.split(":")
+            sid, home, _ = tabline.split(":")
             if sid == dbsid:
                 self.ora_home = home
                 break
@@ -119,13 +102,12 @@ class OracleGate(BaseGate):
         # Get lsnrctl
         self.lsnrctl = self.LSNR_CTL % self.ora_home
         if not os.path.exists(self.lsnrctl):
-            raise Exception("Underlying error: %s does not exists or cannot be executed." % self.lsnrctl)
-
+            raise Exception("Underlying error: {} does not exists or cannot be executed.".format(self.lsnrctl))
 
     #
     # Exposed operations below
     #
-    def do_backup_list(self, *args, **params):
+    def do_backup_list(self, *args, **params):  # pylint: disable=W0613
         """
         List of available backups.
         """
@@ -133,9 +115,8 @@ class OracleGate(BaseGate):
 
         roller = Roller()
         roller.start()
-        print >> sys.stdout, "Getting available backups:\t",
+        print("Getting available backups:\t", end="")
 
-        class InfoNode:pass
         infoset = []
         stdout, stderr = self.call_scenario('rman-list-backups', target='rman')
         self.to_stderr(stderr)
@@ -154,21 +135,19 @@ class OracleGate(BaseGate):
                         if line.lower().startswith('piece name'):
                             info.backup = line.split(" ")[-1]
                         if line.lower().find('status') > -1:
-                            status_line = filter(None, line.replace(':', '').split("Status")[-1].split(" "))
-                            if len(status_line) ==  5:
+                            status_line = list(filter(None, line.replace(':', '').split("Status")[-1].split(" ")))
+                            if len(list(status_line)) == 5:
                                 info.status = status_line[0]
                                 info.compression = status_line[2]
                                 info.tag = status_line[4]
 
                     # Get the list of files
-                    cutoff = True
                     for line in [l.strip() for l in files_chnk.split("\n")]:
                         if line.startswith('-'):
-                            cutoff = None
                             continue
                         else:
-                            line = filter(None, line.split(" "))
-                            if len(line) > 4:
+                            line = list(filter(None, line.split(" ")))
+                            if len(list(line)) > 4:
                                 if line[0] == 'File':
                                     continue
                                 dbf = InfoNode()
@@ -177,61 +156,61 @@ class OracleGate(BaseGate):
                                 dbf.date = line[-2]
                                 info.files.append(dbf)
                     infoset.append(info)
-                except:
-                    print >> sys.stderr, "No backup snapshots available."
+                except Exception:
+                    eprint("No backup snapshots available.")
                     sys.exit(1)
 
             # Display backup data
-            if (infoset):
-                print >> sys.stdout, "Backups available:\n"
+            if infoset:
+                print("Backups available:\n")
                 for info in infoset:
-                    print >> sys.stdout, "Name:\t", info.backup
-                    print >> sys.stdout, "Files:"
+                    print("Name:\t", info.backup)
+                    print("Files:")
                     for dbf in info.files:
-                        print >> sys.stdout, "\tType:", dbf.type,
-                        print >> sys.stdout, "\tDate:", dbf.date,
-                        print >> sys.stdout, "\tFile:", dbf.file
-                    print >> sys.stdout
+                        print("\tType:", dbf.type, end="")
+                        print(sys.stdout, "\tDate:", dbf.date, end="")
+                        print("\tFile:", dbf.file)
+                    print()
 
-            
-    def do_backup_purge(self, *args, **params):
+    def do_backup_purge(self, *args, **params):  # pylint: disable=W0613
         """
         Purge all backups. Useful after successfull reliable recover from the disaster.
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to purge assigned backups of it!");
+        self.vw_check_database_ready("Database must be healthy and running in order to purge assigned backups of it!")
 
-        print >> sys.stdout, "Checking backups:\t",
+        print("Checking backups:\t", end="")
+
         roller = Roller()
         roller.start()
 
         info = self.get_backup_info()
-        if not len(info):
+        if not info:
             roller.stop("failed")
             time.sleep(1)
-            print >> sys.stderr, "No backup snapshots available."
+            eprint("No backup snapshots available.")
             sys.exit(1)
         roller.stop("finished")
         time.sleep(1)
 
-        print >> sys.stdout, "Removing %s backup%s:\t" % (len(info), len(info) > 1 and 's' or ''),
+        print("Removing %s backup%s:\t" % (len(info), len(info) > 1 and 's' or ''), end="")
+
         roller = Roller()
         roller.start()
-        stdout, stderr = self.call_scenario('rman-backup-purge', target='rman')
+        _, stderr = self.call_scenario('rman-backup-purge', target='rman')
         if stderr:
             roller.stop("failed")
             time.sleep(1)
             self.to_stderr(stderr)
-        
+
         roller.stop("finished")
         time.sleep(1)
-
 
     def _backup_rotate(self):
         """
         Rotate backup by purging the obsolete/expired backup set.
         This method is internal and needs to be performed on a healthy, ensured database.
         """
-        print >> sys.stdout, "Rotating the backup:\t",
+        print("Rotating the backup:\t", end="")
         roller = Roller()
         roller.start()
 
@@ -246,12 +225,11 @@ class OracleGate(BaseGate):
             roller.stop("finished")
             time.sleep(1)
 
-
-    def do_backup_hot(self, *args, **params):
+    def do_backup_hot(self, *args, **params):  # pylint: disable=W0613
         """
         Perform hot backup on running database.
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to take a backup of it!");
+        self.vw_check_database_ready("Database must be healthy and running in order to take a backup of it!")
 
         # Check DBID is around all the time (when DB is healthy!)
         self.get_dbid(known_db_status=True)
@@ -259,7 +237,7 @@ class OracleGate(BaseGate):
         if not self.get_archivelog_mode():
             raise GateException("Archivelog is not turned on.\n\tPlease shutdown SUSE Manager and run system-check first!")
 
-        print >> sys.stdout, "Backing up the database:\t",
+        print("Backing up the database:\t", end="")
         roller = Roller()
         roller.start()
 
@@ -283,98 +261,96 @@ class OracleGate(BaseGate):
                 elif line.startswith("archived"):
                     arclogs.append(line.split("name=")[-1].split(" ")[0])
 
-            print >> sys.stdout, "Data files archived:"
-            for f in files:
-                print >> sys.stdout, "\t" + f
-            print >> sys.stdout
+            print("Data files archived:")
+            for fname in files:
+                print("\t" + fname)
+            print()
 
-            print >> sys.stdout, "Archive logs:"
+            print("Archive logs:")
             for arc in arclogs:
-                print >> sys.stdout, "\t" + arc
-            print >> sys.stdout
+                print("\t" + arc)
+            print()
 
         # Rotate and check
         self.autoresolve_backup()
         self._backup_rotate()
 
         # Finalize
-        hb, fb, ha, fa = self.check_backup_info()
-        print >> sys.stdout, "Backup summary as follows:"
-        if len(hb):
-            print >> sys.stdout, "\tBackups:"
-            for bkp in hb:
-                print >> sys.stdout, "\t\t", bkp.handle
-            print >> sys.stdout
+        hbk, fbk, harch, farch = self.check_backup_info()
+        print("Backup summary as follows:")
+        if hbk:
+            print("\tBackups:")
+            for bkp in hbk:
+                print("\t\t", bkp.handle)
+            print()
 
-        if len(ha):
-            print >> sys.stdout, "\tArchive logs:"
-            for bkp in ha:
-                print >> sys.stdout, "\t\t", bkp.handle
-            print >> sys.stdout
-        
-        if len(fb):
-            print >> sys.stderr, "WARNING! Broken backups has been detected:"
-            for bkp in fb:
-                print >> sys.stderr, "\t\t", bkp.handle
-            print >> sys.stderr
+        if harch:
+            print("\tArchive logs:")
+            for bkp in harch:
+                print("\t\t", bkp.handle)
+            print()
 
-        if len(fa):
-            print >> sys.stderr, "WARNING! Broken archive logs has been detected:"
-            for bkp in fa:
-                print >> sys.stderr, "\t\t", bkp.handle
-            print >> sys.stderr
-        print >> sys.stdout, "\nFinished."
+        if fbk:
+            eprint("WARNING! Broken backups has been detected:")
+            for bkp in fbk:
+                eprint("\t\t", bkp.handle)
+            eprint()
 
-        
-    def do_backup_check(self, *args, **params):
+        if farch:
+            eprint("WARNING! Broken archive logs has been detected:")
+            for bkp in farch:
+                eprint("\t\t", bkp.handle)
+            eprint()
+        print("\nFinished.")
+
+    def do_backup_check(self, *args, **params):  # pylint: disable=W0613
         """
         Check the consistency of the backup.
         @help
         autoresolve\t\tTry to automatically resolve errors and inconsistencies.\n
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to check assigned backups of it!");
+        self.vw_check_database_ready("Database must be healthy and running in order to check assigned backups of it!")
 
         info = self.get_backup_info()
-        if len(info):
-            print >> sys.stdout, "Last known backup:", info[0].completion
+        if info:
+            print("Last known backup:", info[0].completion)
         else:
             raise GateException("No backups has been found!")
-        
-        hb, fb, ha, fa = self.check_backup_info()
+
+        hbk, fbk, harch, farch = self.check_backup_info()
         # Display backups info
-        if fb:
-            print >> sys.stderr, "WARNING! Failed backups has been found as follows:"
-            for bkp in fb:
-                print >> sys.stderr, "\tName:", bkp.handle
-            print >> sys.stderr
+        if fbk:
+            eprint("WARNING! Failed backups has been found as follows:")
+            for bkp in fbk:
+                eprint("\tName:", bkp.handle)
+            eprint()
         else:
-            print >> sys.stdout, ("%s available backup%s seems healthy." % (len(hb), len(hb) > 1 and 's are' or '' ))
-        
+            print(("%s available backup%s seems healthy." % (len(hbk), len(hbk) > 1 and 's are' or '')))
+
         # Display ARCHIVELOG info
-        if fa:
-            print >> sys.stderr, "WARNING! Failed archive logs has been found as follows:"
-            for arc in fa:
-                print >> sys.stderr, "\tName:", arc.handle
-            print >> sys.stderr
+        if farch:
+            eprint("WARNING! Failed archive logs has been found as follows:")
+            for arc in farch:
+                eprint("\tName:", arc.handle)
+            eprint()
             if 'autoresolve' not in args:
-                print >> sys.stderr, "Try using \"autoresolve\" directive."
+                eprint("Try using \"autoresolve\" directive.")
                 sys.exit(1)
             else:
                 self.autoresolve_backup()
-                hb, fb, ha, fa = self.check_backup_info()
-                if fa:
-                    print >> sys.stderr, "WARNING! Still are failed archive logs:"
-                    for arc in fa:
-                        print >> sys.stderr, "\tName:", arc.handle
-                        print >> sys.stderr
+                hbk, fbk, harch, farch = self.check_backup_info()
+                if farch:
+                    eprint("WARNING! Still are failed archive logs:")
+                    for arc in farch:
+                        eprint("\tName:", arc.handle)
+                        eprint()
                     if 'ignore-errors' not in args:
-                        print >> sys.stderr, "Maybe you want to try \"ignore-errors\" directive and... cross the fingers."
+                        eprint("Maybe you want to try \"ignore-errors\" directive and... cross the fingers.")
                         sys.exit(1)
                 else:
-                    print >> sys.stdout, "Hooray! No failures in backups found!"
+                    print("Hooray! No failures in backups found!")
         else:
-            print >> sys.stdout, ("%s available archive log%s seems healthy." % (len(ha), len(ha) > 1 and 's are' or '' ))
-
+            print(("%s available archive log%s seems healthy." % (len(harch), len(harch) > 1 and 's are' or '')))
 
     def do_backup_restore(self, *args, **params):
         """
@@ -395,8 +371,9 @@ class OracleGate(BaseGate):
         if params.get("strategy") in ['full', 'partial']:
             strategy = params.get("strategy")
         elif params.get("strategy") is not None:
-            raise GateException("Unknown value %s for option 'strategy'. Please read 'help' first." % params.get("strategy"))
-        
+            raise GateException("Unknown value {} for option 'strategy'. "
+                                "Please read 'help' first.".format(params.get("strategy")))
+
         if not strategy:
             strategy = "full"
             db_path = os.environ['ORACLE_BASE'] + "/oradata/" + os.environ['ORACLE_SID']
@@ -405,14 +382,14 @@ class OracleGate(BaseGate):
                     strategy = "partial"
                     break
 
-        print >> sys.stdout, ("Restoring the SUSE Manager Database using %s strategy" % strategy)
+        print(("Restoring the SUSE Manager Database using %s strategy" % strategy))
 
         # Could be database just not cleanly killed
         # In this case great almighty RMAN won't connect at all and just crashes. :-(
         self.do_db_start()
         self.do_db_stop()
 
-        print >> sys.stdout, "Preparing database:\t",
+        print("Preparing database:\t", end="")
         roller = Roller()
         roller.start()
 
@@ -429,18 +406,18 @@ class OracleGate(BaseGate):
         else:
             roller.stop("success")
             time.sleep(1)
-        
-        print >> sys.stdout, "Restoring from backup:\t",
+
+        print("Restoring from backup:\t", end="")
         roller = Roller()
         roller.start()
 
         stdout, stderr = self.call_scenario(scenario[strategy], target='rman', dbid=str(dbid))
-        
+
         if stderr:
             roller.stop("failed")
             time.sleep(1)
             self.to_stderr(stderr)
-            
+
         if stdout:
             roller.stop("finished")
             time.sleep(1)
@@ -451,14 +428,13 @@ class OracleGate(BaseGate):
             self.do_db_start()
             self.do_listener_status()
 
-
-    def do_stats_refresh(self, *args, **params):
+    def do_stats_refresh(self, *args, **params):  # pylint: disable=W0613
         """
         Gather statistics on SUSE Manager database objects.
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to get statistics of it!");
+        self.vw_check_database_ready("Database must be healthy and running in order to get statistics of it!")
 
-        print >> sys.stdout, "Gathering statistics on SUSE Manager database...\t",
+        print("Gathering statistics on SUSE Manager database...\t", end="")
 
         roller = Roller()
         roller.start()
@@ -472,34 +448,32 @@ class OracleGate(BaseGate):
 
         time.sleep(1)
         self.to_stderr(stderr)
-            
 
-    def do_space_overview(self, *args, **params):
+    def do_space_overview(self, *args, **params):  # pylint: disable=W0613
         """
         Show database space report.
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to get space overview!");
+        self.vw_check_database_ready("Database must be healthy and running in order to get space overview!")
         stdout, stderr = self.call_scenario('report')
         self.to_stderr(stderr)
-        
+
         ora_error = self.has_ora_error(stdout)
         if ora_error:
             raise GateException("Please visit http://%s.ora-code.com/ page to know more details." % ora_error.lower())
 
-        table = [("Tablespace", "Avail (Mb)", "Used (Mb)", "Size (Mb)", "Use %",),]
-        for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ") 
+        table = [("Tablespace", "Avail (Mb)", "Used (Mb)", "Size (Mb)", "Use %",), ]
+        for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ")
                                        for line in stdout.strip().split("\n")[2:]]:
             table.append((name, free, used, size, str(int(float(used) / float(size) * 100)),))
-        print >> sys.stdout, "\n", TablePrint(table), "\n"
+        print("\n", TablePrint(table), "\n")
 
-
-    def do_stats_overview(self, *args, **params):
+    def do_stats_overview(self, *args, **params):  # pylint: disable=W0613
         """
         Show tables with stale or empty statistics.
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to get stats overview!");
-        print >> sys.stdout, "Preparing data:\t\t",
-        
+        self.vw_check_database_ready("Database must be healthy and running in order to get stats overview!")
+        print("Preparing data:\t\t", end="")
+
         roller = Roller()
         roller.start()
 
@@ -529,40 +503,39 @@ class OracleGate(BaseGate):
                 elif segment and segment == 'empty':
                     empty.append(line)
                 else:
-                    print "Ignoring", repr(line)
+                    print("Ignoring", repr(line))
 
         if stale:
-            print >> sys.stdout, "\nList of stale objects:"
+            print("\nList of stale objects:")
             for obj in stale:
-                print >> sys.stdout, "\t", obj
-            print >> sys.stdout, "\nFound %s stale objects\n" % len(stale)
+                print("\t", obj)
+            print("\nFound %s stale objects\n" % len(stale))
         else:
-            print >> sys.stdout, "No stale objects found"
+            print("No stale objects found")
 
         if empty:
-            print >> sys.stdout, "\nList of empty objects:"
+            print("\nList of empty objects:")
             for obj in empty:
-                print >> sys.stdout, "\t", obj
-            print >> sys.stdout, "\nFound %s objects that currently have no statistics.\n" % len(stale)
+                print("\t", obj)
+            print("\nFound %s objects that currently have no statistics.\n" % len(stale))
         else:
-            print >> sys.stdout, "No empty objects found."
+            print("No empty objects found.")
 
         if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            eprint("Error dump:")
+            eprint(stderr)
 
-
-    def do_space_reclaim(self, *args, **params):
+    def do_space_reclaim(self, *args, **params):  # pylint: disable=W0613
         """
         Free disk space from unused object in tables and indexes.
         """
-        self.vw_check_database_ready("Database must be healthy and running in order to reclaim the used space!");        
+        self.vw_check_database_ready("Database must be healthy and running in order to reclaim the used space!")
 
-        print >> sys.stdout, "Examining the database...\t",
+        print("Examining the database...\t", end="")
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.call_scenario('shrink-segments-advisor')
+        self.call_scenario('shrink-segments-advisor')
         stderr = None
 
         if stderr:
@@ -573,7 +546,7 @@ class OracleGate(BaseGate):
             roller.stop('done')
             time.sleep(1)
 
-        print >> sys.stdout, "Gathering recommendations...\t",
+        print("Gathering recommendations...\t", end="")
 
         roller = Roller()
         roller.start()
@@ -581,187 +554,187 @@ class OracleGate(BaseGate):
         # get the recomendations
         stdout, stderr = self.call_scenario('recomendations')
 
-        if not stdout and not stderr:
-            roller.stop("finished")
-            time.sleep(1)
-            print >> sys.stdout, "\nNo space reclamation possible at this time.\n"
-            return
-
-        elif stdout:
+        if stdout:
             roller.stop("done")
             time.sleep(1)
-
-        else:
+        elif stderr:
             roller.stop("failed")
             time.sleep(1)
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
-
+            eprint("Error dump:")
+            eprint(stderr)
+        else:
+            roller.stop("finished")
+            time.sleep(1)
+            print("\nNo space reclamation possible at this time.\n")
+            return
 
         messages = {
-            'TABLE' : 'Tables',
-            'INDEX' : 'Indexes',
-            'AUTO' : 'Recommended segments',
-            'MANUAL' : 'Non-shrinkable tablespace',
-            }
+            'TABLE': 'Tables',
+            'INDEX': 'Indexes',
+            'AUTO': 'Recommended segments',
+            'MANUAL': 'Non-shrinkable tablespace',
+        }
 
         tree = {}
         wseg = 0
 
         if stdout:
-            lines = [tuple(filter(None, line.strip().replace("\t", " ").split(" "))) for line in stdout.strip().split("\n")]
+            lines = [tuple(filter(None, line.strip().replace("\t", " ").split(" ")))
+                     for line in stdout.strip().split("\n")]
             for ssm, sname, rspace, tsn, stype in lines:
                 tsns = tree.get(tsn, {})
                 stypes = tsns.get(stype, {})
                 ssms = stypes.get(ssm, [])
                 ssms.append((sname, int(rspace),))
-                wseg = len(sname) > wseg and len(sname) or wseg
+                wseg = len(sname) if len(sname) > wseg else wseg
                 stypes[ssm] = ssms
                 tsns[stype] = stypes
                 tree[tsn] = tsns
 
             total = 0
-            for tsn in tree.keys():
-                print >> sys.stdout, "\nTablespace:", tsn
+            for tsn in tree:
+                print("\nTablespace:", tsn)
                 for obj in tree[tsn].keys():
-                    print >> sys.stdout, "\n\t" +  messages.get(obj, "Object: " + obj)
+                    print("\n\t" +  messages.get(obj, "Object: " + obj))
                     for stype in tree[tsn][obj].keys():
                         typetotal = 0
-                        print >> sys.stdout, "\t" + messages.get(stype, "Type: " + stype)
+                        print("\t" + messages.get(stype, "Type: " + stype))
                         for segment, size in tree[tsn][obj][stype]:
-                            print >> sys.stdout, "\t\t", \
-                                (segment + ((wseg - len(segment)) * " ")), \
-                                "\t", '%.2fM' % (size / 1024. / 1024.)
+                            print("\t\t", (segment + ((wseg - len(segment)) * " ")),
+                                  "\t", '%.2fM' % (size / 1024. / 1024.))
                             total += size
                             typetotal += size
                         total_message = "Total " + messages.get(obj, '').lower()
-                        print >> sys.stdout, "\n\t\t", \
-                            (total_message + ((wseg - len(total_message)) * " ")), \
-                            "\t", '%.2fM' % (typetotal / 1024. / 1024.)
+                        print("\n\t\t", (total_message + ((wseg - len(total_message)) * " ")),
+                              "\t", '%.2fM' % (typetotal / 1024. / 1024.))
 
-            print >> sys.stdout, "\nTotal reclaimed space: %.2fGB" % (total / 1024. / 1024. / 1024.)
+            print("\nTotal reclaimed space: %.2fGB" % (total / 1024. / 1024. / 1024.))
 
         # Reclaim space
         if tree:
-            for tsn in tree.keys():
-                for obj in tree[tsn].keys():
+            for tsn in tree:
+                for obj in tree[tsn]:
                     if tree[tsn][obj].get('AUTO', None):
-                        print >> sys.stdout, "\nReclaiming space on %s:" % messages[obj].lower()
+                        print("\nReclaiming space on %s:" % messages[obj].lower())
                         for segment, size in tree[tsn][obj]['AUTO']:
-                            print >> sys.stdout, "\t", segment + "...\t",
+                            print("\t", segment + "...\t", end="")
                             sys.stdout.flush()
-                            stdout, stderr = self.syscall("sudo", self.get_scenario_template().replace('@scenario', self.__get_reclaim_space_statement(segment, obj)),
-                                                          None, "-u", "oracle", "/bin/bash")
+                            stdout, stderr = self.syscall("sudo", "-u", "oracle", "/bin/bash",
+                                                          input=self.get_scenario_template().replace(
+                                                              '@scenario', self.__get_reclaim_space_statement(
+                                                                  segment, obj)))
                             if stderr:
-                                print >> sys.stdout, "failed"
-                                print >> sys.stderr, stderr
+                                print("failed")
+                                eprint(stderr)
                             else:
-                                print >> sys.stdout, "done"
+                                print("done")
 
-        print >> sys.stdout, "Reclaiming space finished"
-
+        print("Reclaiming space finished")
 
     def __get_reclaim_space_statement(self, segment, obj):
-            query = []
-            if obj != 'INDEX':
-                query.append("alter %s %s.%s enable row movement;" % (obj, self.config.get('db_user', '').upper(), segment))
-            query.append("alter %s %s.%s shrink space compact;" % (obj, self.config.get('db_user', '').upper(), segment))
-            query.append("alter %s %s.%s deallocate unused space;" % (obj, self.config.get('db_user', '').upper(), segment))
-            query.append("alter %s %s.%s coalesce;" % (obj, self.config.get('db_user', '').upper(), segment))
+        query = []
+        if obj != 'INDEX':
+            query.append("alter %s %s.%s enable row movement;" %
+                         (obj, self.config.get('db_user', '').upper(), segment))
+        query.append("alter %s %s.%s shrink space compact;" %
+                     (obj, self.config.get('db_user', '').upper(), segment))
+        query.append("alter %s %s.%s deallocate unused space;" %
+                     (obj, self.config.get('db_user', '').upper(), segment))
+        query.append("alter %s %s.%s coalesce;" %
+                     (obj, self.config.get('db_user', '').upper(), segment))
 
-            return '\n'.join(query)
+        return '\n'.join(query)
 
-
-    def do_listener_start(self, *args, **params):
+    def do_listener_start(self, *args, **params):  # pylint: disable=W0613
         """
         Start the SUSE Manager database listener.
         """
-        if not 'quiet' in args:
-            print >> sys.stdout, "Starting database listener...\t",
+        if 'quiet' not in args:
+            print("Starting database listener...\t", end="")
             sys.stdout.flush()
 
         dbstatus = self.get_status()
         if dbstatus.ready:
-            if not 'quiet' in args:
-                print >> sys.stdout, "Failed"
-                print >> sys.stderr, "Error: listener already running."
+            if 'quiet' not in args:
+                print("Failed")
+                eprint("Error: listener already running.")
             return
 
         ready = False
-        stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle", "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "start")
+        stdout, stderr = self.syscall("sudo", "-u", "oracle",
+                                      "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "start")
         if stdout:
             for line in stdout.split("\n"):
                 if line.lower().startswith("uptime"):
                     ready = True
                     break
 
-            if not 'quiet' in args:
-                print >> sys.stdout, (ready and "done" or "failed")
+            if 'quiet' not in args:
+                print((ready and "done" or "failed"))
 
-        if stderr and not 'quiet' in args:
+        if stderr and 'quiet' not in args:
             self.to_stderr(stderr)
 
-
-    def do_listener_stop(self, *args, **params):
+    def do_listener_stop(self, *args, **params):  # pylint: disable=W0613
         """
         Stop the SUSE Manager database listener.
         @help
         quiet\tSuppress any output.
         """
-        if not 'quiet' in args:
-            print >> sys.stdout, "Stopping database listener...\t",
+        if 'quiet' not in args:
+            print("Stopping database listener...\t", end="")
             sys.stdout.flush()
 
         dbstatus = self.get_status()
         if not dbstatus.ready:
-            if not 'quiet' in args:
-                print >> sys.stdout, "Failed"
-                print >> sys.stderr, "Error: listener is not running."
+            if 'quiet' not in args:
+                print("Failed")
+                eprint("Error: listener is not running.")
                 return
 
         success = False
-        stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle", "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "stop")
-        
+        stdout, stderr = self.syscall("sudo", "-u", "oracle",
+                                      "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "stop")
+
         if stdout:
             for line in stdout.split("\n"):
                 if line.lower().find("completed successfully") > -1:
                     success = True
                     break
 
-            if not 'quiet' in args:
-                print >> sys.stdout, (success and "done" or "failed")
+            if 'quiet' not in args:
+                print((success and "done" or "failed"))
 
-        if stderr and not 'quiet' in args:
+        if stderr and 'quiet' not in args:
             self.to_stderr(stderr)
 
-
-    def do_listener_status(self, *args, **params):
+    def do_listener_status(self, *args, **params):  # pylint: disable=W0613
         """
         Show database status.
         """
-        print >> sys.stdout, "Listener:\t",
+        print("Listener:\t", end="")
         sys.stdout.flush()
 
         dbstatus = self.get_status()
-        print >> sys.stdout, (dbstatus.ready and "running" or "down")
-        print >> sys.stdout, "Uptime:\t\t", dbstatus.uptime and dbstatus.uptime or ""
-        print >> sys.stdout, "Instances:\t", dbstatus.available
-        
+
+        print((dbstatus.ready and "running" or "down"))
+        print("Uptime:\t\t", dbstatus.uptime and dbstatus.uptime or "")
+        print("Instances:\t", dbstatus.available)
+
         if dbstatus.stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, dbstatus.stderr
+            eprint("Error dump:")
+            eprint(dbstatus.stderr)
 
         if dbstatus.unknown:
-            print >> sys.stderr, "Warning: %s unknown instance%s." % (dbstatus.unknown, dbstatus.unknown > 1 and 's' or '')
+            eprint("Warning: %s unknown instance%s." % (dbstatus.unknown, dbstatus.unknown > 1 and 's' or ''))
         if not dbstatus.available:
-            print >> sys.stderr, "Critical: No available instances found!"
+            eprint("Critical: No available instances found!")
 
-
-    def do_listener_restart(self, *args, **params):
+    def do_listener_restart(self, *args, **params):  # pylint: disable=W0613
         """
         Restart SUSE Manager database listener.
         """
-        print >> sys.stdout, "Restarting listener...",
+        print("Restarting listener...", end="")
         sys.stdout.flush()
 
         dbstatus = self.get_status()
@@ -770,14 +743,13 @@ class OracleGate(BaseGate):
 
         self.do_listener_start()
 
-        print >> sys.stdout, "done"
+        print("done")
 
-
-    def do_db_start(self, *args, **params):
+    def do_db_start(self, *args, **params):  # pylint: disable=W0613
         """
         Start SUSE Manager database.
         """
-        print >> sys.stdout, "Starting listener:\t",
+        print("Starting listener:\t", end="")
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -787,46 +759,44 @@ class OracleGate(BaseGate):
             roller.stop('failed')
             time.sleep(1)
             raise GateException("Error: listener is already running")
-        else:
-            self.do_listener_start('quiet')
+        self.do_listener_start('quiet')
 
         roller.stop('done')
         time.sleep(1)
 
-        print >> sys.stdout, "Starting core...\t",
+        print("Starting core...\t", end="")
         sys.stdout.flush()
         roller = Roller()
         roller.start()
 
-        stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle", self.ora_home + "/bin/dbstart")
+        stdout, stderr = self.syscall("sudo", "-u", "oracle", self.ora_home + "/bin/dbstart")
         roller.stop('done')
         time.sleep(1)
 
         self.to_stderr(stderr)
-    
-        if stdout and stdout.find("Database opened") > -1 \
-                and stdout.find("Database mounted") > -1:
+
+        if stdout and stdout.find("Database opened") > -1 and stdout.find("Database mounted") > -1:
             roller.stop('done')
             time.sleep(1)
         else:
             roller.stop('failed')
             time.sleep(1)
-            print >> sys.stderr, "Output dump:"
-            print >> sys.stderr, stdout
+            eprint("Output dump:")
+            eprint(stdout)
 
         if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            eprint("Error dump:")
+            eprint(stderr)
 
-
-    def do_db_stop(self, *args, **params):
+    def do_db_stop(self, *args, **params):  # pylint: disable=W0613
         """
         Stop SUSE Manager database.
         """
-        print >> sys.stdout, "Stopping the SUSE Manager database..."
+        print("Stopping the SUSE Manager database...")
         sys.stdout.flush()
 
-        print >> sys.stdout, "Stopping listener:\t",
+        print("Stopping listener:\t", end="")
+
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -840,7 +810,8 @@ class OracleGate(BaseGate):
             roller.stop("not running")
             time.sleep(1)
 
-        print >> sys.stdout, "Stopping core:\t\t",
+        print("Stopping core:\t\t", end="")
+
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -851,7 +822,7 @@ class OracleGate(BaseGate):
             time.sleep(1)
             raise GateException("Error: database core is already offline.")
 
-        stdout, stderr = self.syscall("sudo", None, None, "-u", "oracle", self.ora_home + "/bin/dbshut")
+        _, stderr = self.syscall("sudo", "-u", "oracle", self.ora_home + "/bin/dbshut")
         if stderr:
             roller.stop("failed")
             time.sleep(1)
@@ -861,23 +832,20 @@ class OracleGate(BaseGate):
 
         self.to_stderr(stderr)
 
-
-    def do_db_status(self, *args, **params):
+    def do_db_status(self, *args, **params):  # pylint: disable=W0613
         """
         Display SUSE Manager database runtime status.
         """
-        print >> sys.stdout, "Checking database core...\t",
+        print("Checking database core...\t", end="")
         sys.stdout.flush()
 
         dbstatus = self.get_db_status()
         if dbstatus.ready:
-            print >> sys.stdout, "online"
+            print("online")
         else:
-            print >> sys.stdout, "offline"
-            
+            print("offline")
 
-
-    def do_space_tables(self, *args, **params):
+    def do_space_tables(self, *args, **params):  # pylint: disable=W0613
         """
         Show space report for each table.
         """
@@ -900,19 +868,18 @@ class OracleGate(BaseGate):
         table.append(('Total', ('%.2fM' % round(total / 1024. / 1024.))))
 
         if table:
-            print >> sys.stdout, "\n", TablePrint(table), "\n"
+            print("\n", TablePrint(table), "\n")
 
         if stderr:
-            print >> sys.stderr, "Error dump:"
-            print >> sys.stderr, stderr
+            eprint("Error dump:")
+            eprint(stderr)
             raise Exception("Unhandled underlying error.")
 
-
-    def do_db_check(self, *args, **params):
+    def do_db_check(self, *args, **params):  # pylint: disable=W0613
         """
         Check full connection to the database.
         """
-        print >> sys.stdout, "Checking connection:\t",
+        print("Checking connection:\t", end="")
         sys.stdout.flush()
         roller = Roller()
         roller.start()
@@ -922,18 +889,17 @@ class OracleGate(BaseGate):
         roller.stop(self.get_db_status(login=login).ready and "ready" or "not available")
         time.sleep(1)
 
-
     #
     # Helpers below
     #
-
     def get_status(self):
         """
         Get Oracle listener status.
         """
         status = DBStatus()
-        status.stdout, status.stderr = self.syscall("sudo", None, None, "-u", "oracle", "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "status")
-    
+        status.stdout, status.stderr = self.syscall("sudo", "-u", "oracle",
+                                                    "ORACLE_HOME=" + self.ora_home, self.lsnrctl, "status")
+
         if status.stdout:
             for line in status.stdout.split("\n"):
                 if line.lower().startswith("uptime"):
@@ -950,7 +916,6 @@ class OracleGate(BaseGate):
 
         return status
 
-
     def get_db_status(self, login=None):
         """
         Get Oracle database status.
@@ -958,8 +923,9 @@ class OracleGate(BaseGate):
         status = DBStatus()
         mnum = 'm' + str(random.randint(0xff, 0xfff))
         scenario = "select '%s' as MAGICPING from dual;" % mnum # :-)
-        status.stdout, status.stderr = self.syscall("sudo", self.get_scenario_template(login=login).replace('@scenario', scenario), 
-                                                    None, "-u", "oracle", "/bin/bash")
+        status.stdout, status.stderr = self.syscall("sudo", "-u", "oracle", "/bin/bash",
+                                                    input=self.get_scenario_template(login=login).replace(
+                                                        '@scenario', scenario))
         status.ready = False
         for line in [line.strip() for line in status.stdout.lower().split("\n")]:
             if line == mnum:
@@ -968,43 +934,43 @@ class OracleGate(BaseGate):
 
         return status
 
-
     def check(self):
         """
         Check system requirements for this gate.
         """
         if not os.path.exists(self.ora_home + "/bin/sqlplus"):
             raise GateException("Cannot find operation sub-component, required for the gate.")
-        elif not os.path.exists(self.ora_home + "/bin/rman"):
+
+        if not os.path.exists(self.ora_home + "/bin/rman"):
             raise GateException("Cannot find backup sub-component, required for the gate.")
 
         return True
 
-
-    def do_system_check(self, *args, **params):
+    def do_system_check(self, *args, **params):  # pylint: disable=W0613
         """
         Common backend healthcheck.
         @help
         force-archivelog-off\tForce archivelog mode to off.
         """
-        print >> sys.stdout, "Checking SUSE Manager database backend\n"
+        print("Checking SUSE Manager database backend\n")
 
         # Set data table autoextensible.
         stdout, stderr = self.call_scenario('cnf-get-noautoext')
         if stderr:
-            print >> sys.stderr, "Autoextend check error:"
-            print >> sys.stderr, stderr
+            eprint("Autoextend check error:")
+            eprint(stderr)
             raise GateException("Unable continue system check")
 
         if stdout:
-            print >> sys.stdout, "Autoextensible:\tOff"
+            print("Autoextensible:\tOff")
             scenario = []
-            [scenario.append("alter database datafile '%s' autoextend on;" % fname) for fname in stdout.strip().split("\n")]
-            self.syscall("sudo", self.get_scenario_template().replace('@scenario', '\n'.join(scenario)), 
-                         None, "-u", "oracle", "/bin/bash")
-            print >> sys.stdout, "%s table%s has been autoextended" % (len(scenario), len(scenario) > 1 and 's' or '')
+            for fname in stdout.strip().split("\n"):
+                scenario.append("alter database datafile '{}' autoextend on;".format(fname))
+            self.syscall("sudo", "-u", "oracle", "/bin/bash",
+                         input=self.get_scenario_template().replace('@scenario', '\n'.join(scenario)))
+            print("%s table%s has been autoextended" % (len(scenario), len(scenario) > 1 and 's' or ''))
         else:
-            print >> sys.stdout, "Autoextensible:\tYes"
+            print("Autoextensible:\tYes")
 
         # Turn on archivelog.
         #
@@ -1012,40 +978,38 @@ class OracleGate(BaseGate):
             if self.get_archivelog_mode():
                 self.set_archivelog_mode(status=False)
             else:
-                print >> sys.stdout, "Archivelog mode is not used."
+                print("Archivelog mode is not used.")
         else:
             if not self.get_archivelog_mode():
                 self.set_archivelog_mode(True)
                 if not self.get_archivelog_mode():
-                    print >> sys.stderr, "No archive log"
+                    eprint("No archive log")
                 else:
-                    print >> sys.stdout,  "Database is now running in archivelog mode."
+                    print("Database is now running in archivelog mode.")
             else:
-                print >> sys.stdout, "Archivelog:\tYes"
+                print("Archivelog:\tYes")
 
         # Free space on the storage.
         #
         # TBD
 
-        print >> sys.stdout, "\nFinished\n"
-
+        print("\nFinished\n")
 
     def set_archivelog_mode(self, status=True):
         """
         Set archive log mode status.
         """
-        print >> sys.stdout, ("Turning %s archivelog mode...\t" % (status and 'on' or 'off')),
+        print(("Turning %s archivelog mode...\t" % (status and 'on' or 'off')), end="")
         sys.stdout.flush()
         roller = Roller()
         roller.start()
 
-        stdout, stderr = None, None
         success, failed = "done", "failed"
         if status:
             destination = os.environ['ORACLE_BASE'] + "/oradata/" + os.environ['ORACLE_SID'] + "/archive"
-            stdout, stderr = self.call_scenario('ora-archivelog-on', destination=destination)
+            self.call_scenario('ora-archivelog-on', destination=destination)
         else:
-            stdout, stderr = self.call_scenario('ora-archivelog-off')
+            self.call_scenario('ora-archivelog-off')
             success, failed = "failed", "done"
 
         if self.get_archivelog_mode():
@@ -1055,12 +1019,11 @@ class OracleGate(BaseGate):
 
         time.sleep(1)
 
-
     def get_archivelog_mode(self):
         """
         Get archive log mode status.
         """
-        stdout, stderr = self.call_scenario('ora-archivelog-status')
+        stdout, _ = self.call_scenario('ora-archivelog-status')
         if stdout:
             for line in stdout.split("\n"):
                 line = line.strip()
@@ -1068,7 +1031,6 @@ class OracleGate(BaseGate):
                     return False
 
         return True
-
 
     def get_dbid(self, path=None, known_db_status=False):
         """
@@ -1081,67 +1043,68 @@ class OracleGate(BaseGate):
 
         if not os.path.exists(path):
             os.makedirs(path)
-        
+
         # Add full filename
         path = self.HELPER_CONF % path
 
-        stdout, stderr = self.call_scenario('ora-dbid')
+        stdout, _ = self.call_scenario('ora-dbid')
         dbid = None
         if stdout:
             try:
-                dbid = long(stdout.split("\n")[-1])
-            except:
+                dbid = int(stdout.split("\n")[-1])
+            except Exception:
                 # Failed to get dbid anyway, let's just stay silent for now.
                 if known_db_status:
                     raise GateException("The data in the database is not reachable!")
         if dbid:
-            fg = open(path, 'w')
-            fg.write("# Database ID of \"%s\", please don't lose it ever.\n") 
-            fg.write(os.environ['ORACLE_SID'] + ".dbid=%s\n" % dbid)
-            fg.close()
+            fgh = open(path, 'w')
+            fgh.write("# Database ID of \"%s\", please don't lose it ever.\n")
+            fgh.write(os.environ['ORACLE_SID'] + ".dbid=%s\n" % dbid)
+            fgh.close()
         elif os.path.exists(path):
             for line in open(path).readlines():
                 line = line.strip()
                 if not line or line.startswith('#') or (line.find('=') == -1):
                     continue
-                dbidkey, dbid = map(lambda el:el.strip(), line.split('=', 1))
+                _, dbid = map(lambda el: el.strip(), line.split('=', 1))
                 if dbid:
                     try:
-                        dbid = long(dbid)
-                    except:
+                        dbid = int(dbid)
+                    except Exception:
                         # Failed get dbid again.
                         pass
 
         if not dbid:
-            raise GateException("Looks like your backups was never taken with the SMDBA.\n\tGood luck with the tools you used before!")
+            raise GateException("Looks like your backups was never taken with the SMDBA."
+                                "\n\tGood luck with the tools you used before!")
 
         return dbid
-    
 
-    def has_ora_error(self, raw):
+    @staticmethod
+    def has_ora_error(raw):
         """
         Just look if output was not crashed. Because Oracle developers often
         cannot decide to where to send an error: to STDERR or STDOUT. :-)
         """
+        ret = None
         if raw is None:
             raw = ''
-            
+
         raw = raw.strip()
-        if not raw:
-            return None
-
-        for line in raw.split('\n'):
-            ftkn = filter(None, line.split(" "))[0]
-            if ftkn.startswith('ORA-') and ftkn.endswith(':'):
-                err = None
-                try:
-                    err = int(ftkn[4:-1])
-                except:
-                    # No need to report this at all.
-                    pass
-                if err:
-                    return ftkn[:-1]
-
+        if raw:
+            for line in raw.split('\n'):
+                ftkn = next(filter(None, line.split(" ")))
+                if ftkn.startswith('ORA-') and ftkn.endswith(':'):
+                    err = None
+                    try:
+                        err = int(ftkn[4:-1])
+                    except Exception:
+                        # No need to report this at all.
+                        pass
+                    if err:
+                        ret = ftkn[:-1]
+                        break
+        return ret
 
     def autoresolve_backup(self):
         """
@@ -1149,7 +1112,6 @@ class OracleGate(BaseGate):
         """
         self.call_scenario('rman-backup-autoresolve', target='rman')
 
-                
     def check_backup_info(self):
         """
         Check if backup is consistent.
@@ -1164,8 +1126,8 @@ class OracleGate(BaseGate):
         # Get database backups
         stdout, stderr = self.call_scenario('rman-backup-check-db', target='rman')
         if stderr:
-            print >> sys.stderr, "Backup information check failure:"
-            print >> sys.stderr, stderr
+            eprint("Backup information check failure:")
+            eprint(stderr)
             raise GateException("Unable to check the backups.")
 
         for chunk in stdout.split("RMAN>"):
@@ -1179,10 +1141,10 @@ class OracleGate(BaseGate):
         # Get database archive logs check
         stdout, stderr = self.call_scenario('rman-backup-check-al', target='rman')
         if stderr:
-            print >> sys.stderr, "Archive log information check failure:"
-            print >> sys.stderr, stderr
+            eprint("Archive log information check failure:")
+            eprint(stderr)
             raise GateException("Unable to check the archive logs backup.")
-        
+
         for chunk in stdout.split("RMAN>"):
             chunk = chunk.strip()
             if not chunk:
@@ -1193,27 +1155,32 @@ class OracleGate(BaseGate):
 
         # Check failed backups
         if bkpsout:
-            for line in map(lambda elm:elm.strip(), bkpsout.split("crosschecked")):
+            for line in map(lambda elm: elm.strip(), bkpsout.split("crosschecked")):
                 if not line.startswith("backup piece"):
                     continue
                 obj_raw = line.split("\n")[:2]
                 if len(obj_raw) == 2:
                     status = obj_raw[0].strip().split(" ")[-1].replace("'", '').lower()
-                    data = dict(filter(None, map(lambda elm:"=" in elm and tuple(elm.split("=", 1)) or None, filter(None, obj_raw[-1].split(" ")))))
+                    data = dict(filter(None, map(lambda elm: "=" in elm and tuple(elm.split("=", 1)) or None,
+                                                 filter(None, obj_raw[-1].split(" ")))))
                     hinfo = HandleInfo(status, handle=data['handle'], recid=data['RECID'], stamp=data['STAMP'])
                     if hinfo.availability == 'available':
                         healthy_backups.append(hinfo)
                     else:
-                        failed_backups(hinfo)
+                        failed_backups.append(hinfo)
 
         # Check failed archive logs
         if arlgout:
-            for archline in map(lambda elm:elm.strip(), arlgout.split("validation", 1)[-1].split("Crosschecked")[0].split("validation")):
+            for archline in map(lambda elm: elm.strip(),
+                                arlgout.split("validation", 1)[-1].split("Crosschecked")[0].split("validation")):
                 obj_raw = archline.split("\n")
                 if len(obj_raw) == 2:
                     status = obj_raw[0].split(" ")[0]
-                    data = dict(filter(None, map(lambda elm:'=' in elm and tuple(elm.split('=', 1)) or None, obj_raw[1].split(" "))))
-                    hinfo = HandleInfo(status == 'succeeded' and 'available' or 'unavailable', recid=data['RECID'], stamp=data['STAMP'], handle=data['name']) # Ask RMAN devs why this time it is called "name"
+                    data = dict(filter(None, map(lambda elm: '=' in elm and tuple(elm.split('=', 1)) or None,
+                                                 obj_raw[1].split(" "))))
+                    # Ask RMAN devs why this time it is called "name"
+                    hinfo = HandleInfo(status == 'succeeded' and 'available' or 'unavailable', recid=data['RECID'],
+                                       stamp=data['STAMP'], handle=data['name'])
                     if hinfo.availability == 'available':
                         healthy_archivelogs.append(hinfo)
                     else:
@@ -1221,15 +1188,14 @@ class OracleGate(BaseGate):
 
         return healthy_backups, failed_backups, healthy_archivelogs, failed_archivelogs
 
-
     def get_backup_info(self):
         """
         Return list of BackupInfo objects, representing backups.
         """
         stdout, stderr = self.call_scenario('rman-backup-info', target='rman')
         if stderr:
-            print >> sys.stderr, "Backup information listing failure:"
-            print >> sys.stderr, stderr
+            eprint("Backup information listing failure:")
+            eprint(stderr)
             raise GateException("Unable to get information about backups.")
 
         capture = False
@@ -1245,18 +1211,17 @@ class OracleGate(BaseGate):
                 if not line:
                     capture = False
                     continue
-                tkn = filter(None, line.replace("\t", " ").split(" "))
+                tkn = list(filter(None, line.replace("\t", " ").split(" ")))
                 info[tkn[5]] = BackupInfo(tkn[0], tkn[5], tkn[-1])
                 idx.append(tkn[5])
 
         return [info[bid] for bid in reversed(sorted(idx))]
 
-
     def vw_check_database_ready(self, message, output_shift=1):
         """
         Check if database is ready. Otherwise crash with the given message.
         """
-        print >> sys.stdout, "Checking the database:" + ("\t" * output_shift),
+        print("Checking the database:" + ("\t" * output_shift), end="")
         roller = Roller()
         roller.start()
         dbstatus = self.get_db_status()
@@ -1266,14 +1231,13 @@ class OracleGate(BaseGate):
         else:
             roller.stop("failed")
             time.sleep(1)
-            raise GateException(message);
-
+            raise GateException(message)
 
     def get_current_rfds(self):
         """
         Get current recovery file destination size.
         """
-        stdout, stderr = self.call_scenario('ora-archive-info')
+        stdout, _ = self.call_scenario('ora-archive-info')
         stdout = stdout and stdout.lower()
         curr_fds = ""
         if stdout and stdout.find("db_recovery_file_dest_size") > -1:
@@ -1287,9 +1251,8 @@ class OracleGate(BaseGate):
         """
         Get current recovery area directory.
         """
-        stdout, stderr = self.call_scenario('ora-archive-fra-dir')
+        stdout, _ = self.call_scenario('ora-archive-fra-dir')
         return (stdout or '/opt/apps/oracle/flash_recovery_area').strip()
-
 
     def autoresize_available_archive(self, target_fds):
         """
@@ -1299,11 +1262,9 @@ class OracleGate(BaseGate):
         if stdout.find("System altered") > -1:
             return True
 
-        print >> sys.stderr, "ERROR:", stderr
+        eprint("ERROR:", stderr)
 
         return False
-
-
 
     def startup(self):
         """
@@ -1314,25 +1275,23 @@ class OracleGate(BaseGate):
 
         # Always set FRA to the current size of the media.
         curr_fds = self.get_current_rfds()
-        target_fds = self.size_pretty(self.media_usage(self.get_current_fra_dir())['free'], int_only=True, no_whitespace=True).replace("B", "")
+        target_fds = self.size_pretty(self.media_usage(self.get_current_fra_dir())['free'],
+                                      int_only=True, no_whitespace=True).replace("B", "")
 
         if curr_fds != target_fds:
-            print >> sys.stderr, "WARNING: Reserved space for the backup is smaller than available disk space. Adjusting."
+            eprint("WARNING: Reserved space for the backup is smaller than available disk space. Adjusting.")
             if not self.autoresize_available_archive(target_fds):
-                print >> sys.stderr, "WARNING: Could not adjust system for backup reserved space!"
+                eprint("WARNING: Could not adjust system for backup reserved space!")
             else:
-                print >> sys.stdout, "INFO: System settings for the backup recovery area has been altered successfully."
-
+                print("INFO: System settings for the backup recovery area has been altered successfully.")
 
     def finish(self):
         """
         Hooks after the Oracle gate operations finished.
         """
-        pass
 
 
-
-def getGate(config):
+def get_gate(config):
     """
     Get gate to the database engine.
     """

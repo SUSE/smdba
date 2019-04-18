@@ -1,3 +1,8 @@
+# coding: utf-8
+"""
+SMDBA package setup
+"""
+
 __author__="bo"
 __date__ ="$May 8, 2012 2:54:34 PM$"
 
@@ -6,21 +11,19 @@ try:
 except ImportError:
     from distutils.core import setup
 
-setup (
-  name = 'SUSE Manager Database Control',
-  version = '1.6.4',
-  package_dir = {'': 'src'},
+setup(
+  name='SUSE Manager Database Control',
+  version='1.7.0',
+  package_dir= {'': 'src'},
   package_data={'smdba': ['scenarios/*.scn']},
-  packages = [
-      'smdba',
-  ],
+  packages=['smdba'],
   data_files=[('/usr/bin/', ['src/smdba/smdba-netswitch', 'src/smdba/smdba-pgarchive'])],
 
-  author = 'bo',
-  author_email = 'bo@suse.de',
+  author='bo',
+  author_email='bo@suse.de',
 
-#  summary = 'SUSE Manager Database Control',
-  url = '',
-  license = 'MIT',
-  long_description= 'SUSE Manager database control to operate various database backends.',
+  summary='SUSE Manager Database Control',
+  url='',
+  license='MIT',
+  long_description='SUSE Manager database control to operate various database backends.',
 )
