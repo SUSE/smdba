@@ -159,10 +159,9 @@ class BaseGate(metaclass=abc.ABCMeta):
         :param *params: tertiary parameters
         :returns: STDOUT/STDERR tuple
         """
-        stdout, stderr = Popen([command] + list(params), stdout=PIPE, stdin=PIPE, stderr=STDOUT,
-                               env=os.environ).communicate(input=input)
-        if not stderr:
-            stderr = ""
+        stdout, stderr = [self.to_str(stout) or "" for stout in
+                          Popen([command] + list(params), stdout=PIPE, stdin=PIPE, stderr=STDOUT,
+                                env=os.environ).communicate(input=self.to_bytes(input))]
         stderr += self.extract_errors(stdout)
 
         return stdout and stdout.strip() or '', stderr and stderr.strip() or ''
