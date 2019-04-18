@@ -877,7 +877,7 @@ class PgSQLGate(BaseGate):
                 backup_on = os.path.exists(backup_dst)
                 break
 
-        backup_last_transaction = None
+        backup_last_transaction = 0
         if backup_dst:
             for fname in os.listdir(backup_dst):
                 mtime = os.path.getmtime(backup_dst + "/" + fname)
