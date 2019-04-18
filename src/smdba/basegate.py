@@ -61,9 +61,11 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return open(scenario, 'r')
 
-    def get_scenario_template(self, target='sqlplus', login=None):
+    def get_scenario_template(self, target='sqlplus', login=None) -> str:
         """
         Generate a template for the Oracle SQL*Plus scenario.
+
+        :returns: bytes
         """
         env = os.environ.get
         scenario = []
@@ -249,8 +251,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         :raises GateException if access denied.
         :returns: None
         """
-        stdout, stderr = self.syscall(os.popen("which sudo").read().strip(), "", None,
-                                      "-nu", uid, "-S", "true", "/bin/bash")
+        stdout, stderr = self.syscall(os.popen("which sudo").read().strip(), "-nu", uid, "-S", "true", "/bin/bash")
         if stdout or stderr:
             raise GateException("Access denied to UID '{}' via sudo.".format(uid))
 
