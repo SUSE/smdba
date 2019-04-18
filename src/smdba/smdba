@@ -33,6 +33,7 @@ class Console:
         """
         Constructor.
         """
+        self.config = {}
         self.console_location = os.path.abspath(__file__)
         self.config_file = configpath
         if 'auto' not in sys.argv:
@@ -40,7 +41,6 @@ class Console:
         else:
             self.get_config_auto()
         self.gate = None
-        self.config = {}
         self.load_db_backend()
 
     def load_db_backend(self):
