@@ -150,7 +150,11 @@ class PgTune:
         self.config['work_mem'] = self.to_mb(self.bin_rnd(mem / self.max_connections))
 
         # No more than 1GB
-        self.config['maintenance_work_mem'] = self.to_mb(self.bin_rnd((mem / 0x10) > mbt if mbt else mem / 0x10))
+        if (mem / 0x10) > mbt:
+            maintenance_work_mem = mbt
+        else:
+            maintenance_work_mem = mem / 0x10
+        self.config['maintenance_work_mem'] = self.to_mb(self.bin_rnd(maintenance_work_mem))
 
         pg_version = [int(v_el) for v_el in os.popen(r"psql --version | sed -e 's/.*\s//g'").read().split('.')]
         if pg_version < [9, 6, 0]:
