@@ -127,7 +127,7 @@ class PgTune:
         :param value: bytes
         :return:
         """
-        return str(value / 0x400) + 'MB'
+        return str(int(value / 0x400)) + 'MB'
 
     def estimate(self):
         """
@@ -141,7 +141,7 @@ class PgTune:
         if not mem:
             raise Exception("Cannot get total memory of this system")
 
-        mem /= kbt
+        mem = int(mem / kbt)
         if mem < 0xff * kbt:
             raise Exception("This is a low memory system and is not supported!")
 
