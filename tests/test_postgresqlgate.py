@@ -149,3 +149,24 @@ class TestPgGt:
             assert not kwargs
             assert next(iter(expectations)) == args[0]
             expectations.pop(0)
+
+    def test_rman_error_extraction(self):
+        """
+        RMAN error extraction.
+
+        :return:
+        """
+        rman_log = """
+RMAN-00571: ===========================================================
+RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
+RMAN-00571: ===========================================================
+RMAN-00558: error encountered while parsing input commands
+RMAN-01005: syntax error: found ")": expecting one of: "archivelog, backup, backupset, controlfilecopy, current, database, datafile, datafilecopy, (, plus, ;, tablespace"
+RMAN-01007: at line 1 column 18 file: standard input
+"""
+        errors = smdba.basegate.BaseGate.extract_errors(rman_log)
+        assert errors == ('RMAN-00558: error encountered while parsing input commands\n'
+                          'RMAN-01005: syntax error: found ")": expecting one of: "archivelog,\n'
+                          'backup, backupset, controlfilecopy, current, database, datafile,\n'
+                          'datafilecopy, (, plus, ;, tablespace"\n'
+                          'RMAN-01007: at line 1 column 18 file: standard input')
