@@ -76,3 +76,17 @@ class TestPgGt:
         """
         sts = smdba.basegate.BaseGate.to_str(b'\xd1\x81\xd0\xbf\xd0\xb0\xd0\xbc \xd1\x96 \xd1\x8f\xd0\xb9\xd1\x86\xd1\x8f')
         assert sts == "спам і яйця"
+
+    def test_size_pretty_round(self):
+        """
+        Test method for formatting human-readable sizes rounding.
+
+        :return:
+        """
+        for size, res in ((0x40, "64 Bytes"), (0xff, "255 Bytes"),
+                          (0x400, "1.00 KB"), (0x800, "2.00 KB"), (0x10000, "64.00 KB"),
+                          (0xffff, "64.00 KB"), (0xfffff, "1024.00 KB"),
+                          (0x100000, "1.00 MB"), (0x40000000, "1.00 GB"),
+                          (0x10000000000, "1.00 TB"), (0x19000000000, "1.56 TB")):
+            assert smdba.basegate.BaseGate.size_pretty(size=str(size)) == res
+)
