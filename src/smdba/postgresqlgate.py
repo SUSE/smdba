@@ -286,7 +286,7 @@ class PgSQLGate(BaseGate):
 
         :returns int of mbs
         """
-        return int(round(value / 1024. / 1024.))
+        return int(round(value / 0x400 / 0x400))
 
     def _cleanup_pids(self):
         """
