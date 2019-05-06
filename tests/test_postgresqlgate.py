@@ -121,3 +121,31 @@ class TestPgGt:
         assert not out
         assert not eprint.called
         assert not ext.called
+
+    @patch("sys.exit", new_callable=MagicMock())
+    def test_to_stderr_data(self, ext):
+        """
+        Test STDERR extractor with data
+
+        :return:
+        """
+        eprint = MagicMock()
+        with patch("smdba.basegate.eprint", eprint):
+            out = smdba.basegate.BaseGate.to_stderr("Strike due to broken coffee machine.")
+
+        assert out is None
+        assert eprint.called
+        assert ext.called
+
+        assert ext.call_args_list[0][0][0] == 1
+
+        expectations = [
+            '\nError:\n--------------------------------------------------------------------------------',
+            '  Strike due to broken coffee machine.',
+            '--------------------------------------------------------------------------------'
+        ]
+        for call in eprint.call_args_list:
+            args, kwargs = call
+            assert not kwargs
+            assert next(iter(expectations)) == args[0]
+            expectations.pop(0)
