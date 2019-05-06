@@ -67,3 +67,12 @@ class TestPgGt:
         """
         bts = smdba.basegate.BaseGate.to_bytes("спам і яйця")
         assert bts == b'\xd1\x81\xd0\xbf\xd0\xb0\xd0\xbc \xd1\x96 \xd1\x8f\xd0\xb9\xd1\x86\xd1\x8f'
+
+    def test_to_str(self):
+        """
+        Unicode support while converting to string.
+
+        :return:
+        """
+        sts = smdba.basegate.BaseGate.to_str(b'\xd1\x81\xd0\xbf\xd0\xb0\xd0\xbc \xd1\x96 \xd1\x8f\xd0\xb9\xd1\x86\xd1\x8f')
+        assert sts == "спам і яйця"
