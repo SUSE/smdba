@@ -699,7 +699,6 @@ class PgSQLGate(BaseGate):
         # Move back where backup has been invoked
         os.chdir(location_begin)
 
-
     def do_backup_hot(self, *opts, **args):  # pylint: disable=W0613
         """
         Enable continuous archiving backup
