@@ -110,7 +110,7 @@ class TestPgGt:
     @patch("sys.exit", new_callable=MagicMock())
     def test_to_stderr_no_data(self, ext):
         """
-        Test STDERR extractor.
+        Test STDERR extractor with no data
         :return:
         """
         eprint = MagicMock()
