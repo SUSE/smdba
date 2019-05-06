@@ -87,7 +87,7 @@ class BaseGate(metaclass=abc.ABCMeta):
                 scenario.append("export ORACLE_HOME=" + env('ORACLE_HOME', ''))
                 scenario.append("export PATH=" + env('PATH', ''))
             else:
-                raise Exception("Underlying error: environment cannot be constructed.")
+                raise Exception("Underlying error: environment for Oracle Database cannot be constructed.")
 
             scenario.append("cat - << EOF | " + env('ORACLE_HOME', '') + executable)
             if target == 'sqlplus' and login.lower() == '/nolog':
