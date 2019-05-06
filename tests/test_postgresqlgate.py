@@ -106,3 +106,18 @@ class TestPgGt:
         """
         assert smdba.basegate.BaseGate.size_pretty(size=str(0x19000000000), int_only=True) == "2 TB"
         assert smdba.basegate.BaseGate.size_pretty(size=str(0x19000000000), int_only=False) == "1.56 TB"
+
+    @patch("sys.exit", new_callable=MagicMock())
+    def test_to_stderr(self, ext):
+        """
+        Test STDERR extractor.
+        :return:
+        """
+        eprint = MagicMock()
+        with patch("smdba.basegate.eprint", eprint):
+            out = smdba.basegate.BaseGate.to_stderr("")
+
+        assert type(out) == bool
+        assert not out
+        assert not eprint.called
+        assert not ext.called
