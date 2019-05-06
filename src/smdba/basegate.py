@@ -302,3 +302,12 @@ class BaseGate(metaclass=abc.ABCMeta):
         eprint("-" * 80)
 
         sys.exit(1)
+
+    @staticmethod
+    def _bt_to_mb(value: int) -> int:
+        """
+        Bytes to megabytes.
+
+        :returns int of mbs
+        """
+        return int(round(value / 0x400 / 0x400))

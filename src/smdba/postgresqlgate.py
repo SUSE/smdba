@@ -279,15 +279,6 @@ class PgSQLGate(BaseGate):
             eprint(stderr)
             raise Exception("Underlying error: unable get backend configuration.")
 
-    @staticmethod
-    def _bt_to_mb(value: int) -> int:
-        """
-        Bytes to megabytes.
-
-        :returns int of mbs
-        """
-        return int(round(value / 0x400 / 0x400))
-
     def _cleanup_pids(self):
         """
         Cleanup PostgreSQL garbage in /tmp
