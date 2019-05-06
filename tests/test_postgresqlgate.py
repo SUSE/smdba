@@ -89,4 +89,11 @@ class TestPgGt:
                           (0x100000, "1.00 MB"), (0x40000000, "1.00 GB"),
                           (0x10000000000, "1.00 TB"), (0x19000000000, "1.56 TB")):
             assert smdba.basegate.BaseGate.size_pretty(size=str(size)) == res
-)
+
+    def test_size_pretty_whitespace(self):
+        """
+        Test human-readable sizes formatter whitespace.
+
+        :return:
+        """
+        assert smdba.basegate.BaseGate.size_pretty(size=str(0x400), no_whitespace=True) == "1.00KB"
