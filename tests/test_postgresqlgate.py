@@ -4,6 +4,7 @@ Unit tests for the base gate.
 """
 from unittest.mock import MagicMock, mock_open, patch
 import smdba.postgresqlgate
+import smdba.basegate
 
 
 class TestPgGt:
@@ -57,3 +58,12 @@ class TestPgGt:
             assert kw["input"] == exp_kw["input"]
 
         assert not expectations
+
+    def test_to_bytes(self):
+        """
+        Unicode support while converting to bytes.
+
+        :return:
+        """
+        bts = smdba.basegate.BaseGate.to_bytes("спам і яйця")
+        assert bts == b'\xd1\x81\xd0\xbf\xd0\xb0\xd0\xbc \xd1\x96 \xd1\x8f\xd0\xb9\xd1\x86\xd1\x8f'
