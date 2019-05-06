@@ -170,3 +170,10 @@ RMAN-01007: at line 1 column 18 file: standard input
                           'backup, backupset, controlfilecopy, current, database, datafile,\n'
                           'datafilecopy, (, plus, ;, tablespace"\n'
                           'RMAN-01007: at line 1 column 18 file: standard input')
+
+    def test_bytes_to_mbytes(self):
+        """
+        Convert bytes to megabytes.
+        :return:
+        """
+        assert smdba.postgresqlgate.PgSQLGate._bt_to_mb(0x300000) == 3
