@@ -97,3 +97,12 @@ class TestPgGt:
         :return:
         """
         assert smdba.basegate.BaseGate.size_pretty(size=str(0x400), no_whitespace=True) == "1.00KB"
+
+    def test_size_pretty_intonly(self):
+        """
+        Test human-readable sizes formatter int only.
+
+        :return:
+        """
+        assert smdba.basegate.BaseGate.size_pretty(size=str(0x19000000000), int_only=True) == "2 TB"
+        assert smdba.basegate.BaseGate.size_pretty(size=str(0x19000000000), int_only=False) == "1.56 TB"
