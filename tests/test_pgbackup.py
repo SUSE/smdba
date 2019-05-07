@@ -12,9 +12,9 @@ class TestPgBackup:
     Test suite for postgresql backup.
     """
     @patch("smdba.postgresqlgate.os.path.exists", MagicMock(return_value=False))
-    def test_init_pkbackup_checks_archivecleaup(self):
+    def test_init_pgbackup_checks_archivecleaup(self):
         """
-        Test constructor of pkgbackup pg_archivecleanup installed
+        Test constructor of pgbackup pg_archivecleanup installed
 
         :return:
         """
@@ -22,3 +22,20 @@ class TestPgBackup:
         with pytest.raises(Exception) as exc:
             smdba.postgresqlgate.PgBackup("/target")
         assert "The utility pg_archivecleanup was not found on the path." in str(exc)
+
+    @patch("smdba.postgresqlgate.os.path.exists", MagicMock(return_value=True))
+    def test_init_pgbackup_sets_pgdata_path(self):
+        """
+        Test constructor of pgbackup for pg_data is set correctly.
+
+        :return:
+        """
+        target = "/some/target"
+        pg_data = "/opt/pg_data"
+        pgbk = smdba.postgresqlgate.PgBackup(target_path=target, pg_data=pg_data)
+
+        assert pgbk.target_path == target
+        assert pgbk.pg_data == pg_data
+
+        pgbk = smdba.postgresqlgate.PgBackup(target_path=target)
+        assert pgbk.pg_data == pgbk.DEFAULT_PG_DATA
