@@ -81,3 +81,28 @@ class TestPgBackup:
         ]
         assert hst == []
         assert rfnm == "0000000100000001000000AA.A00000CF.backup"
+
+    @patch("smdba.postgresqlgate.os.listdir", MagicMock(
+        return_value=[
+            "0000000100000001000000AA.00000030.history",
+            "0000000100000001000000AB.00001000.history",
+            "0000000100000001000000AB.0000100A.history",
+        ])
+    )
+    @patch("smdba.postgresqlgate.stat.S_ISREG", MagicMock(return_value=True))
+    @patch("smdba.postgresqlgate.os.stat", MagicMock())
+    def test_get_latest_restart_history(self):
+        """
+        Test latest restart filename. History should have one less file.
+
+        :return:
+        """
+        path = "/opt/backups"
+        ckp, hst, rfnm = smdba.postgresqlgate.PgBackup._get_latest_restart_filename(path=path)
+
+        assert ckp == []
+        assert rfnm is None
+        assert hst == [
+            '0000000100000001000000AA.00000030.history',
+            '0000000100000001000000AB.00001000.history'
+        ]
