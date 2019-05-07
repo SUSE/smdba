@@ -11,6 +11,7 @@ class TestPgGt:
     """
     Test suite for base gate.
     """
+
     @patch("os.path.exists", MagicMock(side_effect=[True, False, False]))
     @patch("smdba.postgresqlgate.open", new_callable=mock_open,
            read_data="key=value")
