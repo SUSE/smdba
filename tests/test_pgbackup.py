@@ -2,6 +2,7 @@
 """
 Unit tests for essential functions in postgresql backup.
 """
+import os
 from unittest.mock import MagicMock, mock_open, patch
 import pytest
 import smdba.postgresqlgate
@@ -106,3 +107,36 @@ class TestPgBackup:
             '0000000100000001000000AA.00000030.history',
             '0000000100000001000000AB.00001000.history'
         ]
+
+    @patch("smdba.postgresqlgate.stat.S_ISREG", MagicMock(return_value=True))
+    @patch("smdba.postgresqlgate.os.stat", MagicMock())
+    @patch("smdba.postgresqlgate.os.listdir", MagicMock(return_value=[]))
+    def test_cleanup_backup(self):
+        """
+        Test cleanup backup after the process finished.
+
+        :return:
+        """
+        target = "/some/target"
+        pg_data = "/opt/pg_data"
+        cls = smdba.postgresqlgate.PgBackup
+        checkpoints = ["0000000100000001000000AA", "0000000100000001000000BB"]
+        cls._get_latest_restart_filename = MagicMock(
+            return_value=(checkpoints,
+                          None, "0000000100000001000000AA.10000000.backup"))
+        pgbk = cls(target_path=target, pg_data=pg_data)
+
+        os_system = MagicMock()
+        os_unlink = MagicMock()
+        with patch("os.unlink", os_unlink) as uln, patch("os.system", os_system) as stm:
+            pgbk.cleanup_backup()
+
+        for call in os_unlink.call_args_list:
+            args, kw = call
+            assert args[0] == os.path.join(target, next(iter(checkpoints)))
+            checkpoints.pop(0)
+        assert not checkpoints
+
+        args, kw = next(iter(os_system.call_args_list))
+        assert kw == {}
+        assert args[0] == "/usr/bin/pg_archivecleanup /some/target 0000000100000001000000AA.10000000.backup"
