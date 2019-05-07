@@ -39,3 +39,17 @@ class TestPgBackup:
 
         pgbk = smdba.postgresqlgate.PgBackup(target_path=target)
         assert pgbk.pg_data == pgbk.DEFAULT_PG_DATA
+
+    @patch("smdba.postgresqlgate.os.listdir", MagicMock(return_value=[]))
+    @patch("smdba.postgresqlgate.stat.S_ISREG", MagicMock(return_value=True))
+    def test_get_latest_restart_no_files(self):
+        """
+        Test latest restart filename if no files at all.
+
+        :return:
+        """
+        path = "/opt/backups"
+        ckp, hst, rfnm = smdba.postgresqlgate.PgBackup._get_latest_restart_filename(path=path)
+
+        assert ckp == hst == []
+        assert rfnm is None
