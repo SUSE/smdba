@@ -42,6 +42,7 @@ class TestPgBackup:
 
     @patch("smdba.postgresqlgate.os.listdir", MagicMock(return_value=[]))
     @patch("smdba.postgresqlgate.stat.S_ISREG", MagicMock(return_value=True))
+    @patch("smdba.postgresqlgate.os.stat", MagicMock())
     def test_get_latest_restart_no_files(self):
         """
         Test latest restart filename if no files at all.
