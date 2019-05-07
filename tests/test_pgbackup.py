@@ -54,3 +54,30 @@ class TestPgBackup:
 
         assert ckp == hst == []
         assert rfnm is None
+
+    @patch("smdba.postgresqlgate.os.listdir", MagicMock(
+        return_value=[
+            "0000000100000001000000AA.00000028.backup",
+            "0000000100000001000000AA.000100FF.backup",
+            "0000000100000001000000AA.10000000.backup",
+            "0000000100000001000000AA.A00000CF.backup",
+        ])
+    )
+    @patch("smdba.postgresqlgate.stat.S_ISREG", MagicMock(return_value=True))
+    @patch("smdba.postgresqlgate.os.stat", MagicMock())
+    def test_get_latest_restart_no_history(self):
+        """
+        Test latest restart filename. No history.
+
+        :return:
+        """
+        path = "/opt/backups"
+        ckp, hst, rfnm = smdba.postgresqlgate.PgBackup._get_latest_restart_filename(path=path)
+
+        assert ckp == [
+            '0000000100000001000000AA.00000028.backup',
+            '0000000100000001000000AA.000100FF.backup',
+            '0000000100000001000000AA.10000000.backup'
+        ]
+        assert hst == []
+        assert rfnm == "0000000100000001000000AA.A00000CF.backup"
