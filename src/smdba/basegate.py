@@ -139,8 +139,11 @@ class BaseGate(metaclass=abc.ABCMeta):
         :returs: bytes
         """
         if value is not None:
-            value = value.encode("utf-8")
-        return value
+            out = value.encode("utf-8")
+        else:
+            out = b""
+
+        return out
 
     @staticmethod
     def to_str(value: bytes) -> str:
@@ -151,8 +154,9 @@ class BaseGate(metaclass=abc.ABCMeta):
         :returns: string
         """
         if value is not None:
-            value = value.decode("utf-8")
-        return value
+            out = value.decode("utf-8")
+        else:
+            out = ""
 
         return out
 
@@ -167,7 +171,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         """
         stdout, stderr = [self.to_str(stout) or "" for stout in
                           Popen([command] + list(params), stdout=PIPE, stdin=PIPE, stderr=STDOUT,
-                                env=os.environ).communicate(input=self.to_bytes(input))]
+                                env=os.environ).communicate(input=self.to_bytes(input))]  # type: ignore
         stderr += self.extract_errors(stdout)
 
         return stdout and stdout.strip() or '', stderr and stderr.strip() or ''
