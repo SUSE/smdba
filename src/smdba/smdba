@@ -133,16 +133,16 @@ class Console:
 
         index_commands = []
         longest = 0
-        for cmd, _ in self.gate.get_gate_commands().items():
-            cmd = self.translate_command(cmd or "")
-            index_commands.append(cmd)
-            longest = longest < len(cmd) and len(cmd) or longest
+        for _cmd, _ in self.gate.get_gate_commands().items():
+            _cmd = self.translate_command(_cmd or "")
+            index_commands.append(_cmd)
+            longest = len(_cmd) if longest < len(_cmd) else longest
 
         index_commands.sort()
 
-        for cmd in index_commands:
-            eprint("\t", (cmd + ((longest - len(cmd)) * " ")), "\t",
-                   self.gate.get_gate_commands().get(self.translate_command(cmd)).get('description', ''))  # type: ignore
+        for _cmd in index_commands:
+            eprint("\t", (_cmd + ((longest - len(_cmd)) * " ")), "\t",
+                   self.gate.get_gate_commands().get(self.translate_command(_cmd)).get('description', ''))  # type: ignore
 
         eprint("\nTo know a complete description of each command, use parameter 'help'.")
         eprint("Usage:\n\tsmdba <command> help <ENTER>\n")
