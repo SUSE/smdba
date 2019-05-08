@@ -91,18 +91,16 @@ def create_dirs(path: str, owner: str, mode=0o700):
     return ret
 
 
+class Owner:
     """
-    Returns the owner and group IDs of a directory.
+    Owner object.
     """
-    class Owner:
-        """
-        Owner class
-        """
-        def __init__(self):
-            self.uid = -1
-            self.gid = -1
-            self.user = None
-            self.group = None
+    def __init__(self):
+        self.uid: int = -1
+        self.gid: int = -1
+        self.user: str = None
+        self.group: str = None
+
 
 def get_path_owner(path: str) -> Owner:
     """
