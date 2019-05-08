@@ -85,6 +85,7 @@ class Console:
         """
         Read rhn config for database type.
 
+        :raises Exception: if configuration file cannot be opened
         :return: None
         """
         self.config = {}
@@ -101,7 +102,8 @@ class Console:
                 if key.startswith("db_"):
                     # Handling odd change in Spacewalk 1.7 where "db_name" could be URI
                     self.config[key] = ((key == "db_name") and value.startswith("//")) and value.split("/")[-1] or value
-            except Exception as exc:
+            except Exception:
+                # Suppress error as config not loaded or broken, so is defaulted
                 pass
 
     @staticmethod
