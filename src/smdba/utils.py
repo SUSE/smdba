@@ -115,21 +115,6 @@ def get_path_owner(path):
     return owner
 
 
-# pylint: disable=R1706,W0212,R0911
-def unquote(self, elm):
-    """
-    Unquote an element.
-    """
-    if elm is None:
-        return None
-
-    elm = elm.strip()
-    if not elm or len(elm) < 2:
-        return elm
-
-    return (elm[0] == elm[-1] and elm[0] in '\'"') and self._dequote(elm[1:][:-1]) or elm
-# pylint: enable=R1706,W0212,R0911
-
 def eprint(*args: typing.Any, **kwargs: typing.Any) -> None:
     """
     Print to the STDERR.
