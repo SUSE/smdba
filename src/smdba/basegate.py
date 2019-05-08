@@ -51,7 +51,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         return os.popen(tomcat + " status 2>&1").read().strip().find('dead') == -1
 
     @staticmethod
-    def get_scn(name):
+    def get_scn(name: str) -> typing.TextIO:
         """
         Get scenario by name.
         """
@@ -61,7 +61,7 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return open(scenario, 'r')
 
-    def get_scenario_template(self, target='sqlplus', login=None) -> str:
+    def get_scenario_template(self, target: str = 'sqlplus', login: str = None) -> str:
         """
         Generate a template for the Oracle SQL*Plus scenario.
 
@@ -110,7 +110,8 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return '\n'.join(scenario)
 
-    def call_scenario(self, scenario, target='sqlplus', login=None, **variables):
+    def call_scenario(self, scenario: str, target: str = 'sqlplus',
+                      login: str = None, **variables: str) -> typing.Tuple[str, str]:
         """
         Call scenario in SQL*Plus.
         Returns stdout and stderr.
@@ -153,7 +154,9 @@ class BaseGate(metaclass=abc.ABCMeta):
             value = value.decode("utf-8")
         return value
 
-    def syscall(self, command, *params, input=None) -> typing.Tuple[str, str]:
+        return out
+
+    def syscall(self, command: str, *params: str, input: str = None) -> typing.Tuple[str, str]:
         """
         Call an external system command.
 
@@ -201,10 +204,11 @@ class BaseGate(metaclass=abc.ABCMeta):
         return self._gate_commands
 
     @abc.abstractmethod
-    def check(self):
+    def check(self) -> None:
         """
         Check for the gate requirements.
         """
+
     @staticmethod
     def size_pretty(size: str, int_only: bool = False, no_whitespace: bool = False) -> str:
         """
@@ -244,7 +248,7 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return {'free': free, 'total': total, 'used': used}
 
-    def check_sudo(self, uid) -> None:
+    def check_sudo(self, uid: str) -> None:
         """
         Check if UID has sudo permission.
 
@@ -256,19 +260,19 @@ class BaseGate(metaclass=abc.ABCMeta):
             raise GateException("Access denied to UID '{}' via sudo.".format(uid))
 
     @abc.abstractmethod
-    def startup(self):
+    def startup(self) -> None:
         """
         Gate-specific hooks before starting any operations.
         """
 
     @abc.abstractmethod
-    def finish(self):
+    def finish(self) -> None:
         """
         Gate-specific hooks after finishing all operations.
         """
 
     @staticmethod
-    def extract_errors(stdout):
+    def extract_errors(stdout: str):
         """
         Extract errors from the RMAN and SQLPlus.
         Based on http://docs.oracle.com/cd/B28359_01/backup.111/b28270/rcmtroub.htm
@@ -277,7 +281,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         if not (stdout + "").strip():
             return ""
 
-        out = []
+        out: typing.List = []
         for line in filter(None, str(stdout).replace("\\n", "\n").split("\n")):
             if line.lower().startswith("ora-") or line.lower().startswith("rman-"):
                 if not line.find("===") > -1:
@@ -286,7 +290,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         return '\n'.join(out)
 
     @staticmethod
-    def to_stderr(stderr):
+    def to_stderr(stderr: str):
         """
         Format an error output to STDERR and terminate everything at once.
         """
