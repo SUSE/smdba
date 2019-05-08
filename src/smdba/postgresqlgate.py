@@ -14,6 +14,7 @@ import time
 import shutil
 import tempfile
 import stat
+import typing
 
 from smdba.basegate import BaseGate, GateException
 from smdba.roller import Roller
@@ -86,7 +87,7 @@ class PgTune:
 
     def __init__(self, max_connections):
         self.max_connections = max_connections
-        self.config = {}
+        self.config: typing.Dict = {}
 
     @staticmethod
     def get_total_memory() -> int:
@@ -104,7 +105,7 @@ class PgTune:
         return total_memory
 
     @staticmethod
-    def bin_rnd(value: int) -> int:
+    def bin_rnd(value: float) -> int:
         """
         Binary rounding.
         Keep 4 significant bits, truncate the rest.
