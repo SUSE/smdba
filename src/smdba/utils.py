@@ -91,7 +91,6 @@ def create_dirs(path: str, owner: str, mode=0o700):
     return ret
 
 
-def get_path_owner(path):
     """
     Returns the owner and group IDs of a directory.
     """
@@ -105,6 +104,10 @@ def get_path_owner(path):
             self.user = None
             self.group = None
 
+def get_path_owner(path: str) -> Owner:
+    """
+    Returns the owner and group IDs of a directory.
+    """
     owner = Owner()
     stat_info = os.stat(path)
     owner.uid = stat_info.st_uid
