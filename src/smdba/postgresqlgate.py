@@ -343,7 +343,7 @@ class PgSQLGate(BaseGate):
     # Commands
     def do_db_start(self, **args):  # pylint: disable=W0613
         """
-        Start the SUSE Manager Database.
+        Start the SUSE Manager Database
         """
         print("Starting database...\t", end="")
         sys.stdout.flush()
@@ -371,7 +371,7 @@ class PgSQLGate(BaseGate):
 
     def do_db_stop(self, **args):  # pylint: disable=W0613
         """
-        Stop the SUSE Manager Database.
+        Stop the SUSE Manager Database
         """
         print("Stopping database...\t", end="")
         sys.stdout.flush()
@@ -400,13 +400,13 @@ class PgSQLGate(BaseGate):
 
     def do_db_status(self, **args):  # pylint: disable=W0613
         """
-        Show database status.
+        Show database status
         """
         print('Database is', self._get_db_status() and 'online' or 'offline')
 
     def do_space_tables(self, **args):  # pylint: disable=W0613
         """
-        Show space report for each table.
+        Show space report for each table
         """
         stdout, stderr = self.call_scenario('pg-tablesizes', target='psql')
 
@@ -447,7 +447,7 @@ class PgSQLGate(BaseGate):
 
     def do_space_overview(self, **args):  # pylint: disable=W0613
         """
-        Show database space report.
+        Show database space report
         """
         # Not exactly as in Oracle, this one looks where PostgreSQL is mounted
         # and reports free space.
@@ -510,7 +510,7 @@ class PgSQLGate(BaseGate):
 
     def do_space_reclaim(self, **args):  # pylint: disable=W0613
         """
-        Free disk space from unused object in tables and indexes.
+        Free disk space from unused objects in tables and/or indexes
         """
         print("Examining database...\t", end="")
         sys.stdout.flush()
@@ -655,7 +655,7 @@ class PgSQLGate(BaseGate):
 
     def do_backup_restore(self, *opts, **args):  # pylint: disable=W0613
         """
-        Restore the SUSE Manager Database from backup.
+        Restore the SUSE Manager Database from backup
         """
         # Go out from the current position, in case user is calling SMDBA inside the "data" directory
         location_begin = os.getcwd()
@@ -846,7 +846,7 @@ class PgSQLGate(BaseGate):
 
     def do_backup_status(self, *opts, **args):  # pylint: disable=W0613
         """
-        Show backup status.
+        Show backup status
         """
         backup_dst = ""
         backup_on = False
@@ -894,7 +894,7 @@ class PgSQLGate(BaseGate):
 
     def do_system_check(self, *args, **params):
         """
-        Common backend healthcheck.
+        Common backend healthcheck
         @help
         autotuning\t\tperform initial autotuning of the database
     --max_connections=<num>\tdefine maximal number of database connections (default: 400)
