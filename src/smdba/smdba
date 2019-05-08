@@ -101,7 +101,7 @@ class Console:
                 key, value = line.replace(" ", "").strip().split("=", 1)
                 if key.startswith("db_"):
                     # Handling odd change in Spacewalk 1.7 where "db_name" could be URI
-                    self.config[key] = ((key == "db_name") and value.startswith("//")) and value.split("/")[-1] or value
+                    self.config[key] = value.split("/")[-1] if (key == "db_name") and value.startswith("//") else value
             except Exception:
                 # Suppress error as config not loaded or broken, so is defaulted
                 pass
@@ -156,7 +156,7 @@ class Console:
         :param command: underscored command
         :returns: hyphened command
         """
-        return command.startswith("do_") and command[3:].replace("_", "-") or ("do_" + command.replace("-", "_"))
+        return command[3:].replace("_", "-") if command.startswith("do_") else "do_" + command.replace("-", "_")
 
     def execute(self, command: list) -> None:
         """
