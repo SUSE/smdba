@@ -82,11 +82,13 @@ def create_dirs(path: str, owner: str, mode=0o700):
     """
     if not os.path.exists(path):
         os.makedirs(path, mode=mode)
-        owner = pwd.getpwnam(owner)
-        os.chown(path, owner.pw_uid, owner.pw_gid)
-        return True
+        _owner = pwd.getpwnam(owner)
+        os.chown(path, _owner.pw_uid, _owner.pw_gid)
+        ret = True
+    else:
+        ret = False
 
-    return False
+    return ret
 
 
 def get_path_owner(path):
