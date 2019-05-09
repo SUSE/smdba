@@ -7,6 +7,7 @@ import os
 import sys
 import grp
 import pwd
+import typing
 
 
 class TablePrint:
@@ -14,14 +15,14 @@ class TablePrint:
     Print table on the CLI.
     """
 
-    def __init__(self, table):
+    def __init__(self, table: typing.List):
         """
         Table is [(1,2,3,), (4,5,6,),] etc data.
         """
         self.table = table
-        self.widths = []
+        self.widths: list = []
 
-    def _check(self):
+    def _check(self) -> None:
         """
         Check if table is consistent grid.
         Header is a leader here.
@@ -37,7 +38,7 @@ class TablePrint:
             if len(row) != header:
                 raise Exception("Table has different row widths.")
 
-    def _get_widths(self):
+    def _get_widths(self) -> None:
         """
         Find extra-widths by max width of any value.
         """
@@ -49,7 +50,7 @@ class TablePrint:
                 if cell_len > self.widths[idx]:
                     self.widths[idx] = cell_len
 
-    def _format(self):
+    def _format(self) -> str:
         """
         Format the output.
         """
@@ -74,34 +75,37 @@ class TablePrint:
         return self._format()
 
 
-def create_dirs(path, owner, mode=0o700):
+def create_dirs(path: str, owner: str, mode=0o700):
     """
     Create path and change owner of it accordingly.
     Default mode is 0700
     """
     if not os.path.exists(path):
         os.makedirs(path, mode=mode)
-        owner = pwd.getpwnam(owner)
-        os.chown(path, owner.pw_uid, owner.pw_gid)
-        return True
+        _owner = pwd.getpwnam(owner)
+        os.chown(path, _owner.pw_uid, _owner.pw_gid)
+        ret = True
+    else:
+        ret = False
 
-    return False
+    return ret
 
 
-def get_path_owner(path):
+class Owner:
+    """
+    Owner object.
+    """
+    def __init__(self):
+        self.uid: int = -1
+        self.gid: int = -1
+        self.user: str = None
+        self.group: str = None
+
+
+def get_path_owner(path: str) -> Owner:
     """
     Returns the owner and group IDs of a directory.
     """
-    class Owner:
-        """
-        Owner class
-        """
-        def __init__(self):
-            self.uid = -1
-            self.gid = -1
-            self.user = None
-            self.group = None
-
     owner = Owner()
     stat_info = os.stat(path)
     owner.uid = stat_info.st_uid
@@ -112,23 +116,7 @@ def get_path_owner(path):
     return owner
 
 
-# pylint: disable=R1706,W0212,R0911
-def unquote(self, elm):
-    """
-    Unquote an element.
-    """
-    if elm is None:
-        return None
-
-    elm = elm.strip()
-    if not elm or len(elm) < 2:
-        return elm
-
-    return (elm[0] == elm[-1] and elm[0] in '\'"') and self._dequote(elm[1:][:-1]) or elm
-# pylint: enable=R1706,W0212,R0911
-
-
-def eprint(*args, **kwargs):
+def eprint(*args: typing.Any, **kwargs: typing.Any) -> None:
     """
     Print to the STDERR.
 

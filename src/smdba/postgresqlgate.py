@@ -14,6 +14,7 @@ import time
 import shutil
 import tempfile
 import stat
+import typing
 
 from smdba.basegate import BaseGate, GateException
 from smdba.roller import Roller
@@ -86,7 +87,7 @@ class PgTune:
 
     def __init__(self, max_connections):
         self.max_connections = max_connections
-        self.config = {}
+        self.config: typing.Dict = {}
 
     @staticmethod
     def get_total_memory() -> int:
@@ -104,7 +105,7 @@ class PgTune:
         return total_memory
 
     @staticmethod
-    def bin_rnd(value: int) -> int:
+    def bin_rnd(value: float) -> int:
         """
         Binary rounding.
         Keep 4 significant bits, truncate the rest.
@@ -150,11 +151,7 @@ class PgTune:
         self.config['work_mem'] = self.to_mb(self.bin_rnd(mem / self.max_connections))
 
         # No more than 1GB
-        if (mem / 0x10) > mbt:
-            maintenance_work_mem = mbt
-        else:
-            maintenance_work_mem = mem / 0x10
-        self.config['maintenance_work_mem'] = self.to_mb(self.bin_rnd(maintenance_work_mem))
+        self.config['maintenance_work_mem'] = self.to_mb(self.bin_rnd(mbt if (mem / 0x10) > mbt else mem / 0x10))
 
         pg_version = [int(v_el) for v_el in os.popen(r"psql --version | sed -e 's/.*\s//g'").read().split('.')]
         if pg_version < [9, 6, 0]:
@@ -279,15 +276,6 @@ class PgSQLGate(BaseGate):
             eprint(stderr)
             raise Exception("Underlying error: unable get backend configuration.")
 
-    @staticmethod
-    def _bt_to_mb(value: int) -> int:
-        """
-        Bytes to megabytes.
-
-        :returns int of mbs
-        """
-        return int(round(value / 1024. / 1024.))
-
     def _cleanup_pids(self):
         """
         Cleanup PostgreSQL garbage in /tmp
@@ -352,7 +340,7 @@ class PgSQLGate(BaseGate):
     # Commands
     def do_db_start(self, **args):  # pylint: disable=W0613
         """
-        Start the SUSE Manager Database.
+        Start the SUSE Manager Database
         """
         print("Starting database...\t", end="")
         sys.stdout.flush()
@@ -380,7 +368,7 @@ class PgSQLGate(BaseGate):
 
     def do_db_stop(self, **args):  # pylint: disable=W0613
         """
-        Stop the SUSE Manager Database.
+        Stop the SUSE Manager Database
         """
         print("Stopping database...\t", end="")
         sys.stdout.flush()
@@ -409,13 +397,13 @@ class PgSQLGate(BaseGate):
 
     def do_db_status(self, **args):  # pylint: disable=W0613
         """
-        Show database status.
+        Show database status
         """
         print('Database is', self._get_db_status() and 'online' or 'offline')
 
     def do_space_tables(self, **args):  # pylint: disable=W0613
         """
-        Show space report for each table.
+        Show space report for each table
         """
         stdout, stderr = self.call_scenario('pg-tablesizes', target='psql')
 
@@ -456,7 +444,7 @@ class PgSQLGate(BaseGate):
 
     def do_space_overview(self, **args):  # pylint: disable=W0613
         """
-        Show database space report.
+        Show database space report
         """
         # Not exactly as in Oracle, this one looks where PostgreSQL is mounted
         # and reports free space.
@@ -519,7 +507,7 @@ class PgSQLGate(BaseGate):
 
     def do_space_reclaim(self, **args):  # pylint: disable=W0613
         """
-        Free disk space from unused object in tables and indexes.
+        Free disk space from unused objects in tables and/or indexes
         """
         print("Examining database...\t", end="")
         sys.stdout.flush()
@@ -664,7 +652,7 @@ class PgSQLGate(BaseGate):
 
     def do_backup_restore(self, *opts, **args):  # pylint: disable=W0613
         """
-        Restore the SUSE Manager Database from backup.
+        Restore the SUSE Manager Database from backup
         """
         # Go out from the current position, in case user is calling SMDBA inside the "data" directory
         location_begin = os.getcwd()
@@ -707,7 +695,6 @@ class PgSQLGate(BaseGate):
 
         # Move back where backup has been invoked
         os.chdir(location_begin)
-
 
     def do_backup_hot(self, *opts, **args):  # pylint: disable=W0613
         """
@@ -856,7 +843,7 @@ class PgSQLGate(BaseGate):
 
     def do_backup_status(self, *opts, **args):  # pylint: disable=W0613
         """
-        Show backup status.
+        Show backup status
         """
         backup_dst = ""
         backup_on = False
@@ -904,7 +891,7 @@ class PgSQLGate(BaseGate):
 
     def do_system_check(self, *args, **params):
         """
-        Common backend healthcheck.
+        Common backend healthcheck
         @help
         autotuning\t\tperform initial autotuning of the database
     --max_connections=<num>\tdefine maximal number of database connections (default: 400)

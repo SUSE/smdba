@@ -1,0 +1,5 @@
+.virtenv/*
+create_venv
+.smdba-venv
+.mypy_cache
+*.egg-info
