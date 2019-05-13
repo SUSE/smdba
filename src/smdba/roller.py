@@ -39,7 +39,7 @@ class Roller(threading.Thread):
 
             self.__offset += 1
 
-        print("\b" + self.__message)
+        print("\b" + (self.__message or ""))
         sys.stdout.flush()
 
     def stop(self, message: typing.Optional[str] = None) -> None:
