@@ -222,7 +222,7 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         _size = float(size)
         wsp = "" if no_whitespace else " "
-        wrap = lambda arg: arg if not int_only else int(round(arg))
+        wrap: typing.Callable[[float], typing.Union[int, float]] = lambda arg: arg if not int_only else int(round(arg))
         sz_ptn = '%.d' if int_only else '%.2f'
 
         if _size >= 0x10000000000:
