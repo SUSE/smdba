@@ -270,7 +270,7 @@ class PgSQLGate(BaseGate):
         if stdout:
             for line in stdout.strip().split("\n")[2:]:
                 try:
-                    key, val = map(lambda line: line.strip(), line.split('|')[:2])
+                    key, val = map(lambda line: line.strip(), line.split('|')[:2])  # type: ignore
                     self.config['pcnf_' + key] = val
                 except Exception:
                     print("Cannot parse line:", line)
@@ -333,7 +333,7 @@ class PgSQLGate(BaseGate):
                     cfg.write('%s = %s\n' % items)
             elif table and not data:
                 for items in table:
-                    cfg.write('\t'.join(items) + "\n")
+                    cfg.write('\t'.join(items) + "\n")  # type: ignore
             cfg.close()
         else:
             raise IOError("Cannot write two different types of config into the same file!")
@@ -420,7 +420,7 @@ class PgSQLGate(BaseGate):
             t_total = 0
             longest = 0
             for line in stdout.strip().split("\n")[2:]:
-                line = list(filter(None, map(lambda el: el.strip(), line.split('|'))))
+                line = list(filter(None, map(lambda el: el.strip(), line.split('|'))))  # type: ignore
                 if len(line) == 3:
                     t_name, t_size_pretty, t_size = line[0], line[1], int(line[2])
                     t_ref[t_name] = t_size_pretty
