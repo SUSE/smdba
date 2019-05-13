@@ -95,11 +95,11 @@ class Owner:
     """
     Owner object.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.uid: int = -1
         self.gid: int = -1
-        self.user: str = None
-        self.group: str = None
+        self.user: typing.Optional[str] = None
+        self.group: typing.Optional[str] = None
 
 
 def get_path_owner(path: str) -> Owner:
