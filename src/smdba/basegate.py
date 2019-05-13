@@ -27,9 +27,9 @@ class BaseGate(metaclass=abc.ABCMeta):
 
     debug = False
 
-    def __init__(self):
-        self.config = {}
-        self._gate_commands = {}
+    def __init__(self) -> None:
+        self.config: typing.Dict[str, typing.Any] = {}
+        self._gate_commands: typing.Dict[str, typing.Any] = {}
 
     @staticmethod
     def is_sm_running() -> bool:
