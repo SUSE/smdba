@@ -320,9 +320,9 @@ class PgSQLGate(BaseGate):
         """
         backup = None
         if os.path.exists(conf_path):
-            pref = '-'.join([str(el).zfill(2) for el in time.localtime()][:6])
-            conf_path_new = conf_path.split(".")
-            conf_path_new = '.'.join(conf_path_new[:-1]) + "." + pref + "." + conf_path_new[-1]
+            pref = '-'.join([str(el).zfill(2) for el in list(time.localtime())][:6])
+            cfg_pth = conf_path.split(".")
+            conf_path_new = '.'.join(cfg_pth[:-1]) + "." + pref + "." + cfg_pth[-1]
             os.rename(conf_path, conf_path_new)
             backup = conf_path_new
 
@@ -581,7 +581,7 @@ class PgSQLGate(BaseGate):
         sys.stdout.flush()
         roller = Roller()
         roller.start()
-        suffix = '-'.join([str(el).zfill(2) for el in time.localtime()][:6])
+        suffix = '-'.join([str(el).zfill(2) for el in iter(time.localtime())][:6])
         destination_tar = old_data_dir + "/data." + suffix + ".tar.gz"
         tar_command = '/bin/tar -czPf %s %s 2>/dev/null' % (destination_tar, self.config['pcnf_pg_data'])
         os.system(tar_command)
