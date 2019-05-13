@@ -6,6 +6,7 @@ Visual console "toys".
 import time
 import sys
 import threading
+import typing
 
 
 class Roller(threading.Thread):
@@ -13,15 +14,15 @@ class Roller(threading.Thread):
     Roller of some fun sequences while waiting.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         threading.Thread.__init__(self)
         self.__sequence = ['-', '\\', '|', '/',]
         self.__freq = .1
         self.__offset = 0
         self.__running = False
-        self.__message = None
+        self.__message: typing.Optional[str] = None
 
-    def run(self):
+    def run(self) -> None:
         """
         Run roller.
 
@@ -41,7 +42,7 @@ class Roller(threading.Thread):
         print("\b" + self.__message)
         sys.stdout.flush()
 
-    def stop(self, message: str = None):
+    def stop(self, message: typing.Optional[str] = None) -> None:
         """
         Stop roller.
 
