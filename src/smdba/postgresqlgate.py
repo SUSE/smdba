@@ -764,7 +764,7 @@ class PgSQLGate(BaseGate):
         enable = args.get('enable', 'off')
         conf_path = self.config['pcnf_pg_data'] + "/postgresql.conf"
         conf = self._get_conf(conf_path)
-        backup_dir = args.get('backup-dir')
+        backup_dir: str = args.get('backup-dir', "")
 
         if enable == 'on':
             # Enable backups
