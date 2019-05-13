@@ -16,7 +16,7 @@ class Roller(threading.Thread):
 
     def __init__(self) -> None:
         threading.Thread.__init__(self)
-        self.__sequence = ['-', '\\', '|', '/',]
+        self.__sequence = ['-', '\\', '|', '/', ]
         self.__freq = .1
         self.__offset = 0
         self.__running = False
