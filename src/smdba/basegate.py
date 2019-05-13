@@ -285,7 +285,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         if not (stdout + "").strip():
             return ""
 
-        out: typing.List = []
+        out: typing.List[str] = []
         for line in filter(None, str(stdout).replace("\\n", "\n").split("\n")):
             if line.lower().startswith("ora-") or line.lower().startswith("rman-"):
                 if not line.find("===") > -1:
