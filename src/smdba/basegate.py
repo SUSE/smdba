@@ -214,7 +214,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         """
 
     @staticmethod
-    def size_pretty(size: str, int_only: bool = False, no_whitespace: bool = False) -> str:
+    def size_pretty(size: typing.Union[str, int, float], int_only: bool = False, no_whitespace: bool = False) -> str:
         """
         Make pretty size from bytes to other metrics.
         Size: amount (int, long)
