@@ -61,7 +61,7 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return open(scenario, 'r')
 
-    def get_scenario_template(self, target: str = 'sqlplus', login: str = None) -> str:
+    def get_scenario_template(self, target: str = 'sqlplus', login: typing.Optional[str] = None) -> str:
         """
         Generate a template for the Oracle SQL*Plus scenario.
 
@@ -111,7 +111,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         return '\n'.join(scenario)
 
     def call_scenario(self, scenario: str, target: str = 'sqlplus',
-                      login: str = None, **variables: str) -> typing.Tuple[str, str]:
+                      login: typing.Optional[str] = None, **variables: str) -> typing.Tuple[str, str]:
         """
         Call scenario in SQL*Plus.
         Returns stdout and stderr.
@@ -160,7 +160,7 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return out
 
-    def syscall(self, command: str, *params: str, input: str = None) -> typing.Tuple[str, str]:
+    def syscall(self, command: str, *params: str, input: typing.Optional[str] = None) -> typing.Tuple[str, str]:
         """
         Call an external system command.
 
@@ -276,7 +276,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         """
 
     @staticmethod
-    def extract_errors(stdout: str):
+    def extract_errors(stdout: str) -> str:
         """
         Extract errors from the RMAN and SQLPlus.
         Based on http://docs.oracle.com/cd/B28359_01/backup.111/b28270/rcmtroub.htm
@@ -294,7 +294,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         return '\n'.join(out)
 
     @staticmethod
-    def to_stderr(stderr: str):
+    def to_stderr(stderr: str) -> typing.Optional[bool]:
         """
         Format an error output to STDERR and terminate everything at once.
         """
