@@ -15,12 +15,12 @@ class TablePrint:
     Print table on the CLI.
     """
 
-    def __init__(self, table: typing.List):
+    def __init__(self, table: typing.List[typing.List[str]]) -> None:
         """
         Table is [(1,2,3,), (4,5,6,),] etc data.
         """
         self.table = table
-        self.widths: list = []
+        self.widths: typing.List[int] = []
 
     def _check(self) -> None:
         """
