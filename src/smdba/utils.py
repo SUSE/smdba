@@ -69,13 +69,13 @@ class TablePrint:
 
         return '\n'.join(out)
 
-    def __str__(self):
+    def __str__(self) -> str:
         self._check()
         self._get_widths()
         return self._format()
 
 
-def create_dirs(path: str, owner: str, mode=0o700):
+def create_dirs(path: str, owner: str, mode: int = 0o700) -> bool:
     """
     Create path and change owner of it accordingly.
     Default mode is 0700
