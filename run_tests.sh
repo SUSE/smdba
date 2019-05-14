@@ -50,3 +50,23 @@ source "$venv/bin/activate"
 install_deps
 ln -s "$(readlink -f .)/src/smdba" $(dirname $(python -c "import pytest as _; print(_.__file__)")) 2>/dev/null
 pytest -sv tests
+
+cat <<EOF
+
+==================================== MyPy Tests [start] ===================================
+EOF
+mypy --config-file ./.mypyrc --strict src/smdba/
+
+if [ $? -ne 0 ]; then
+    cat <<EOF
+
+=================================== MyPy Tests [finish] ===================================
+There are still some issues with static run. Unless this is oraclegate.py, please fix them.
+
+EOF
+else
+    cat <<EOF
+
+Type check seems OK.
+EOF
+fi
