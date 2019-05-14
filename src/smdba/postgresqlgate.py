@@ -472,11 +472,11 @@ class PgSQLGate(BaseGate):
             mountpoint: typing.Optional[str] = None
 
         info = Info()
-        for line in os.popen("df -T").readlines()[1:]:
-            line = line.strip()
-            if not line.startswith(partition):
+        for data_line in os.popen("df -T").readlines()[1:]:
+            data_line = data_line.strip()
+            if not data_line.startswith(partition):
                 continue
-            line = list(filter(None, line.split(" ")))
+            line = list(filter(None, data_line.split(" ")))
             info.fs_dev = line[0]
             info.fs_type = line[1]
             info.size = int(line[2]) * 1024  # Bytes
@@ -493,10 +493,10 @@ class PgSQLGate(BaseGate):
                                           '@scenario', 'select pg_database_size(datname), datname from pg_database;'))
         self.to_stderr(stderr)
         overview = [('Database', 'DB Size (Mb)', 'Avail (Mb)', 'Partition Disk Size (Mb)', 'Use %',)]
-        for line in stdout.split("\n"):
-            if "|" not in line or "pg_database_size" in line:  # Different versions of postgresql
+        for data_line in stdout.split("\n"):
+            if "|" not in data_line or "pg_database_size" in data_line:  # Different versions of postgresql
                 continue
-            line = list(filter(None, line.strip().replace('|', '').split(" ")))
+            line = list(filter(None, data_line.strip().replace('|', '').split(" ")))
             if len(line) != 2:
                 continue
             d_size = int(line[0])
