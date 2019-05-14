@@ -199,15 +199,15 @@ class Console:
         # When something more serious will be needed, standard lib might be used with more code. :)
         params = {}
         args = []
-        for opt in opts:
-            if opt.startswith("--"):
-                opt = opt.split("=", 1)
+        for opt_data in opts:
+            if opt_data.startswith("--"):
+                opt = opt_data.split("=", 1)
                 if len(opt) == 2:
                     params[opt[0][2:]] = opt[1]
                 else:
                     raise Exception("Wrong argument: {}".format(opt[0]))
             else:
-                args.append(opt)
+                args.append(opt_data)
 
         return args, params
 
