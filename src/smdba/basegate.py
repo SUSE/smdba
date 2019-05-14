@@ -27,9 +27,9 @@ class BaseGate(metaclass=abc.ABCMeta):
 
     debug = False
 
-    def __init__(self):
-        self.config = {}
-        self._gate_commands = {}
+    def __init__(self) -> None:
+        self.config: typing.Dict[str, typing.Any] = {}
+        self._gate_commands: typing.Dict[str, typing.Any] = {}
 
     @staticmethod
     def is_sm_running() -> bool:
@@ -61,7 +61,7 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return open(scenario, 'r')
 
-    def get_scenario_template(self, target: str = 'sqlplus', login: str = None) -> str:
+    def get_scenario_template(self, target: str = 'sqlplus', login: typing.Optional[str] = None) -> str:
         """
         Generate a template for the Oracle SQL*Plus scenario.
 
@@ -111,7 +111,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         return '\n'.join(scenario)
 
     def call_scenario(self, scenario: str, target: str = 'sqlplus',
-                      login: str = None, **variables: str) -> typing.Tuple[str, str]:
+                      login: typing.Optional[str] = None, **variables: str) -> typing.Tuple[str, str]:
         """
         Call scenario in SQL*Plus.
         Returns stdout and stderr.
@@ -160,7 +160,7 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         return out
 
-    def syscall(self, command: str, *params: str, input: str = None) -> typing.Tuple[str, str]:
+    def syscall(self, command: str, *params: str, input: typing.Optional[str] = None) -> typing.Tuple[str, str]:
         """
         Call an external system command.
 
@@ -214,7 +214,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         """
 
     @staticmethod
-    def size_pretty(size: str, int_only: bool = False, no_whitespace: bool = False) -> str:
+    def size_pretty(size: typing.Union[str, int, float], int_only: bool = False, no_whitespace: bool = False) -> str:
         """
         Make pretty size from bytes to other metrics.
         Size: amount (int, long)
@@ -222,7 +222,7 @@ class BaseGate(metaclass=abc.ABCMeta):
 
         _size = float(size)
         wsp = "" if no_whitespace else " "
-        wrap = lambda arg: arg if not int_only else int(round(arg))
+        wrap: typing.Callable[[float], typing.Union[int, float]] = lambda arg: arg if not int_only else int(round(arg))
         sz_ptn = '%.d' if int_only else '%.2f'
 
         if _size >= 0x10000000000:
@@ -276,7 +276,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         """
 
     @staticmethod
-    def extract_errors(stdout: str):
+    def extract_errors(stdout: str) -> str:
         """
         Extract errors from the RMAN and SQLPlus.
         Based on http://docs.oracle.com/cd/B28359_01/backup.111/b28270/rcmtroub.htm
@@ -285,7 +285,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         if not (stdout + "").strip():
             return ""
 
-        out: typing.List = []
+        out: typing.List[str] = []
         for line in filter(None, str(stdout).replace("\\n", "\n").split("\n")):
             if line.lower().startswith("ora-") or line.lower().startswith("rman-"):
                 if not line.find("===") > -1:
@@ -294,7 +294,7 @@ class BaseGate(metaclass=abc.ABCMeta):
         return '\n'.join(out)
 
     @staticmethod
-    def to_stderr(stderr: str):
+    def to_stderr(stderr: str) -> typing.Optional[bool]:
         """
         Format an error output to STDERR and terminate everything at once.
         """

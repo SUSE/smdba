@@ -15,12 +15,12 @@ class TablePrint:
     Print table on the CLI.
     """
 
-    def __init__(self, table: typing.List):
+    def __init__(self, table: typing.List[typing.List[str]]) -> None:
         """
         Table is [(1,2,3,), (4,5,6,),] etc data.
         """
         self.table = table
-        self.widths: list = []
+        self.widths: typing.List[int] = []
 
     def _check(self) -> None:
         """
@@ -69,13 +69,13 @@ class TablePrint:
 
         return '\n'.join(out)
 
-    def __str__(self):
+    def __str__(self) -> str:
         self._check()
         self._get_widths()
         return self._format()
 
 
-def create_dirs(path: str, owner: str, mode=0o700):
+def create_dirs(path: str, owner: str, mode: int = 0o700) -> bool:
     """
     Create path and change owner of it accordingly.
     Default mode is 0700
@@ -95,11 +95,11 @@ class Owner:
     """
     Owner object.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.uid: int = -1
         self.gid: int = -1
-        self.user: str = None
-        self.group: str = None
+        self.user: typing.Optional[str] = None
+        self.group: typing.Optional[str] = None
 
 
 def get_path_owner(path: str) -> Owner:
