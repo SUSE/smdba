@@ -829,7 +829,7 @@ class PgSQLGate(BaseGate):
             print("INFO: New configuration has been applied.")
 
     @staticmethod
-    def _perform_archive_operation(**args):
+    def _perform_archive_operation(**args: str) -> None:
         """
         Performs an archive operation.
         """
@@ -844,7 +844,7 @@ class PgSQLGate(BaseGate):
 
         shutil.copy2(args.get('source'), args.get('backup-dir'))
 
-    def do_backup_status(self, *opts, **args):  # pylint: disable=W0613
+    def do_backup_status(self, *opts: str, **args: str) -> typing.Tuple[str, bool]:  # pylint: disable=W0613
         """
         Show backup status
         """
@@ -886,13 +886,13 @@ class PgSQLGate(BaseGate):
         return backup_dst, backup_on
 
     @staticmethod
-    def _get_partition_size(path):
+    def _get_partition_size(path: str) -> int:
         """
         Get a size of the partition, where path belongs to.
         """
         return int((list(filter(None, (os.popen("df -TB1 %s" % path).readlines()[-1] + '').split(' ')))[4] + '').strip())
 
-    def do_system_check(self, *args, **params):
+    def do_system_check(self, *args: str, **params: str) -> bool:
         """
         Common backend healthcheck
         @help
@@ -1015,20 +1015,20 @@ class PgSQLGate(BaseGate):
 
         return True
 
-    def startup(self):
+    def startup(self) -> None:
         """
         Hooks before the PostgreSQL gate operations starts.
         """
         # Do we have sudo permission?
         self.check_sudo('postgres')
 
-    def finish(self):
+    def finish(self) -> None:
         """
         Hooks after the PostgreSQL gate operations finished.
         """
 
 
-def get_gate(config):
+def get_gate(config: typing.Dict[str, typing.Any]) -> PgSQLGate:
     """
     Get gate to the database engine.
     """
