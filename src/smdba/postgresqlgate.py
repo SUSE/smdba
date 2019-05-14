@@ -717,8 +717,8 @@ class PgSQLGate(BaseGate):
             raise GateException("No relative paths please.")
 
         # Already enabled?
-        arch_cmd = list(filter(None, eval(self._get_conf(self.config['pcnf_pg_data'] +
-                                                         "/postgresql.conf").get("archive_command", "''")).split(" ")))
+        arch_cmd: typing.List[str] = list(filter(None, eval(self._get_conf(
+            self.config['pcnf_pg_data'] + "/postgresql.conf").get("archive_command", "''")).split(" ")))
         if '--destination' not in arch_cmd and args.get('enable') != 'on':
             raise GateException('Backups are not enabled. Please enable them first. See help for more information.')
 
