@@ -836,13 +836,13 @@ class PgSQLGate(BaseGate):
         if not args.get('source'):
             raise GateException("Source file was not specified!")
 
-        if not os.path.exists(args.get('source')):
+        if not os.path.exists(args.get('source', "")):
             raise GateException("File \"%s\" does not exists." % args.get('source'))
 
-        if os.path.exists(args.get('backup-dir')):
+        if os.path.exists(args.get('backup-dir', "")):
             raise GateException("Destination file \"%s\"already exists." % args.get('backup-dir'))
 
-        shutil.copy2(args.get('source'), args.get('backup-dir'))
+        shutil.copy2(args.get('source', ""), args.get('backup-dir', ""))
 
     def do_backup_status(self, *opts: str, **args: str) -> typing.Tuple[str, bool]:  # pylint: disable=W0613
         """
@@ -929,7 +929,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # WAL senders at least 5
-        if not conf.get('max_wal_senders') or int(conf.get('max_wal_senders')) < 5:
+        if not conf.get('max_wal_senders') or int(conf.get('max_wal_senders', "0")) < 5:
             conf['max_wal_senders'] = 5
             changed = True
 
@@ -949,7 +949,7 @@ class PgSQLGate(BaseGate):
             changed = True
 
         # max_locks_per_transaction
-        if not conf.get('max_locks_per_transaction') or int(conf.get('max_locks_per_transaction')) < 100:
+        if not conf.get('max_locks_per_transaction') or int(conf.get('max_locks_per_transaction', "0")) < 100:
             conf['max_locks_per_transaction'] = 100
             changed = True
 
