@@ -32,7 +32,7 @@ class Console:
     config: dict
     gate: typing.Any
 
-    def __init__(self, configpath: str = None):
+    def __init__(self, configpath: typing.Optional[str] = None):
         """
         Constructor.
         """
@@ -116,7 +116,7 @@ class Console:
         print("SUSE Manager Database Control. Version", Console.VERSION)
         print("Copyright (c) 2012-{0} by SUSE Linux LLC\n".format(datetime.date.today().year))
 
-    def usage(self, cmd: str = None) -> None:
+    def usage(self, cmd: typing.Optional[str] = None) -> None:
         """
         Print usage.
         """
@@ -158,7 +158,7 @@ class Console:
         """
         return command[3:].replace("_", "-") if command.startswith("do_") else "do_" + command.replace("-", "_")
 
-    def execute(self, command: list) -> None:
+    def execute(self, command: typing.List[str]) -> None:
         """
         Execute one command.
 
@@ -181,7 +181,7 @@ class Console:
                 raise Exception(("The parameter \"%s\" is an unknown command.\n\n" % command[0]) +
                                 "Hint: Try with no parameters first, perhaps?")
 
-    def execute_static(self, commands: typing.List) -> None:
+    def execute_static(self, commands: typing.List[str]) -> None:
         """
         Execute static commands.
 
@@ -192,7 +192,7 @@ class Console:
             self.usage()
 
     @staticmethod
-    def get_opts(opts: typing.List) -> typing.Tuple[typing.List, typing.Dict]:
+    def get_opts(opts: typing.List[str]) -> typing.Tuple[typing.List[str], typing.Dict[str, str]]:
         """
         Parse --key=value params.
         """
@@ -212,7 +212,7 @@ class Console:
         return args, params
 
 
-def format_error(title: str, msg: Exception):
+def format_error(title: str, msg: Exception) -> None:
     """
     Format error on STDERR.
     """
@@ -223,7 +223,7 @@ def format_error(title: str, msg: Exception):
         eprint()
 
 
-def main():
+def main() -> None:
     """
     Main app runner.
     """
