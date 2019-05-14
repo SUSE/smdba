@@ -29,7 +29,7 @@ class Console:
     # Config
     DB_BACKEND = "db_backend"
 
-    config: dict
+    config: typing.Dict[str, str]
     gate: typing.Any
 
     def __init__(self, configpath: typing.Optional[str] = None):
