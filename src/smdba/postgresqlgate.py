@@ -463,13 +463,13 @@ class PgSQLGate(BaseGate):
             """
             Info structure
             """
-            fs_dev = None
-            fs_type = None
-            size = None
-            used = None
-            available = None
-            used_prc = None
-            mountpoint = None
+            fs_dev: typing.Optional[str] = None
+            fs_type: typing.Optional[str] = None
+            size: int = 0
+            used: int = 0
+            available: int = 0
+            used_prc: typing.Optional[str] = None
+            mountpoint: typing.Optional[str] = None
 
         info = Info()
         for line in os.popen("df -T").readlines()[1:]:
