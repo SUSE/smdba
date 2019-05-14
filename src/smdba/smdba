@@ -123,10 +123,10 @@ class Console:
         if cmd:
             hlp = self.gate.get_gate_commands().get(cmd)
             print("Command:\n\t{}\n\nDescription:".format(self.translate_command(cmd)))
-            print("\t" + hlp.get('description', 'No description available') + "\n")  # type: ignore
-            if hlp.get('help'):  # type: ignore
+            print("\t" + hlp.get('description', 'No description available') + "\n")
+            if hlp.get('help'):
                 print("Parameters:")
-                print('\n'.join(["\t" + hl.replace("@nl", "") for hl in hlp.get('help').split("\n")]) + "\n")  # type: ignore
+                print('\n'.join(["\t" + hl.replace("@nl", "") for hl in hlp.get('help').split("\n")]) + "\n")
             sys.exit(1)
 
         eprint("Available commands:")
@@ -142,7 +142,7 @@ class Console:
 
         for _cmd in index_commands:
             eprint("\t", (_cmd + ((longest - len(_cmd)) * " ")), "\t",
-                   self.gate.get_gate_commands().get(self.translate_command(_cmd)).get('description', ''))  # type: ignore
+                   self.gate.get_gate_commands().get(self.translate_command(_cmd)).get('description', ''))
 
         eprint("\nTo know a complete description of each command, use parameter 'help'.")
         eprint("Usage:\n\tsmdba <command> help <ENTER>\n")
