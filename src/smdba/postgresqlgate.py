@@ -150,7 +150,9 @@ class PgTune:
 
         self.config['shared_buffers'] = self.to_mb(self.bin_rnd(mem / 4))
         self.config['effective_cache_size'] = self.to_mb(self.bin_rnd(mem * 3 / 4))
-        self.config['work_mem'] = self.to_mb(self.bin_rnd(mem / self.max_connections))
+
+        #(total physical RAM - shared_buffers) / (3 * max_connections)
+        self.config['work_mem'] = self.to_mb(self.bin_rnd((mem - self.bin_rnd(mem / 4)) / (3 * self.max_connections)))
 
         # No more than 1GB
         self.config['maintenance_work_mem'] = self.to_mb(self.bin_rnd(mbt if (mem / 0x10) > mbt else mem / 0x10))
