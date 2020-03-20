@@ -642,15 +642,35 @@ class PgSQLGate(BaseGate):
         print("finished")
         sys.stdout.flush()
 
-        print("Write recovery.conf:\t ", end="")
-        recovery_conf = os.path.join(self.config['pcnf_pg_data'], "recovery.conf")
-        cfg = open(recovery_conf, 'w')
-        cfg.write("restore_command = 'cp " + backup_dst + "/%f %p'\n")
-        cfg.close()
+        pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
 
-        # Set recovery.conf correct ownership (SMDBA is running as root at this moment)
-        data_owner = get_path_owner(self.config.get('pcnf_pg_data', PgBackup.DEFAULT_PG_DATA))
-        os.chown(recovery_conf, data_owner.uid, data_owner.gid)
+        if int(pg_version[0]) < 12:
+            print("Write recovery.conf:\t ", end="")
+            recovery_conf = os.path.join(self.config['pcnf_pg_data'], "recovery.conf")
+            cfg = open(recovery_conf, 'w')
+            cfg.write("restore_command = 'cp " + backup_dst + "/%f %p'\n")
+            cfg.close()
+
+            # Set recovery.conf correct ownership (SMDBA is running as root at this moment)
+            data_owner = get_path_owner(self.config.get('pcnf_pg_data', PgBackup.DEFAULT_PG_DATA))
+            os.chown(recovery_conf, data_owner.uid, data_owner.gid)
+        else:
+            print("Write recovery options to postgresql.conf:\t ", end="")
+            pg_conf = os.path.join(self.config['pcnf_pg_data'], "postgresql.conf")
+            conf = self._get_conf(pg_conf)
+            conf['restore_command'] = "'cp {0} /%f %p'".format(backup_dst)
+            self._write_conf(pg_conf, **conf)
+            print("finished")
+
+            print("Touch recovery.signal\t ", end="")
+            recovery_signal = os.path.join(self.config['pcnf_pg_data'], "recovery.signal")
+            cfg = open(recovery_signal, 'w')
+            cfg.write("");
+            cfg.close()
+
+            # Set recovery.conf correct ownership (SMDBA is running as root at this moment)
+            data_owner = get_path_owner(self.config.get('pcnf_pg_data', PgBackup.DEFAULT_PG_DATA))
+            os.chown(recovery_signal, data_owner.uid, data_owner.gid)
 
         print("finished")
         sys.stdout.flush()
