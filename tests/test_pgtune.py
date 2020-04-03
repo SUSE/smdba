@@ -37,7 +37,6 @@ class TestPgTune:
         assert pgtune.config['wal_buffers'] == '4MB'
         assert pgtune.config['constraint_exclusion'] == 'off'
         assert pgtune.config['max_connections'] == 10
-        assert pgtune.config['cpu_tuple_cost'] == '0.5'
 
     def test_estimate_high_values(self):
         """
@@ -63,7 +62,6 @@ class TestPgTune:
         assert pgtune.config['wal_buffers'] == '4MB'
         assert pgtune.config['constraint_exclusion'] == 'off'
         assert pgtune.config['max_connections'] == 400
-        assert pgtune.config['cpu_tuple_cost'] == '0.5'
 
     def test_estimate_low_memory(self):
         """
