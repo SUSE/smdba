@@ -169,9 +169,14 @@ class BaseGate(metaclass=abc.ABCMeta):
         :param *params: tertiary parameters
         :returns: STDOUT/STDERR tuple
         """
-        stdout, stderr = [self.to_str(stout) or "" for stout in
-                          Popen([command] + list(params), stdout=PIPE, stdin=PIPE, stderr=STDOUT,
-                                env=os.environ).communicate(input=self.to_bytes(input))]  # type: ignore
+        r = Popen([command] + list(params), stdout=PIPE, stdin=PIPE, stderr=STDOUT, env=os.environ)
+        c = r.communicate(input=self.to_bytes(input))
+        stdout, stderr = [self.to_str(stout) or "" for stout in c]
+        if r.returncode != 0:
+            raise GateException("Non zero exit code (%d) returned while calling %s\n" %
+                    (r.returncode, [command] + list(params)) +
+                    ("STDIN:\n%s\n" % (input) if input else "") +
+                    "STDOUT: %s\nSTDERR: %s\n" % (stdout, stderr))
         stderr += self.extract_errors(stdout)
 
         return stdout and stdout.strip() or '', stderr and stderr.strip() or ''
