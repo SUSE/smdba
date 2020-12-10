@@ -930,6 +930,8 @@ class PgSQLGate(BaseGate):
         # Setup postgresql.conf
         #
 
+        pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
+
         # Built-in tuner
         conn_lowest = 270
         conn_default = 400
@@ -954,10 +956,17 @@ class PgSQLGate(BaseGate):
             conf['max_wal_senders'] = 5
             changed = True
 
-        # WAL keep segments must be non-zero
-        if conf.get('wal_keep_segments', '0') == '0':
-            conf['wal_keep_segments'] = 64
-            changed = True
+        # WAL keep segments / keep size must be non-zero
+        # wal_keep_segments option is for postgresql < 13
+        # wal_keep_segments is subtituted by wal_keep_size in postgresql 13
+        if pg_version[0] <= 12:
+            if conf.get('wal_keep_segments', '0') == '0':
+                conf['wal_keep_segments'] = 64
+                changed = True
+        else:
+            if conf.get('wal_keep_size', '0') == '0':
+                conf['wal_keep_size'] = 1024
+                changed = True
 
         # Should run in archive mode
         if conf.get('archive_mode', 'off') != 'on':
