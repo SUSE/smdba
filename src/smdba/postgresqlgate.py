@@ -437,7 +437,7 @@ class PgSQLGate(BaseGate):
                 table.append((name, t_ref[name],))
             table.append(('', '',))
             table.append(('Total', ('%.2f' % round(t_total / 1024. / 1024)) + 'M',))
-            print("\n", TablePrint(table), "\n")
+            print('\n{0}'.format(TablePrint(table)))
 
     @staticmethod
     def _get_partition(fdir: str) -> str:
@@ -507,7 +507,7 @@ class PgSQLGate(BaseGate):
                              self._bt_to_mb(info.size),
                              '%.3f' % round((float(d_size) / float(info.size) * 100), 3)))
 
-        print("\n", TablePrint(overview), "\n")
+        print('\n{0}\n'.format(TablePrint(overview)))
 
     def do_space_reclaim(self, **args: str) -> None:  # pylint: disable=W0613
         """

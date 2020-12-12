@@ -465,7 +465,7 @@ class OracleGate(BaseGate):
         for name, free, used, size in [" ".join(filter(None, line.replace("\t", " ").split(" "))).split(" ")
                                        for line in stdout.strip().split("\n")[2:]]:
             table.append((name, free, used, size, str(int(float(used) / float(size) * 100)),))
-        print("\n", TablePrint(table), "\n")
+        print('\n{0}\n'.format(TablePrint(table)))
 
     def do_stats_overview(self, *args, **params):  # pylint: disable=W0613
         """
@@ -868,7 +868,7 @@ class OracleGate(BaseGate):
         table.append(('Total', ('%.2fM' % round(total / 1024. / 1024.))))
 
         if table:
-            print("\n", TablePrint(table), "\n")
+            print('\n{0}\n'.format(TablePrint(table)))
 
         if stderr:
             eprint("Error dump:")
