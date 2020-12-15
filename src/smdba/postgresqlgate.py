@@ -959,7 +959,7 @@ class PgSQLGate(BaseGate):
         # WAL keep segments / keep size must be non-zero
         # wal_keep_segments option is for postgresql < 13
         # wal_keep_segments is subtituted by wal_keep_size in postgresql 13
-        if pg_version[0] <= 12:
+        if int(pg_version[0]) <= 12:
             if conf.get('wal_keep_segments', '0') == '0':
                 conf['wal_keep_segments'] = 64
                 changed = True
