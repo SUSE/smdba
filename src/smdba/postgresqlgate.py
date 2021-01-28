@@ -605,6 +605,11 @@ class PgSQLGate(BaseGate):
         """
         Replace new backup.
         """
+        destination_tar = backup_dst + "/base.tar.gz"
+        if not os.path.exists(destination_tar):
+            print("ERROR: There is no backup to be restored")
+            print("File %s not found." % destination_tar)
+            return
         # Archive into a tgz backup and place it near the cluster
         print("Restoring from backup:\t ", end="")
         sys.stdout.flush()
@@ -622,7 +627,6 @@ class PgSQLGate(BaseGate):
         roller = Roller()
         roller.start()
 
-        destination_tar = backup_dst + "/base.tar.gz"
         temp_dir = tempfile.mkdtemp(dir=os.path.join(backup_dst, "tmp"))
         pguid = pwd.getpwnam('postgres')[2]
         pggid = grp.getgrnam('postgres')[2]
@@ -812,6 +816,11 @@ class PgSQLGate(BaseGate):
                     os.remove(backup_dir + "/base-old.tar.gz")
                 os.rename(backup_dir + "/base.tar.gz", backup_dir + "/base-old.tar.gz")
 
+            if os.path.exists(backup_dir + "/backup_manifest"):
+                if os.path.exists(backup_dir + "/backup_manifest.old"):
+                    os.remove(backup_dir + "/backup_manifest.old")
+                os.rename(backup_dir + "/backup_manifest", backup_dir + "/backup_manifest.old")
+
             b_dir_temp = os.path.join(backup_dir, 'tmp')
             cwd = os.getcwd()
             os.chdir(self.config.get('pcnf_data_directory', '/var/lib/pgsql'))
@@ -820,6 +829,8 @@ class PgSQLGate(BaseGate):
 
             if os.path.exists("{0}/base.tar.gz".format(b_dir_temp)):
                 os.rename("{0}/base.tar.gz".format(b_dir_temp), "{0}/base.tar.gz".format(backup_dir))
+            if os.path.exists("{0}/backup_manifest".format(b_dir_temp)):
+                os.rename("{0}/backup_manifest".format(b_dir_temp), "{0}/backup_manifest".format(backup_dir))
 
             # Cleanup/rotate backup
             PgBackup(backup_dir, pg_data=self.config.get('pcnf_data_directory', '/var/lib/pgsql')).cleanup_backup()
