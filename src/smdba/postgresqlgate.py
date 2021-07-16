@@ -181,6 +181,8 @@ class PgSQLGate(BaseGate):
         self.config_file = '/etc/sysconfig/postgresql'
         if not os.path.exists(self.config_file):
             self.config_file='/var/lib/pgsql/data/postgresql.conf'
+        if not os.path.exists(self.config_file):
+            raise GateException("Custom database component? Please strictly use SUSE components only!")
 
         BaseGate.__init__(self)
         self.config = config or {}
@@ -204,9 +206,6 @@ class PgSQLGate(BaseGate):
 
         if int(pg_version[0]) < minversion[0] or (int(pg_version[0]) == minversion[0] and int(pg_version[1]) < minversion[1]):
             raise GateException("Core component is too old version.")
-
-        if not os.path.exists(self.config_file):
-            raise GateException("Custom database component? Please strictly use SUSE components only!")
 
         if not os.path.exists("/usr/bin/psql"):
             msg = 'operations'
