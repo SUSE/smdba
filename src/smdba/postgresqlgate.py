@@ -178,6 +178,12 @@ class PgSQLGate(BaseGate):
     NAME = "postgresql"
 
     def __init__(self, config: typing.Dict[str, typing.Any]) -> None:
+        self.config_file = '/etc/sysconfig/postgresql'
+        if not os.path.exists(self.config_file):
+            self.config_file='/var/lib/pgsql/data/postgresql.conf'
+        if not os.path.exists(self.config_file):
+            raise GateException("Custom database component? Please strictly use SUSE components only!")
+
         BaseGate.__init__(self)
         self.config = config or {}
         self._get_sysconfig()
@@ -201,9 +207,6 @@ class PgSQLGate(BaseGate):
         if int(pg_version[0]) < minversion[0] or (int(pg_version[0]) == minversion[0] and int(pg_version[1]) < minversion[1]):
             raise GateException("Core component is too old version.")
 
-        if not os.path.exists("/etc/sysconfig/postgresql"):
-            raise GateException("Custom database component? Please strictly use SUSE components only!")
-
         if not os.path.exists("/usr/bin/psql"):
             msg = 'operations'
         elif not os.path.exists("/usr/bin/postmaster"):
@@ -226,7 +229,7 @@ class PgSQLGate(BaseGate):
         """
         Read the system config for the postgresql.
         """
-        for line in filter(None, map(lambda line: line.strip(), open('/etc/sysconfig/postgresql').readlines())):
+        for line in filter(None, map(lambda line: line.strip(), open(self.config_file).readlines())):
             if line.startswith('#'):
                 continue
             try:
@@ -251,7 +254,7 @@ class PgSQLGate(BaseGate):
         """
         PostgreSQL data dir from sysconfig.
         """
-        for line in open("/etc/sysconfig/postgresql").readlines():
+        for line in open(self.config_file).readlines():
             if line.startswith('POSTGRES_DATADIR'):
                 self.config['pcnf_pg_data'] = os.path.expanduser(line.strip().split('=', 1)[-1].replace('"', ''))
 
