@@ -15,7 +15,7 @@ find . | grep '~$' | xargs rm 2>/dev/null
 mkdir $NAME-$VERSION
 cp -rv src $NAME-$VERSION/
 cp -rv doc $NAME-$VERSION/
-cp -v LICENSE README $NAME-$VERSION/
+cp -v LICENSE README.md $NAME-$VERSION/
 cp -v setup.py $NAME-$VERSION/
 
 tar cvf - $NAME-$VERSION | bzip2 > $NAME-$VERSION.tar.bz2

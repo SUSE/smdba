@@ -23,7 +23,7 @@ class Console:
     """
 
     # General
-    VERSION = "1.7.8"
+    VERSION = "1.7.9"
     DEFAULT_CONFIG = "/etc/rhn/rhn.conf"
 
     # Config
