@@ -767,6 +767,11 @@ class PgSQLGate(BaseGate):
         if 'enable' in args.keys():
             # Check destination only in case user is enabling the backup
             if args.get('enable') == 'on':
+                # Save original value in temporary variable to re-assign after Permission Check
+                args_backup_dir_orig = args['backup-dir']
+                # If backup-dir is Symlink, use target instead
+                while os.path.islink(args['backup-dir']):
+                    args['backup-dir'] = os.readlink(args_backup_dir_orig)
                 # Same owner?
                 if os.lstat(args['backup-dir']).st_uid != os.lstat(self.config['pcnf_pg_data']).st_uid \
                        or os.lstat(args['backup-dir']).st_gid != os.lstat(self.config['pcnf_pg_data']).st_gid:
@@ -777,6 +782,8 @@ class PgSQLGate(BaseGate):
                 if oct(os.lstat(args['backup-dir']).st_mode & 0o777) != oct(os.lstat(self.config['pcnf_pg_data']).st_mode & 0o777):
                     raise GateException("The \"%s\" directory must have the same permissions as \"%s\" directory."
                                         % (args['backup-dir'], self.config['pcnf_pg_data']))
+                # Avoid issues at a later point due to different paths by setting original value
+                args['backup-dir'] = args_backup_dir_orig
             self._perform_enable_backups(**args)
 
         if 'source' in args.keys():
