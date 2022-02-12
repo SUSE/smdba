@@ -205,7 +205,7 @@ class Console:
                 if len(opt) == 2:
                     params[opt[0][2:]] = opt[1]
                 else:
-                    raise Exception("Wrong argument: {}".format(opt[0]))
+                    params[opt[0][2:]] = True
             else:
                 args.append(opt_data)
 

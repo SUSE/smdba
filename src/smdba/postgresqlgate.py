@@ -87,8 +87,9 @@ class PgTune:
     # NOTE: This is default Alpha implementation for SUSE Manager specs.
     #       With a time it going to get more smart and dynamic.
 
-    def __init__(self, max_connections: int):
+    def __init__(self, max_connections: int, ssd: bool):
         self.max_connections = max_connections
+        self.ssd = ssd
         self.config: typing.Dict[str, typing.Any] = {}
 
     @staticmethod
@@ -172,6 +173,13 @@ class PgTune:
         self.config['wal_buffers'] = '16MB'
         self.config['constraint_exclusion'] = 'off'
         self.config['max_connections'] = self.max_connections
+
+        if self.ssd:
+            self.config['random_page_cost'] = '1.1'
+            self.config['effective_io_concurrency'] = 200
+        else:
+            self.config['random_page_cost'] = '4'
+            self.config['effective_io_concurrency'] = 2
 
         return self
 
@@ -938,6 +946,7 @@ class PgSQLGate(BaseGate):
         @help
         autotuning\t\tperform initial autotuning of the database
     --max_connections=<num>\tdefine maximal number of database connections (default: 400)
+    --ssd\tset when database files are on SSD or SAN
         """
         # Check enough space
         # Check hot backup setup and clean it up automatically
@@ -959,8 +968,9 @@ class PgSQLGate(BaseGate):
             print('INFO: max_connections should be at least {0}'.format(conn_lowest))
             max_conn = conn_lowest
 
+        ssd = params.get('ssd', False)
         if 'autotuning' in args:
-            for item, value in PgTune(max_conn).estimate().config.items():
+            for item, value in PgTune(max_conn, ssd).estimate().config.items():
                 if not changed and str(conf.get(item, None)) != str(value):
                     changed = True
                 conf[item] = value
