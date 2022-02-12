@@ -127,7 +127,7 @@ class PgTune:
         """
         Convert to megabytes human-readable string.
 
-        :param value: bytes
+        :param value: kbytes
         :return:
         """
         return str(int(value / 0x400)) + 'MB'
@@ -161,10 +161,15 @@ class PgTune:
         if pg_version < [9, 6, 0]:
             self.config['checkpoint_segments'] = 8
         else:
-            self.config['max_wal_size'] = self.to_mb(0x60000)
+            self.config['max_wal_size'] = self.to_mb(0x400000)
+            self.config['min_wal_size'] = self.to_mb(0x100000)
 
-        self.config['checkpoint_completion_target'] = '0.7'
-        self.config['wal_buffers'] = self.to_mb(0x200 * 8)
+        if pg_version < [13, 0, 0]:
+            self.config['checkpoint_completion_target'] = '0.7'
+        else:
+            self.config['checkpoint_completion_target'] = '0.9'
+
+        self.config['wal_buffers'] = '16MB'
         self.config['constraint_exclusion'] = 'off'
         self.config['max_connections'] = self.max_connections
 
