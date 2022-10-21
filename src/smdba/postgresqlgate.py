@@ -1003,6 +1003,9 @@ class PgSQLGate(BaseGate):
             if conf.get('wal_keep_size', '0') == '0':
                 conf['wal_keep_size'] = 1024
                 changed = True
+            if conf.get('wal_keep_segments', '0') != '0':
+                del conf['wal_keep_segments']
+                changed = True
 
         # Should run in archive mode
         if conf.get('archive_mode', 'off') != 'on':
