@@ -952,7 +952,7 @@ class PgSQLGate(BaseGate):
         Common backend healthcheck
         @help
         autotuning\t\tperform initial autotuning of the database
-    --max_connections=<num>\tdefine maximal number of database connections (default: 400)
+    --max_connections=<num>\tdefine maximal number of database connections (default: use value in postgresql.conf or 400)
     --ssd\tset when database files are on SSD or SAN
         """
         # Check enough space
@@ -968,9 +968,9 @@ class PgSQLGate(BaseGate):
         pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
 
         # Built-in tuner
-        conn_lowest = 270
+        conn_lowest = 200
         conn_default = 400
-        max_conn = int(params.get('max_connections', conn_default))
+        max_conn = int(params.get('max_connections', conf.get('max_connections', conn_default)))
         if max_conn < conn_lowest:
             print('INFO: max_connections should be at least {0}'.format(conn_lowest))
             max_conn = conn_lowest
