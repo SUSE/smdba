@@ -975,7 +975,9 @@ class PgSQLGate(BaseGate):
             print('INFO: max_connections should be at least {0}'.format(conn_lowest))
             max_conn = conn_lowest
 
-        ssd = params.get('ssd', False)
+        # ssd set default to 200 - default is HDD / false
+        ssd_default = int(conf.get('effective_io_concurrency', 2)) > 100
+        ssd = params.get('ssd', ssd_default)
         if 'autotuning' in args:
             for item, value in PgTune(max_conn, ssd).estimate().config.items():
                 if not changed and str(conf.get(item, None)) != str(value):
