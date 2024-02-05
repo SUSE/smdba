@@ -202,7 +202,7 @@ class PgSQLGate(BaseGate):
         self._get_sysconfig()
         self._get_pg_data()
 
-        self._pid_file = os.path.join(self.config.get('pcnf_pg_data', ''), 'postmaster.pid')
+        self._pid_file = os.path.join(self.config.get('pcnf_pg_data', ''), 'postgres.pid')
         self._with_systemd = os.path.exists('/usr/bin/systemctl')
 
         if self._get_db_status():
@@ -215,14 +215,14 @@ class PgSQLGate(BaseGate):
         """
         msg = None
         minversion = [9, 6]
-        pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
+        pg_version = os.popen('/usr/bin/postgres --version').read().strip().split(' ')[-1].split('.')
 
         if int(pg_version[0]) < minversion[0] or (int(pg_version[0]) == minversion[0] and int(pg_version[1]) < minversion[1]):
             raise GateException("Core component is too old version.")
 
         if not os.path.exists("/usr/bin/psql"):
             msg = 'operations'
-        elif not os.path.exists("/usr/bin/postmaster"):
+        elif not os.path.exists("/usr/bin/postgres"):
             msg = 'database'
         elif not os.path.exists("/usr/bin/pg_ctl"):
             msg = 'control'
@@ -379,8 +379,8 @@ class PgSQLGate(BaseGate):
         if self._with_systemd:
             result = os.system('systemctl start postgresql.service')
         else:
-            # TODO: This is obsolete code, going to be removed after 2.1 EOL
-            result = os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postmaster -D %s -o %s 2>&1>/dev/null"
+            # Container might not have systemd
+            result = os.system("sudo -u postgres /usr/bin/pg_ctl start -s -w -p /usr/bin/postgres -D %s -o %s 2>&1>/dev/null"
                                % (self.config['pcnf_pg_data'], self.config.get('sysconfig_POSTGRES_OPTIONS', '""')))
         print(result and "failed" or "done")
         os.chdir(cwd)
@@ -406,7 +406,7 @@ class PgSQLGate(BaseGate):
         if self._with_systemd:
             result = os.system('systemctl stop postgresql.service')
         else:
-            # TODO: This is obsolete code, going to be removed after 2.1 EOL
+            # Container might not have systemd
             result = os.system("sudo -u postgres /usr/bin/pg_ctl stop -s -D %s -m fast"
                                % self.config.get('pcnf_data_directory', ''))
         print(result and "failed" or "done")
@@ -661,7 +661,7 @@ class PgSQLGate(BaseGate):
         print("finished")
         sys.stdout.flush()
 
-        pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
+        pg_version = os.popen('/usr/bin/postgres --version').read().strip().split(' ')[-1].split('.')
 
         if int(pg_version[0]) < 12:
             print("Write recovery.conf:\t ", end="")
@@ -965,7 +965,7 @@ class PgSQLGate(BaseGate):
         # Setup postgresql.conf
         #
 
-        pg_version = os.popen('/usr/bin/postmaster --version').read().strip().split(' ')[-1].split('.')
+        pg_version = os.popen('/usr/bin/postgres --version').read().strip().split(' ')[-1].split('.')
 
         # Built-in tuner
         conn_lowest = 200
